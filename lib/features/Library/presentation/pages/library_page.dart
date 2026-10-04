@@ -17,7 +17,6 @@ class _LibraryPageState extends State<LibraryPage> {
 
   bool _isValidImageUrl(String value) {
     final url = value.trim();
-
     return url.startsWith('http://') || url.startsWith('https://');
   }
 
@@ -30,31 +29,28 @@ class _LibraryPageState extends State<LibraryPage> {
         backgroundColor: const Color(0xFFF8F9FA),
         elevation: 0,
         automaticallyImplyLeading: false,
-
-        title: Text('All Books', style: AppWidget.HeadLineTextFeildStyle()),
-
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 20),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.shopping_cart_outlined,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-        ],
+        title: Text('Departments​', style: AppWidget.HeadLineTextFeildStyle()),
+        // actions: [
+        //   Container(
+        //     margin: const EdgeInsets.only(right: 20),
+        //     padding: const EdgeInsets.all(8),
+        //     decoration: BoxDecoration(
+        //       color: Colors.black,
+        //       borderRadius: BorderRadius.circular(10),
+        //     ),
+        //     child: const Icon(
+        //       Icons.shopping_cart_outlined,
+        //       color: Colors.white,
+        //       size: 22,
+        //     ),
+        //   ),
+        // ],
       ),
 
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: StreamBuilder<QuerySnapshot>(
           stream: _subjectsStream,
-
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -64,7 +60,6 @@ class _LibraryPageState extends State<LibraryPage> {
 
             if (snapshot.hasError) {
               debugPrint('Library Firestore Error: ${snapshot.error}');
-
               return _buildMessage(
                 icon: Icons.error_outline,
                 message: 'Failed to load subjects.',
@@ -96,7 +91,6 @@ class _LibraryPageState extends State<LibraryPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     Text(
                       'Total: ${docs.length}',
                       style: const TextStyle(color: Colors.grey, fontSize: 14),
@@ -109,18 +103,15 @@ class _LibraryPageState extends State<LibraryPage> {
                 Expanded(
                   child: GridView.builder(
                     itemCount: docs.length,
-
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 15,
-                          mainAxisSpacing: 15,
-                          childAspectRatio: 1.1,
-                        ),
-
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 15,
+                      mainAxisSpacing: 15,
+                      childAspectRatio: 1.1,
+                    ),
                     itemBuilder: (context, index) {
                       final doc = docs[index];
-
                       final data = doc.data() as Map<String, dynamic>;
 
                       final String title =
@@ -155,34 +146,30 @@ class _LibraryPageState extends State<LibraryPage> {
         color: const Color(0xFFE9ECEF),
         borderRadius: BorderRadius.circular(15),
       ),
-
       child: InkWell(
         borderRadius: BorderRadius.circular(15),
-
         onTap: () {
+          // កែប្រែត្រង់នេះ៖ លុប level: 1 ចោល ដើម្បីផ្ញើតែ subjectId និង categoryName
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  SubPage(subjectId: subjectId, categoryName: title, level: 1),
+              builder: (context) => SubPage(
+                subjectId: subjectId,
+                categoryName: title,
+              ),
             ),
           );
         },
-
         child: Padding(
           padding: const EdgeInsets.all(15),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
                 children: [
                   _buildSubjectImage(imageUrl),
-
                   const Icon(
                     Icons.arrow_forward_ios,
                     size: 17,
@@ -190,25 +177,20 @@ class _LibraryPageState extends State<LibraryPage> {
                   ),
                 ],
               ),
-
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-
                 children: [
                   Text(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   const Text(
                     'Tap to view lessons',
                     style: TextStyle(color: Colors.black38, fontSize: 12),
@@ -227,12 +209,10 @@ class _LibraryPageState extends State<LibraryPage> {
       return Container(
         height: 50,
         width: 50,
-
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
         ),
-
         child: const Icon(
           Icons.menu_book_outlined,
           size: 30,
@@ -243,23 +223,18 @@ class _LibraryPageState extends State<LibraryPage> {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-
       child: Image.network(
         imageUrl,
         height: 50,
         width: 50,
-        fit: BoxFit.contain,
-
+        fit: BoxFit.cover, // កែជា BoxFit.cover ដើម្បីឲ្យរូបភាពពេញ Box ស្អាត
         loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
+          if (loadingProgress == null) return child;
 
           return Container(
             height: 50,
             width: 50,
             color: Colors.white,
-
             child: const Center(
               child: SizedBox(
                 height: 20,
@@ -272,13 +247,11 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
           );
         },
-
         errorBuilder: (context, error, stackTrace) {
           return Container(
             height: 50,
             width: 50,
             color: Colors.white,
-
             child: const Icon(
               Icons.broken_image_outlined,
               size: 28,
@@ -298,12 +271,9 @@ class _LibraryPageState extends State<LibraryPage> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-
         children: [
           Icon(icon, size: 50, color: color),
-
           const SizedBox(height: 10),
-
           Text(message, style: TextStyle(color: color, fontSize: 16)),
         ],
       ),
