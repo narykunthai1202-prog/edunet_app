@@ -48,6 +48,14 @@ dependencies:
   cached_network_image: ^3.4.1
   google_sign_in: ^6.2.1
   syncfusion_flutter_pdfviewer: 33.2.12
+  curved_navigation_bar: ^1.0.3
+  flutter_stripe: ^12.6.0
+  random_string: ^2.3.1
+  shared_preferences: ^2.5.5
+  url_launcher: ^6.3.2
+  easy_pdf_viewer: ^1.0.8 # 🔥 ថែម Package នេះសម្រាប់បើកមើលឯកសារ PDF ផ្ទាល់
+  file_picker: ^11.0.2
+  pdfx: ^2.9.2
 
 dev_dependencies:
   flutter_test:

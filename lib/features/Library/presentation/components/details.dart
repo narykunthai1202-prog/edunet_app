@@ -1,18 +1,23 @@
-import 'package:edunest_app/widget/widget_support.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Details extends StatefulWidget {
-  final String lessonName;
-  final String typeName;
+  final String lessonName; // ចំណងជើងមេរៀន (Title) — ត្រូវបង្ហាញនៅ AppBar
+  final String typeName; // Book / Slide / Exercise...
+  final String generation; // 16 / 17 / 18...
   final String lessonText;
   final String fileUrl;
-  final String detailType;
+  final String detailType; // TEXT / IMAGE / PDF
 
   const Details({
     super.key,
     required this.lessonName,
     required this.typeName,
+    this.generation = '',
     required this.lessonText,
     required this.fileUrl,
     required this.detailType,
@@ -24,33 +29,175 @@ class Details extends StatefulWidget {
 
 class _DetailsState extends State<Details> {
   // ============================================================
-  // CHECK URL
+  // PDF STATE (សម្រាប់បង្ហាញក្នុង app)
   // ============================================================
+  Uint8List? _pdfBytes;
+  String? _pdfErrorMessage;
+  bool _isPdfLoading = false;
 
+  final PdfViewerController _pdfController = PdfViewerController();
+  int _currentPage = 1;
+  int _totalPages = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final String type = widget.detailType.trim().toUpperCase();
+    if (type == "PDF" && hasValidUrl) {
+      _isPdfLoading = true;
+      _loadPdf();
+    }
+  }
+
+  // ============================================================
+  // CHECK URL VALIDITY
+  // ============================================================
   bool get hasValidUrl {
     final url = widget.fileUrl.trim();
-
     return url.startsWith("http://") || url.startsWith("https://");
   }
 
   // ============================================================
-  // CONTENT
+  // DOWNLOAD PDF FROM CLOUDINARY (ដើម្បីបង្ហាញក្នុង app)
   // ============================================================
+  Future<void> _loadPdf() async {
+    final String url = widget.fileUrl.trim();
 
-  Widget _buildContent() {
-    final String type = widget.detailType.trim().toUpperCase();
+    try {
+      final response = await http.get(Uri.parse(url));
+      final Uint8List bytes = response.bodyBytes;
 
+      if (!mounted) return;
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _isPdfLoading = false;
+          _pdfErrorMessage = "HTTP ${response.statusCode}";
+        });
+        return;
+      }
+
+      final bool looksLikePdf = bytes.length > 5 &&
+          String.fromCharCodes(bytes.sublist(0, 5)) == "%PDF-";
+
+      if (!looksLikePdf) {
+        setState(() {
+          _isPdfLoading = false;
+          _pdfErrorMessage = "Server មិនបានផ្ញើ PDF មកទេ";
+        });
+        return;
+      }
+
+      setState(() {
+        _pdfBytes = bytes;
+        _isPdfLoading = false;
+      });
+    } catch (e) {
+      debugPrint("❌ PDF download error: $e");
+      if (!mounted) return;
+      setState(() {
+        _isPdfLoading = false;
+        _pdfErrorMessage = "មិនអាចទាញយក PDF បាន: $e";
+      });
+    }
+  }
+
+  // ============================================================
+  // OPEN / DOWNLOAD PDF (ប្រើ url_launcher — ដំណើរការដូចគ្នា
+  // ទាំង Web និង Mobile, គ្មាន file_picker/dart:html ត្រូវការ)
+  // ============================================================
+  Future<void> _openPdfExternally() async {
+    final Uri uri = Uri.parse(widget.fileUrl.trim());
+
+    try {
+      final bool launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("មិនអាចបើក PDF បានទេ")),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Open PDF error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("មិនអាចបើក PDF បាន: $e")),
+      );
+    }
+  }
+
+  // ============================================================
+  // PDF VIEWER (full width, no card, with page counter overlay)
+  // ============================================================
+  Widget _buildPdfViewer() {
     final String fileUrl = widget.fileUrl.trim();
 
-    debugPrint("======================================");
-    debugPrint("Lesson Name : ${widget.lessonName}");
-    debugPrint("Detail Type : $type");
-    debugPrint("File URL    : $fileUrl");
-    debugPrint("======================================");
+    if (!hasValidUrl) {
+      return _buildErrorState(
+        icon: Icons.picture_as_pdf_outlined,
+        title: "គ្មាន URL PDF",
+        message: "មិនអាចស្វែងរក Link របស់ PDF បានទេ",
+      );
+    }
 
-    // ==========================================================
-    // TEXT
-    // ==========================================================
+    if (_isPdfLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.cyan),
+      );
+    }
+
+    if (_pdfErrorMessage != null || _pdfBytes == null) {
+      return _buildErrorState(
+        icon: Icons.picture_as_pdf_outlined,
+        title: "មិនអាចបើក PDF បាន!",
+        message: "${_pdfErrorMessage ?? 'Unknown error'}\n\n$fileUrl",
+      );
+    }
+
+    return Stack(
+      children: [
+        SfPdfViewer.memory(
+          _pdfBytes!,
+          controller: _pdfController,
+          onDocumentLoaded: (PdfDocumentLoadedDetails details) {
+            setState(() => _totalPages = details.document.pages.count);
+          },
+          onPageChanged: (PdfPageChangedDetails details) {
+            setState(() => _currentPage = details.newPageNumber);
+          },
+        ),
+
+        // Page counter (ដូច "1/20" ក្នុង mockup)
+        if (_totalPages > 0)
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                "$_currentPage/$_totalPages",
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // CONTENT (Text / Image) — used only for non-PDF lesson types
+  // ============================================================
+  Widget _buildTextOrImageContent() {
+    final String type = widget.detailType.trim().toUpperCase();
+    final String fileUrl = widget.fileUrl.trim();
 
     if (type == "TEXT") {
       return Align(
@@ -69,30 +216,12 @@ class _DetailsState extends State<Details> {
       );
     }
 
-    // ==========================================================
-    // IMAGE
-    // ==========================================================
-
     if (type == "IMAGE") {
       if (!hasValidUrl) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(30),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.image_not_supported_outlined,
-                  size: 60,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "គ្មាន URL រូបភាព",
-                  style: TextStyle(color: Colors.redAccent, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
+        return _buildErrorState(
+          icon: Icons.image_not_supported_outlined,
+          title: "គ្មាន URL រូបភាព",
+          message: "សូមពិនិត្យមើល URL នៅក្នុង Firestore ឡើងវិញ",
         );
       }
 
@@ -102,218 +231,162 @@ class _DetailsState extends State<Details> {
           fileUrl,
           width: double.infinity,
           fit: BoxFit.contain,
-
           loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) {
-              return child;
-            }
-
+            if (loadingProgress == null) return child;
             return const SizedBox(
-              height: 300,
-              child: Center(child: CircularProgressIndicator()),
-            );
-          },
-
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint("❌ Image Error: $error");
-
-            debugPrint("❌ Image URL: $fileUrl");
-
-            return Padding(
-              padding: const EdgeInsets.all(30),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.broken_image_outlined,
-                    size: 60,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "មិនអាចបង្ហាញរូបភាពបាន!",
-                    style: TextStyle(color: Colors.red, fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  SelectableText(
-                    fileUrl,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ],
+              height: 250,
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.cyan),
               ),
             );
           },
-        ),
-      );
-    }
-
-    // ==========================================================
-    // PDF
-    // ==========================================================
-
-    if (type == "PDF") {
-      if (!hasValidUrl) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(30),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.picture_as_pdf_outlined,
-                  size: 60,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "គ្មាន URL PDF",
-                  style: TextStyle(color: Colors.redAccent, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      debugPrint("📄 Loading PDF: $fileUrl");
-
-      return SizedBox(
-        height: 600,
-
-        child: SfPdfViewer.network(
-          fileUrl,
-
-          onDocumentLoaded: (PdfDocumentLoadedDetails details) {
-            debugPrint("✅ PDF loaded successfully!");
-          },
-
-          onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-            debugPrint("❌ PDF Load Failed");
-
-            debugPrint("Description: ${details.description}");
-
-            debugPrint("Error: ${details.error}");
+          errorBuilder: (context, error, stackTrace) {
+            return _buildErrorState(
+              icon: Icons.broken_image_outlined,
+              title: "មិនអាចបង្ហាញរូបភាពបាន!",
+              message: fileUrl,
+            );
           },
         ),
       );
     }
 
-    // ==========================================================
-    // UNKNOWN TYPE
-    // ==========================================================
+    return _buildErrorState(
+      icon: Icons.help_outline,
+      title: "ប្រភេទមេរៀនមិនត្រឹមត្រូវ",
+      message: "LessonType: ${widget.detailType}",
+    );
+  }
 
+  Widget _buildErrorState({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
     return Center(
-      child: Column(
-        children: [
-          const Icon(Icons.help_outline, size: 60, color: Colors.orange),
-
-          const SizedBox(height: 10),
-
-          Text(
-            "ប្រភេទមេរៀនមិនត្រឹមត្រូវ",
-            style: const TextStyle(color: Colors.orange, fontSize: 16),
-          ),
-
-          const SizedBox(height: 5),
-
-          Text(
-            "LessonType: ${widget.detailType}",
-            style: const TextStyle(color: Colors.grey),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 55, color: Colors.redAccent),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            SelectableText(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ============================================================
-  // BUILD
-  // ============================================================
+  String get _subtitleText {
+    final parts = <String>[
+      widget.typeName,
+      if (widget.generation.trim().isNotEmpty)
+        'ជំនាន់ទី${widget.generation.trim()}',
+    ];
+    return parts.join(' • ');
+  }
 
   @override
   Widget build(BuildContext context) {
     final String type = widget.detailType.trim().toUpperCase();
-
-    String formatKhmer;
-
-    if (type == "IMAGE") {
-      formatKhmer = "រូបភាព";
-    } else if (type == "PDF") {
-      formatKhmer = "ឯកសារ PDF";
-    } else {
-      formatKhmer = "អត្ថបទ";
-    }
+    final bool isPdf = type == "PDF";
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFDFB),
+      backgroundColor: isPdf ? Colors.black12 : const Color(0xFFFFFDFB),
 
+      // ================================================================
+      // AppBar: ចំណងជើងមេរៀន (Title) នៅលើគេ, Type/Generation ជា subtitle
+      // ================================================================
       appBar: AppBar(
-        title: Text(widget.typeName, style: AppWidget.HeadLineTextFeildStyle()),
-
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
-      ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-
-        child: Container(
-          width: double.infinity,
-
-          padding: const EdgeInsets.all(22),
-
-          decoration: BoxDecoration(
-            color: Colors.white,
-
-            borderRadius: BorderRadius.circular(15),
-
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // Lesson Name
-                Text(
-                  widget.lessonName,
-
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 6),
-
-                // Type
-                Text(
-                  "ទម្រង់មេរៀន៖ $formatKhmer",
-
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-
-                const Divider(
-                  height: 30,
-                  thickness: 1,
-                  color: Color(0xFFF0F0F0),
-                ),
-
-                // Content
-                _buildContent(),
-              ],
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.lessonName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
+            Text(
+              _subtitleText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
         ),
+        actions: [
+          // Download/Open button — មានតែពេលជា PDF
+          if (isPdf && hasValidUrl)
+            IconButton(
+              tooltip: "ទាញយក PDF",
+              onPressed: _openPdfExternally,
+              icon: const Icon(Icons.download_outlined, color: Colors.black87),
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
+
+      // ================================================================
+      // BODY
+      // ================================================================
+      body: isPdf
+          // PDF: ពេញអេក្រង់ គ្មាន card, គ្មាន title ស្ទួន (Title នៅ AppBar ហើយ)
+          ? SafeArea(child: _buildPdfViewer())
+
+          // TEXT / IMAGE: រក្សាទុករចនាប័ទ្មកាតដូចដើម
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(10),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: _buildTextOrImageContent(),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }
