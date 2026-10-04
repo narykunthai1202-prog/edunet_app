@@ -1,0 +1,4 @@
+class AppConstant {
+  static const String publishableKey = "pk_test_51TMrBGAP38DYezTdZDp8iohmjiMsIjGy4d6ilgG2a2ryUmpWBW3hMEGZlis87Y21HVIbhmI4pEoOrRKe5zYJoV1200blgc0ANm";
+  static const String secretKey ="sk_test_51TMrBGAP38DYezTdwDU52yY4yBw90YANmTGQoMxO26wGWEps7mqFOybj6OFHfByjiVUwknnYm2WObDyWfMRjJ2WE00Gtu64Rsg";
+}
