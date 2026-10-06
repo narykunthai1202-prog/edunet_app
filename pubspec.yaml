@@ -56,7 +56,10 @@ dependencies:
   easy_pdf_viewer: ^1.0.8 # 🔥 ថែម Package នេះសម្រាប់បើកមើលឯកសារ PDF ផ្ទាល់
   file_picker: ^11.0.2
   pdfx: ^2.9.2
-
+  # Notifications & Timezone
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^5.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
