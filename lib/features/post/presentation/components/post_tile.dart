@@ -328,6 +328,9 @@ void onCommentProfileTap(String userId) {
       imgurl: null,
       text: text.trim(),
       timestamp: DateTime.now(),
+      reactions: [],
+      replies: [],
+      
     );
 
     try {

@@ -164,6 +164,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
               case TaskSort.status:
                 return (a.done ? 1 : 0).compareTo(b.done ? 1 : 0);
               case TaskSort.time:
+              // ignore: unreachable_switch_default
               default:
                 if (a.time == null && b.time == null) return 0;
                 if (a.time == null) return 1;

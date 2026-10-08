@@ -1,6 +1,6 @@
 import 'package:edunest_app/features/post/presentation/components/post_tile.dart';
 import 'package:edunest_app/features/post/presentation/cubits/post_cubit.dart';
-import 'package:edunest_app/features/post/presentation/cubits/post_states.dart';
+import 'package:edunest_app/features/post/domain/entities/post.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,56 +9,82 @@ class ListViewPostByprivacy extends StatefulWidget {
   final String? viewerUid;
   final VoidCallback? onOwnProfileTap;
 
-
-  const ListViewPostByprivacy({super.key, required this.uid, this.onOwnProfileTap, this.viewerUid });
+  const ListViewPostByprivacy({
+    super.key,
+    required this.uid,
+    this.onOwnProfileTap,
+    this.viewerUid,
+  });
 
   @override
-  State<ListViewPostByprivacy> createState() => _ListViewPostByprivacyState();
+  State<ListViewPostByprivacy> createState() =>
+      _ListViewPostByprivacyState();
 }
 
 class _ListViewPostByprivacyState extends State<ListViewPostByprivacy> {
+  List<Post> _posts = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((_){
-      context.read<PostCubit>().getVisiblePostsByUserId(widget.uid, widget.viewerUid);
-    });
+    super.initState();
+    _fetchPosts();
+  }
+
+  Future<void> _fetchPosts() async {
+    try {
+      final posts = await context.read<PostCubit>().getVisiblePostsByUserId(
+        widget.uid,
+        widget.viewerUid,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _posts = posts;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _posts = [];
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PostCubit, PostState>(
-      builder: (context, state) {
-        if (state is PostLoadedState) {
-          final userPosts = state.posts
-              .where((post) => post.userId == widget.uid)
-              .toList();
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-          if (userPosts.isEmpty) {
-            return const Center(child: Text('No Posts Yet'));
-          }
+    if (_posts.isEmpty) {
+      return const Center(
+        child: Text('No Posts Yet'),
+      );
+    }
 
-          return ListView.builder(
-            itemCount: userPosts.length,
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            itemBuilder: (context, index) {
-              final post = userPosts[index];
+    return ListView.builder(
+      itemCount: _posts.length,
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemBuilder: (context, index) {
+        final post = _posts[index];
 
-              return PostTile(
-                post: post,
+        return PostTile(
+          post: post,
+          onDeletePressed: () {
+            context.read<PostCubit>().deletePost(post.id);
 
-                onDeletePressed: () {
-                  context.read<PostCubit>().deletePost(post.id);
-                },
-              );
-            },
-          );
-        } else if (state is PostLoadingState) {
-          return const Center(child: CircularProgressIndicator());
-        } else {
-          return const Center(child: Text('No Posts'));
-        }
+            setState(() {
+              _posts.removeWhere((p) => p.id == post.id);
+            });
+          },
+        );
       },
     );
   }

@@ -457,4 +457,143 @@ Future<List<Post>> fetchVisiblePostsByUserId(
       throw Exception('Failed to edit post: $e');
     }
   }
+
+  @override
+  Future<void> addReply(String postId, String commentId, Comment reply) async {
+   try{
+   final postDoc = await postscollection.doc(postId).get();
+
+    if (!postDoc.exists) {
+      throw Exception('Post not found');
+    }
+
+    final post = Post.fromJson(
+      postDoc.data() as Map<String, dynamic>,
+    );
+    final commentIndex = post.comments.indexWhere((comment) => comment.id == commentId);
+    if(commentIndex == -1){
+      throw Exception('Comment not found');
+    }
+    final comment = post.comments[commentIndex];
+    final updatedReplies = List<Comment>.from(comment.replies);
+    updatedReplies.add(reply);
+    final updatedComment = comment.CopyWith(
+      replies: updatedReplies,
+    );
+    final updatedComments = List<Comment>.from(post.comments);
+    updatedComments[commentIndex] = updatedComment;
+    await postscollection.doc(postId).update({
+      'comments': updatedComments.map((comment) => comment.toJson()).toList(),
+    });
+
+   } catch (e){
+    throw Exception('Failed to add reply: $e');
+   }
+  }
+
+  @override
+Future<void> deleteReply(
+  String postId,
+  String commentId,
+  String replyId,
+) async {
+  try {
+    final postDoc = await postscollection.doc(postId).get();
+
+    if (!postDoc.exists) {
+      throw Exception('Post not found');
+    }
+
+    final post = Post.fromJson(
+      postDoc.data() as Map<String, dynamic>,
+    );
+
+    final commentIndex = post.comments.indexWhere(
+      (comment) => comment.id == commentId,
+    );
+
+    if (commentIndex == -1) {
+      throw Exception('Comment not found');
+    }
+
+    final comment = post.comments[commentIndex];
+
+    final updatedReplies = List<Comment>.from(comment.replies);
+
+    updatedReplies.removeWhere(
+      (reply) => reply.id == replyId,
+    );
+
+    final updatedComment = comment.CopyWith(
+      replies: updatedReplies,
+    );
+
+    final updatedComments = List<Comment>.from(post.comments);
+    updatedComments[commentIndex] = updatedComment;
+
+    await postscollection.doc(postId).update({
+      'comments': updatedComments
+          .map((comment) => comment.toJson())
+          .toList(),
+    });
+  } catch (e) {
+    throw Exception('Error deleting reply: $e');
+  }
+}
+@override
+Future<void> toggleCommentReaction(
+  String postId,
+  String commentId,
+  String userId,
+) async {
+  try {
+    final postDoc = await postscollection.doc(postId).get();
+
+    if (!postDoc.exists) {
+      throw Exception('Post not found');
+    }
+
+    final post = Post.fromJson(
+      postDoc.data() as Map<String, dynamic>,
+    );
+
+    final commentIndex = post.comments.indexWhere(
+      (comment) => comment.id == commentId,
+    );
+
+    if (commentIndex == -1) {
+      throw Exception('Comment not found');
+    }
+
+    final comment = post.comments[commentIndex];
+
+    final updatedReactions = List<String>.from(
+      comment.reactions,
+    );
+
+    if (updatedReactions.contains(userId)) {
+      // Remove reaction
+      updatedReactions.remove(userId);
+    } else {
+      // Add reaction
+      updatedReactions.add(userId);
+    }
+
+    final updatedComment = comment.CopyWith(
+      reactions: updatedReactions,
+    );
+
+    final updatedComments = List<Comment>.from(post.comments);
+    updatedComments[commentIndex] = updatedComment;
+
+    await postscollection.doc(postId).update({
+      'comments': updatedComments
+          .map((comment) => comment.toJson())
+          .toList(),
+    });
+  } catch (e) {
+    throw Exception('Error toggling comment reaction: $e');
+  }
+}
+  
 }
