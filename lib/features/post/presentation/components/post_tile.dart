@@ -211,24 +211,25 @@ class _PostTileState extends State<PostTile> {
 
   //open comment box -> user wants to type new comment
   void showComments() {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-    ),
-    builder: (context) {
-      return CommentBottomSheet(
-        postId: widget.post.id,
-        comments: widget.post.comments,
-        userprofileimg: currentUserProfile?.profileImageUrl,
-        onSubmit: addComment,
-        on_comment_profile_tap: onCommentProfileTap,
-      );
-    },
-  );
-}
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return CommentBottomSheet(
+          postId: widget.post.id,
+          comments: widget.post.comments,
+          userprofileimg: currentUserProfile?.profileImageUrl,
+          currentUserName: currentUser?.uid,
+          onSubmit: addComment,
+          on_comment_profile_tap: onCommentProfileTap,
+        );
+      },
+    );
+  }
 
   void showlikes() {
     showModalBottomSheet(
@@ -243,72 +244,68 @@ class _PostTileState extends State<PostTile> {
       },
     );
   }
-void onprofiletap() {
-  final currentuser = context.read<AuthCubit>().currentUser;
 
-  if (currentuser?.uid == widget.post.userId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ViewProfile(
-          uid: widget.post.userId,
-          onDrawerOpened: () {
-            setState(() {
-              _showBottomNav = false;
-            });
-          },
-          onDrawerClosed: () {
-            setState(() {
-              _showBottomNav = true;
-            });
-          },
-        ),
-      ),
-    );
-  } else {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OtherViewProfile(
-          uid: widget.post.userId,
-        ),
-      ),
-    );
-  }
-}
-void onCommentProfileTap(String userId) {
-  final currentuser = context.read<AuthCubit>().currentUser;
+  void onprofiletap() {
+    final currentuser = context.read<AuthCubit>().currentUser;
 
-  if (currentuser?.uid == userId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ViewProfile(
-          uid: userId,
-          onDrawerOpened: () {
-            setState(() {
-              _showBottomNav = false;
-            });
-          },
-          onDrawerClosed: () {
-            setState(() {
-              _showBottomNav = true;
-            });
-          },
+    if (currentuser?.uid == widget.post.userId) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ViewProfile(
+            uid: widget.post.userId,
+            onDrawerOpened: () {
+              setState(() {
+                _showBottomNav = false;
+              });
+            },
+            onDrawerClosed: () {
+              setState(() {
+                _showBottomNav = true;
+              });
+            },
+          ),
         ),
-      ),
-    );
-  } else {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OtherViewProfile(
-          uid: userId,
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtherViewProfile(uid: widget.post.userId),
         ),
-      ),
-    );
+      );
+    }
   }
-}
+
+  void onCommentProfileTap(String userId) {
+    final currentuser = context.read<AuthCubit>().currentUser;
+
+    if (currentuser?.uid == userId) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ViewProfile(
+            uid: userId,
+            onDrawerOpened: () {
+              setState(() {
+                _showBottomNav = false;
+              });
+            },
+            onDrawerClosed: () {
+              setState(() {
+                _showBottomNav = true;
+              });
+            },
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => OtherViewProfile(uid: userId)),
+      );
+    }
+  }
 
   Future<Comment?> addComment(String text, File? image) async {
     if (currentUser == null) {
@@ -330,7 +327,6 @@ void onCommentProfileTap(String userId) {
       timestamp: DateTime.now(),
       reactions: [],
       replies: [],
-      
     );
 
     try {
@@ -358,30 +354,29 @@ void onCommentProfileTap(String userId) {
   void dispose() {
     super.dispose();
   }
-void reportPost() {
-  if (currentUser == null) return;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(25),
+  void reportPost() {
+    if (currentUser == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-    ),
-    builder: (context) {
-      return BlocProvider.value(
-        value: this.context.read<ReportCubit>(),
-        child: ReportDialog(
-          targetId: widget.post.id,
-          targetType: 'post',
-          reporterId: currentUser!.uid,
-        ),
-      );
-    },
-  );
-}
+      builder: (context) {
+        return BlocProvider.value(
+          value: this.context.read<ReportCubit>(),
+          child: ReportDialog(
+            targetId: widget.post.id,
+            targetType: 'post',
+            reporterId: currentUser!.uid,
+          ),
+        );
+      },
+    );
+  }
 
   void copyLink() {
     // TODO: hook up real share/copy-link logic
@@ -394,7 +389,7 @@ void reportPost() {
       return [
         OptionItem(
           title: 'Edit Post',
-         value: () {
+          value: () {
             // Navigate to the edit post screen
             Navigator.push(
               context,
@@ -442,7 +437,7 @@ void reportPost() {
               onSave: toggleSavePost,
               savedcount: widget.post.savedBy.length.toString(),
               isSaved: isSaved,
-              commentcount: widget.post.comments.length.toString(),
+              commentcount: widget.post.comments.length.toString() ,
               ondoubletap: togglelikePost,
               onprofiletap: onprofiletap,
               privacy: widget.post.privacy,

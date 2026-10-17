@@ -3,7 +3,6 @@ import 'package:edunest_app/features/post/presentation/cubits/report_state.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-
 class ReportDialog extends StatefulWidget {
   final String targetId;
   final String targetType;
@@ -23,8 +22,7 @@ class ReportDialog extends StatefulWidget {
 class _ReportDialogState extends State<ReportDialog> {
   String? selectedReason;
 
-  final TextEditingController descriptionController =
-      TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
   final List<String> reasons = [
     'Spam',
@@ -45,21 +43,19 @@ class _ReportDialogState extends State<ReportDialog> {
 
   void submitReport() {
     if (selectedReason == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a reason.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a reason.')));
       return;
     }
 
     context.read<ReportCubit>().submitReport(
-          reporterId: widget.reporterId,
-          targetId: widget.targetId,
-          targetType: widget.targetType,
-          reason: selectedReason!,
-          description: descriptionController.text.trim(),
-        );
+      reporterId: widget.reporterId,
+      targetId: widget.targetId,
+      targetType: widget.targetType,
+      reason: selectedReason!,
+      description: descriptionController.text.trim(),
+    );
   }
 
   @override
@@ -71,9 +67,7 @@ class _ReportDialogState extends State<ReportDialog> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'Thank you. Your report has been submitted.',
-              ),
+              content: Text('Thank you. Your report has been submitted.'),
             ),
           );
         }
@@ -82,20 +76,14 @@ class _ReportDialogState extends State<ReportDialog> {
           Navigator.pop(context);
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'You have already reported this.',
-              ),
-            ),
+            const SnackBar(content: Text('You have already reported this.')),
           );
         }
 
         if (state is ReportError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Failed to submit report: ${state.message}',
-              ),
+              content: Text('Failed to submit report: ${state.message}'),
             ),
           );
         }
@@ -117,40 +105,33 @@ class _ReportDialogState extends State<ReportDialog> {
               children: [
                 const Text(
                   'Report',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 8),
 
                 Text(
                   'Why are you reporting this ${widget.targetType}?',
-                  style: const TextStyle(
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(fontSize: 14),
                 ),
 
                 const SizedBox(height: 16),
 
-                ...reasons.map(
-                  (reason) {
-                    return RadioListTile<String>(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(reason),
-                      value: reason,
-                      groupValue: selectedReason,
-                      onChanged: isSubmitting
-                          ? null
-                          : (value) {
-                              setState(() {
-                                selectedReason = value;
-                              });
-                            },
-                    );
-                  },
-                ),
+                ...reasons.map((reason) {
+                  return RadioListTile<String>(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(reason),
+                    value: reason,
+                    groupValue: selectedReason,
+                    onChanged: isSubmitting
+                        ? null
+                        : (value) {
+                            setState(() {
+                              selectedReason = value;
+                            });
+                          },
+                  );
+                }),
 
                 const SizedBox(height: 8),
 
@@ -168,16 +149,12 @@ class _ReportDialogState extends State<ReportDialog> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isSubmitting
-                        ? null
-                        : submitReport,
+                    onPressed: isSubmitting ? null : submitReport,
                     child: isSubmitting
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Text('Submit Report'),
                   ),

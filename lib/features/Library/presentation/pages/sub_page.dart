@@ -53,7 +53,8 @@ class _Lesson {
       type: data['Type']?.toString().trim().isNotEmpty == true
           ? data['Type'].toString().trim()
           : 'Other',
-      generation: data['Generation']?.toString() ??
+      generation:
+          data['Generation']?.toString() ??
           data['SubCategory1']?.toString() ??
           '',
       lessonType: data['LessonType']?.toString().trim().toUpperCase() ?? 'TEXT',
@@ -94,12 +95,12 @@ bool isSlideType(String type) {
 class _DragScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.unknown,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.unknown,
+  };
 }
 
 // ================================================================
@@ -286,8 +287,7 @@ class _SubPageState extends State<SubPage> {
               );
             }
 
-            final lessons =
-                snapshot.data!.docs.map(_Lesson.fromDoc).toList();
+            final lessons = snapshot.data!.docs.map(_Lesson.fromDoc).toList();
 
             final Map<String, List<_Lesson>> grouped = {};
             for (final lesson in lessons) {
@@ -298,11 +298,12 @@ class _SubPageState extends State<SubPage> {
 
             final String? activeFilter =
                 (_selectedType != null && grouped.containsKey(_selectedType))
-                    ? _selectedType
-                    : null;
+                ? _selectedType
+                : null;
 
-            final List<String> visibleTypes =
-                activeFilter == null ? allTypes : [activeFilter];
+            final List<String> visibleTypes = activeFilter == null
+                ? allTypes
+                : [activeFilter];
 
             return CustomScrollView(
               slivers: [
@@ -379,20 +380,18 @@ class _SubPageState extends State<SubPage> {
                         mainAxisSpacing: 16,
                         childAspectRatio: _gridAspectRatio(activeFilter),
                       ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final lesson = grouped[activeFilter]![index];
-                          return _LessonCard(
-                            lesson: lesson,
-                            categoryName: widget.categoryName,
-                            style: _formatStyle(lesson.lessonType),
-                            aspectRatio:
-                                isSlideType(activeFilter) ? 16 / 9 : 3 / 4,
-                            onTap: () => _openLesson(lesson),
-                          );
-                        },
-                        childCount: grouped[activeFilter]!.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final lesson = grouped[activeFilter]![index];
+                        return _LessonCard(
+                          lesson: lesson,
+                          categoryName: widget.categoryName,
+                          style: _formatStyle(lesson.lessonType),
+                          aspectRatio: isSlideType(activeFilter)
+                              ? 16 / 9
+                              : 3 / 4,
+                          onTap: () => _openLesson(lesson),
+                        );
+                      }, childCount: grouped[activeFilter]!.length),
                     ),
                   ),
                 ],
@@ -553,7 +552,10 @@ class _LessonGroupSection extends StatelessWidget {
                   children: [
                     _ArrowButton(icon: Icons.chevron_left, onTap: onScrollLeft),
                     const SizedBox(width: 6),
-                    _ArrowButton(icon: Icons.chevron_right, onTap: onScrollRight),
+                    _ArrowButton(
+                      icon: Icons.chevron_right,
+                      onTap: onScrollRight,
+                    ),
                   ],
                 ),
               ],
@@ -570,7 +572,7 @@ class _LessonGroupSection extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: lessons.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
                   final lesson = lessons[index];
                   return _LessonCard(
@@ -702,7 +704,7 @@ class _LessonCard extends StatelessWidget {
       return Image.network(
         lesson.detail,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _iconPlaceholder(),
+        errorBuilder: (_, _, _) => _iconPlaceholder(),
       );
     }
 

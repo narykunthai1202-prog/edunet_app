@@ -188,7 +188,10 @@ class _OtherViewProfileState extends State<OtherViewProfile> {
                 _showPosts
                     ? Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: ListViewPostByprivacy(uid: widget.uid, viewerUid: currentUid,),
+                        child: ListViewPostByprivacy(
+                          uid: widget.uid,
+                          viewerUid: currentUid,
+                        ),
                       )
                     : AboutSection(user: user),
                 // rest of your body

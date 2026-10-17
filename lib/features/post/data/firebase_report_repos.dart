@@ -23,9 +23,7 @@ class ReportRepo {
         .where('targetType', isEqualTo: targetType)
         .get();
 
-    return snapshot.docs
-        .map((doc) => Report.fromJson(doc.data()))
-        .toList();
+    return snapshot.docs.map((doc) => Report.fromJson(doc.data())).toList();
   }
 
   Future<int> getUniqueReporterCount({

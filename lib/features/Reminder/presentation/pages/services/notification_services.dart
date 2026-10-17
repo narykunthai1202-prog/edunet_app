@@ -1,11 +1,11 @@
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+
 import '../models/todo_item.dart';
+
 // import 'package:edunest_app/features/Reminder/presentation/pages/app.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-
 
 /// Everything about local push reminders lives here — nothing else in
 /// the app touches flutter_local_notifications directly. A screen just
@@ -26,8 +26,8 @@ class NotificationService {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
-   final timezone = await FlutterTimezone.getLocalTimezone();
-tz.setLocalLocation(tz.getLocation(timezone.identifier));
+    final timezone = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timezone.identifier));
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
@@ -42,8 +42,9 @@ tz.setLocalLocation(tz.getLocation(timezone.identifier));
 
     // Android 13+ requires this explicit runtime permission request.
     await _plugin
-        .resolvePlatformSpecificImplementation< 
-            AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
 
     _initialized = true;
@@ -98,7 +99,8 @@ tz.setLocalLocation(tz.getLocation(timezone.identifier));
     final raw = todo.time?.trim().toLowerCase();
     if (raw == null || raw.isEmpty) return null;
 
-    final match = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$').firstMatch(raw);
+    final match = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$')
+        .firstMatch(raw);
     if (match == null) return null;
 
     int hour = int.parse(match.group(1)!);
@@ -109,6 +111,12 @@ tz.setLocalLocation(tz.getLocation(timezone.identifier));
     if (meridiem == 'am' && hour == 12) hour = 0;
     if (hour > 23 || minute > 59) return null;
 
-    return DateTime(todo.date.year, todo.date.month, todo.date.day, hour, minute);
+    return DateTime(
+      todo.date.year,
+      todo.date.month,
+      todo.date.day,
+      hour,
+      minute,
+    );
   }
 }

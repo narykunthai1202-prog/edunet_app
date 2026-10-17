@@ -48,32 +48,31 @@ class OtherUserInfo extends StatefulWidget {
 
 class _OtherUserInfoState extends State<OtherUserInfo> {
   void showReportAccountDialog() {
-  final authCubit = context.read<AuthCubit>();
-  final currentUser = authCubit.currentUser;
+    final authCubit = context.read<AuthCubit>();
+    final currentUser = authCubit.currentUser;
 
-  if (currentUser == null) return;
+    if (currentUser == null) return;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(25),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-    ),
-    builder: (context) {
-      return BlocProvider.value(
-        value: this.context.read<ReportCubit>(),
-        child: ReportDialog(
-          targetId: widget.userId,
-          targetType: 'account',
-          reporterId: currentUser.uid,
-        ),
-      );
-    },
-  );
-}
+      builder: (context) {
+        return BlocProvider.value(
+          value: this.context.read<ReportCubit>(),
+          child: ReportDialog(
+            targetId: widget.userId,
+            targetType: 'account',
+            reporterId: currentUser.uid,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -84,7 +83,12 @@ class _OtherUserInfoState extends State<OtherUserInfo> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(255, 16, 14, 14).withValues(alpha: 0.06),
+            color: const Color.fromARGB(
+              255,
+              16,
+              14,
+              14,
+            ).withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(10, 24),
           ),
@@ -117,50 +121,47 @@ class _OtherUserInfoState extends State<OtherUserInfo> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                             const SizedBox(width: 5),
-                        if (widget.usernickname.isNotEmpty) Text('(${widget.usernickname})'),
+                            const SizedBox(width: 5),
+                            if (widget.usernickname.isNotEmpty)
+                              Text('(${widget.usernickname})'),
                           ],
                         ),
-                       
-                        PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 36,
-                        minHeight: 36,
-                      ),
-                      icon: const Icon(
-                        Iconsax.more,
-                        size: 18,
-                      ),
-                      onSelected: (value) async {
-                        
-                        if (value == 'report') {
-showReportAccountDialog();                        }
-                      },
-                      itemBuilder: (context) {
 
-                        return [
-                          const PopupMenuItem(
-                            value: 'report',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Iconsax.flag,
-                                  size: 19,
-                                ),
-                                SizedBox(width: 10),
-                                Text('Report'),
-                              ],
-                            ),
+                        PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
                           ),
-                        ];
-                      },
-                    ),
+                          icon: const Icon(Iconsax.more, size: 18),
+                          onSelected: (value) async {
+                            if (value == 'report') {
+                              showReportAccountDialog();
+                            }
+                          },
+                          itemBuilder: (context) {
+                            return [
+                              const PopupMenuItem(
+                                value: 'report',
+                                child: Row(
+                                  children: [
+                                    Icon(Iconsax.flag, size: 19),
+                                    SizedBox(width: 10),
+                                    Text('Report'),
+                                  ],
+                                ),
+                              ),
+                            ];
+                          },
+                        ),
                       ],
                     ),
 
                     if (widget.major.isNotEmpty)
-                      Text('🎓 ${widget.major}', style: TextStyle(fontSize: 15)),
+                      Text(
+                        '🎓 ${widget.major}',
+                        style: TextStyle(fontSize: 15),
+                      ),
                     const SizedBox(height: 10),
                     // Follow button
                     FollowButton(
@@ -188,7 +189,10 @@ showReportAccountDialog();                        }
                 const SizedBox(width: 8),
 
                 Expanded(
-                  child: Text(widget.userbios, style: const TextStyle(fontSize: 15)),
+                  child: Text(
+                    widget.userbios,
+                    style: const TextStyle(fontSize: 15),
+                  ),
                 ),
               ],
             ),

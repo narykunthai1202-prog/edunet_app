@@ -39,7 +39,7 @@ class TextPostCard extends StatefulWidget {
     this.onprofiletap,
     required this.isSaved,
     required this.savedcount,
-    required this.privacy
+    required this.privacy,
   });
 
   @override
@@ -70,60 +70,61 @@ class _TextPostCardState extends State<TextPostCard> {
                   onTap: widget.onprofiletap,
                   child: Row(
                     children: [
-                      CircleProfile(imageurl: widget.profileImageUrl ?? '', size: 25),
+                      CircleProfile(
+                        imageurl: widget.profileImageUrl ?? '',
+                        size: 25,
+                      ),
 
                       const SizedBox(width: 10),
                       // Username
                       Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.username,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(blurRadius: 5, color: Colors.black),
+                              ],
+                            ),
+                          ),
+
+                          Row(
                             children: [
                               Text(
-                                widget.username,
+                                widget.timestamp,
                                 style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(blurRadius: 5, color: Colors.black),
-                                  ],
+                                  color: Color.fromARGB(255, 43, 42, 42),
+                                  fontSize: 12,
+                                  shadows: [Shadow(blurRadius: 5)],
                                 ),
                               ),
 
-                              Row(
-      children: [
-        Text(
-          widget.timestamp,
-          style: const TextStyle(
-            color: Color.fromARGB(255, 43, 42, 42),
-            fontSize: 12,
-            shadows: [
-              Shadow(blurRadius: 5),
-            ],
-          ),
-        ),
+                              const SizedBox(width: 6),
 
-        const SizedBox(width: 6),
+                              const Icon(
+                                Icons.circle,
+                                size: 3,
+                                color: Colors.grey,
+                              ),
 
-        const Icon(
-          Icons.circle,
-          size: 3,
-          color: Colors.grey,
-        ),
-
-        const SizedBox(width: 6),
-        Icon(
-      widget.privacy == 'Public'
-          ? Iconsax.global
-          : widget.privacy == 'Friend'
-              ? Iconsax.people
-              : Iconsax.lock,
-      size: 13,
-      color: const Color.fromARGB(255, 28, 26, 26),
-    ),
-      ],
-    ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                widget.privacy == 'Public'
+                                    ? Iconsax.global
+                                    : widget.privacy == 'Friend'
+                                    ? Iconsax.people
+                                    : Iconsax.lock,
+                                size: 13,
+                                color: const Color.fromARGB(255, 28, 26, 26),
+                              ),
                             ],
                           ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

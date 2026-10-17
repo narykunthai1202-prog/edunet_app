@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+
 import '../models/todo_item.dart';
 import '../theme/app_colors.dart';
 import 'day_cell.dart';
 
-const List<String> weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const List<String> weekdayLabels = [
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+];
 
 /// Renders the weekday header row plus the 6-week grid of days for one
 /// month. Purely presentational — all data and navigation come from the

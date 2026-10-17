@@ -46,7 +46,12 @@ class _UserInfoState extends State<UserInfo> {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(255, 51, 49, 49).withValues(alpha: 0.06),
+            color: const Color.fromARGB(
+              255,
+              51,
+              49,
+              49,
+            ).withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(10, 24),
           ),

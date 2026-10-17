@@ -16,7 +16,8 @@ List<UnboardingContent> contents = [
     title: 'Select from Our\n     Best Menu',
   ),
   UnboardingContent(
-    description: 'You can pay cash on delivery and\n        Card payment is available',
+    description:
+        'You can pay cash on delivery and\n        Card payment is available',
     image: 'images/icons/screen2.png',
     title: 'Easy and Online Payment',
   ),

@@ -298,38 +298,97 @@ class PostCubit extends Cubit<PostState> {
       throw Exception('faile to saved post: $e');
     }
   }
+
   // Load posts for one user
-Future<void> fetchPostsByUserId(String userId) async {
-  try {
-    emit(PostLoadingState());
+  Future<void> fetchPostsByUserId(String userId) async {
+    try {
+      emit(PostLoadingState());
 
-    final posts = await postRepo.fetchPostsByUserId(userId);
+      final posts = await postRepo.fetchPostsByUserId(userId);
 
-    emit(PostLoadedState(posts: posts));
-  } catch (e) {
-    emit(PostErrorState(message: e.toString()));
+      emit(PostLoadedState(posts: posts));
+    } catch (e) {
+      emit(PostErrorState(message: e.toString()));
+    }
   }
-}
-Future<List<Post>> getVisiblePostsByUserId(
-  String profileUserId,
-  String? viewerUserId,
-) async {
-  return await postRepo.fetchVisiblePostsByUserId(
-    profileUserId,
-    viewerUserId,
-  );
-}
-Future<void> editPost({required Post post, required String text, required String privacy, required List<String> imageUrls}) async {
-  try {
-    emit(PostUploadingState());
-    final updatePost = post.copyWith(
-      text: text,
-      privacy: privacy,
-      imageUrls: imageUrls,
+
+  Future<List<Post>> getVisiblePostsByUserId(
+    String profileUserId,
+    String? viewerUserId,
+  ) async {
+    return await postRepo.fetchVisiblePostsByUserId(
+      profileUserId,
+      viewerUserId,
     );
-    await postRepo.editPost(updatePost);
-    await fetchAllPostsbypublic();
-  } catch (e) {
-    emit(PostErrorState(message: 'Failed to edit post: $e'));
-  }}
+  }
+
+  Future<void> editPost({
+    required Post post,
+    required String text,
+    required String privacy,
+    required List<String> imageUrls,
+  }) async {
+    try {
+      emit(PostUploadingState());
+      final updatePost = post.copyWith(
+        text: text,
+        privacy: privacy,
+        imageUrls: imageUrls,
+      );
+      await postRepo.editPost(updatePost);
+      await fetchAllPostsbypublic();
+    } catch (e) {
+      emit(PostErrorState(message: 'Failed to edit post: $e'));
+    }
+  }
+
+  Future<void> addReply(
+    String postId,
+    String commentId,
+    Comment reply, {
+    File? image,
+  }) async {
+    try {
+      var updatedReply = reply;
+      if (image != null) {
+        final result = await CloudinaryService.instance.uploadImage(image);
+        if (!result.success ||
+            result.imageUrl == null ||
+            result.imageUrl!.isEmpty) {
+          throw Exception(result.error ?? 'Failed to upload reply image');
+        }
+        updatedReply = reply.CopyWith(imageUrl: result.imageUrl);
+      }
+      await postRepo.addReply(postId, commentId, updatedReply);
+    } catch (e) {
+      emit(PostErrorState(message: 'Failed to add reply: $e'));
+      rethrow;
+    }
+  }
+
+  Future<void> deleteReply(
+    String postId,
+    String commentId,
+    String replyId,
+  ) async {
+    try {
+      await postRepo.deleteReply(postId, commentId, replyId);
+    } catch (e) {
+      emit(PostErrorState(message: 'Failed to delete reply: $e'));
+      rethrow;
+    }
+  }
+
+  Future<void> toggleCommentReaction(
+    String postId,
+    String commentId,
+    String userId,
+  ) async {
+    try {
+      await postRepo.toggleCommentReaction(postId, commentId, userId);
+    } catch (e) {
+      emit(PostErrorState(message: 'Failed to toggle comment reaction: $e'));
+      rethrow;
+    }
+  }
 }

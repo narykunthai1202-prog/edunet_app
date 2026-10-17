@@ -11,10 +11,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 class LoginPage extends StatefulWidget {
   final void Function()? ontap;
 
-  const LoginPage({
-    super.key,
-    required this.ontap,
-  });
+  const LoginPage({super.key, required this.ontap});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -55,8 +52,7 @@ class _LoginPageState extends State<LoginPage> {
         googleLoading = true;
       });
 
-      final GoogleSignInAccount? googleUser =
-          await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
       if (googleUser == null) {
         return;
@@ -65,16 +61,13 @@ class _LoginPageState extends State<LoginPage> {
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      final OAuthCredential credential =
-          GoogleAuthProvider.credential(
+      final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
 
       final User? user = userCredential.user;
 
@@ -83,18 +76,14 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       // Check if user already exists in Firestore
-      final DocumentSnapshot userDoc =
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(user.uid)
-              .get();
+      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
 
       // Create Firestore document for new Google user
       if (!userDoc.exists) {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(user.uid)
-            .set({
+        await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
           "uid": user.uid,
           "email": user.email ?? "",
           "name": user.displayName ?? "User",
@@ -112,10 +101,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (!mounted) return;
 
-      _showSnackBar(
-        "Google Login Error: $e",
-        Colors.redAccent,
-      );
+      _showSnackBar("Google Login Error: $e", Colors.redAccent);
     } finally {
       if (mounted) {
         setState(() {
@@ -130,8 +116,7 @@ class _LoginPageState extends State<LoginPage> {
   // ============================================================
 
   void showPhoneLoginDialog() {
-    final TextEditingController phoneController =
-        TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
 
     showDialog(
       context: context,
@@ -183,20 +168,15 @@ class _LoginPageState extends State<LoginPage> {
         phoneNumber: phone,
 
         // Automatic verification
-        verificationCompleted:
-            (PhoneAuthCredential credential) async {
+        verificationCompleted: (PhoneAuthCredential credential) async {
           try {
-            await FirebaseAuth.instance
-                .signInWithCredential(credential);
+            await FirebaseAuth.instance.signInWithCredential(credential);
 
             if (!mounted) return;
           } catch (e) {
             if (!mounted) return;
 
-            _showSnackBar(
-              "Phone Login Error: $e",
-              Colors.redAccent,
-            );
+            _showSnackBar("Phone Login Error: $e", Colors.redAccent);
           }
         },
 
@@ -204,33 +184,23 @@ class _LoginPageState extends State<LoginPage> {
         verificationFailed: (FirebaseAuthException e) {
           if (!mounted) return;
 
-          _showSnackBar(
-            "Phone Auth Failed: ${e.message}",
-            Colors.redAccent,
-          );
+          _showSnackBar("Phone Auth Failed: ${e.message}", Colors.redAccent);
         },
 
         // OTP sent
-        codeSent: (
-          String verificationId,
-          int? resendToken,
-        ) {
+        codeSent: (String verificationId, int? resendToken) {
           if (!mounted) return;
 
           showOtpDialog(verificationId);
         },
 
         // Timeout
-        codeAutoRetrievalTimeout:
-            (String verificationId) {},
+        codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (e) {
       if (!mounted) return;
 
-      _showSnackBar(
-        "Phone Login Error: $e",
-        Colors.redAccent,
-      );
+      _showSnackBar("Phone Login Error: $e", Colors.redAccent);
     } finally {
       if (mounted) {
         setState(() {
@@ -245,8 +215,7 @@ class _LoginPageState extends State<LoginPage> {
   // ============================================================
 
   void showOtpDialog(String verificationId) {
-    final TextEditingController otpController =
-        TextEditingController();
+    final TextEditingController otpController = TextEditingController();
 
     showDialog(
       context: context,
@@ -281,15 +250,13 @@ class _LoginPageState extends State<LoginPage> {
                 try {
                   final PhoneAuthCredential credential =
                       PhoneAuthProvider.credential(
-                    verificationId: verificationId,
-                    smsCode: otp,
-                  );
+                        verificationId: verificationId,
+                        smsCode: otp,
+                      );
 
-                  final UserCredential userCredential =
-                      await FirebaseAuth.instance
-                          .signInWithCredential(
-                    credential,
-                  );
+                  final UserCredential userCredential = await FirebaseAuth
+                      .instance
+                      .signInWithCredential(credential);
 
                   if (userCredential.user == null) {
                     return;
@@ -298,21 +265,20 @@ class _LoginPageState extends State<LoginPage> {
                   // Create Firestore user if necessary
                   final user = userCredential.user!;
 
-                  final userDoc =
-                      await FirebaseFirestore.instance
-                          .collection("users")
-                          .doc(user.uid)
-                          .get();
+                  final userDoc = await FirebaseFirestore.instance
+                      .collection("users")
+                      .doc(user.uid)
+                      .get();
 
                   if (!userDoc.exists) {
                     await FirebaseFirestore.instance
                         .collection("users")
                         .doc(user.uid)
                         .set({
-                      "uid": user.uid,
-                      "email": user.email ?? "",
-                      "name": user.displayName ?? "User",
-                    });
+                          "uid": user.uid,
+                          "email": user.email ?? "",
+                          "name": user.displayName ?? "User",
+                        });
                   }
 
                   if (!mounted) return;
@@ -328,10 +294,7 @@ class _LoginPageState extends State<LoginPage> {
                 } catch (e) {
                   if (!mounted) return;
 
-                  _showSnackBar(
-                    "OTP Error: $e",
-                    Colors.redAccent,
-                  );
+                  _showSnackBar("OTP Error: $e", Colors.redAccent);
                 }
               },
               child: const Text("Verify"),
@@ -346,10 +309,7 @@ class _LoginPageState extends State<LoginPage> {
   // SNACKBAR
   // ============================================================
 
-  void _showSnackBar(
-    String message,
-    Color color,
-  ) {
+  void _showSnackBar(String message, Color color) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -357,10 +317,7 @@ class _LoginPageState extends State<LoginPage> {
         backgroundColor: color,
         content: Text(
           message,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.white,
-          ),
+          style: const TextStyle(fontSize: 16, color: Colors.white),
         ),
       ),
     );
@@ -392,8 +349,7 @@ class _LoginPageState extends State<LoginPage> {
     final double logoWidth = isDesktop ? 280 : 220;
     final double logoHeight = isDesktop ? 150 : 130;
 
-    final double cardWidth =
-        isDesktop ? 520 : screenWidth - 40;
+    final double cardWidth = isDesktop ? 520 : screenWidth - 40;
 
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
@@ -402,16 +358,11 @@ class _LoginPageState extends State<LoginPage> {
         // --------------------------------------------------------
 
         if (state is Authenticated) {
-          _showSnackBar(
-            "Login Successfully",
-            Colors.green,
-          );
+          _showSnackBar("Login Successfully", Colors.green);
         }
-
         // --------------------------------------------------------
         // LOGIN ERROR
         // --------------------------------------------------------
-
         else if (state is AuthError) {
           String message = state.message;
 
@@ -424,14 +375,10 @@ class _LoginPageState extends State<LoginPage> {
           } else if (message.contains("invalid-email")) {
             message = "Invalid email address.";
           } else if (message.contains("too-many-requests")) {
-            message =
-                "Too many attempts. Please try again later.";
+            message = "Too many attempts. Please try again later.";
           }
 
-          _showSnackBar(
-            message,
-            Colors.redAccent,
-          );
+          _showSnackBar(message, Colors.redAccent);
         }
       },
 
@@ -448,7 +395,7 @@ class _LoginPageState extends State<LoginPage> {
                   maxWidth: 900,
                   minHeight:
                       MediaQuery.of(context).size.height -
-                          MediaQuery.of(context).padding.vertical,
+                      MediaQuery.of(context).padding.vertical,
                 ),
 
                 child: Padding(
@@ -458,11 +405,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
 
                   child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
 
                     children: [
-
                       // ==================================================
                       // LOGO
                       // ==================================================
@@ -479,28 +424,23 @@ class _LoginPageState extends State<LoginPage> {
                       // ==================================================
                       // LOGIN CARD
                       // ==================================================
-
                       SizedBox(
                         width: cardWidth,
 
                         child: Material(
                           elevation: 5,
-                          borderRadius:
-                              BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20),
 
                           child: Container(
-                            padding:
-                                EdgeInsets.symmetric(
-                              horizontal:
-                                  isDesktop ? 35 : 20,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isDesktop ? 35 : 20,
                               vertical: 25,
                             ),
 
                             decoration: BoxDecoration(
                               color: Colors.white,
 
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                             ),
 
                             child: Form(
@@ -508,15 +448,13 @@ class _LoginPageState extends State<LoginPage> {
 
                               child: Column(
                                 children: [
-
                                   // ==================================================
                                   // TITLE
                                   // ==================================================
 
                                   Text(
                                     "Login",
-                                    style: AppWidget
-                                        .HeadLineTextFeildStyle(),
+                                    style: AppWidget.HeadLineTextFeildStyle(),
                                   ),
 
                                   const SizedBox(height: 20),
@@ -524,61 +462,42 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // EMAIL
                                   // ==================================================
-
                                   TextFormField(
-                                    controller:
-                                        emailController,
+                                    controller: emailController,
 
-                                    keyboardType:
-                                        TextInputType
-                                            .emailAddress,
+                                    keyboardType: TextInputType.emailAddress,
 
-                                    textInputAction:
-                                        TextInputAction.next,
+                                    textInputAction: TextInputAction.next,
 
                                     validator: (value) {
                                       if (value == null ||
-                                          value
-                                              .trim()
-                                              .isEmpty) {
+                                          value.trim().isEmpty) {
                                         return "Please Enter Email";
                                       }
 
-                                      final emailRegex =
-                                          RegExp(
+                                      final emailRegex = RegExp(
                                         r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
                                       );
 
-                                      if (!emailRegex
-                                          .hasMatch(
-                                        value.trim(),
-                                      )) {
+                                      if (!emailRegex.hasMatch(value.trim())) {
                                         return "Please enter a valid email";
                                       }
 
                                       return null;
                                     },
 
-                                    decoration:
-                                        InputDecoration(
+                                    decoration: InputDecoration(
                                       hintText: "Email",
 
-                                      hintStyle: AppWidget
-                                          .semiBooldTextFeildStyle(),
+                                      hintStyle:
+                                          AppWidget.semiBooldTextFeildStyle(),
 
-                                      prefixIcon:
-                                          const Icon(
-                                        Icons
-                                            .email_outlined,
+                                      prefixIcon: const Icon(
+                                        Icons.email_outlined,
                                       ),
 
-                                      border:
-                                          OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius
-                                                .circular(
-                                          15,
-                                        ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(15),
                                       ),
                                     ),
                                   ),
@@ -588,68 +507,51 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // PASSWORD
                                   // ==================================================
-
                                   TextFormField(
-                                    controller:
-                                        passwordController,
+                                    controller: passwordController,
 
-                                    obscureText:
-                                        obscurePassword,
+                                    obscureText: obscurePassword,
 
-                                    textInputAction:
-                                        TextInputAction.done,
+                                    textInputAction: TextInputAction.done,
 
                                     onFieldSubmitted: (_) {
                                       userLogin();
                                     },
 
                                     validator: (value) {
-                                      if (value == null ||
-                                          value.isEmpty) {
+                                      if (value == null || value.isEmpty) {
                                         return "Please Enter Password";
                                       }
 
                                       return null;
                                     },
 
-                                    decoration:
-                                        InputDecoration(
+                                    decoration: InputDecoration(
                                       hintText: "Password",
 
-                                      hintStyle: AppWidget
-                                          .semiBooldTextFeildStyle(),
+                                      hintStyle:
+                                          AppWidget.semiBooldTextFeildStyle(),
 
-                                      prefixIcon:
-                                          const Icon(
-                                        Icons
-                                            .password_outlined,
+                                      prefixIcon: const Icon(
+                                        Icons.password_outlined,
                                       ),
 
-                                      suffixIcon:
-                                          IconButton(
+                                      suffixIcon: IconButton(
                                         onPressed: () {
                                           setState(() {
-                                            obscurePassword =
-                                                !obscurePassword;
+                                            obscurePassword = !obscurePassword;
                                           });
                                         },
 
                                         icon: Icon(
                                           obscurePassword
-                                              ? Icons
-                                                  .visibility
-                                              : Icons
-                                                  .visibility_off,
+                                              ? Icons.visibility
+                                              : Icons.visibility_off,
                                         ),
                                       ),
 
-                                      border:
-                                          OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius
-                                                .circular(
-                                          15,
-                                        ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(15),
                                       ),
                                     ),
                                   ),
@@ -659,20 +561,16 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // FORGOT PASSWORD
                                   // ==================================================
-
                                   Align(
-                                    alignment:
-                                        Alignment.centerRight,
+                                    alignment: Alignment.centerRight,
 
-                                    child:
-                                        GestureDetector(
+                                    child: GestureDetector(
                                       onTap: () {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder:
-                                                (context) =>
-                                                    const ForgotPassword(),
+                                            builder: (context) =>
+                                                const ForgotPassword(),
                                           ),
                                         );
                                       },
@@ -680,8 +578,8 @@ class _LoginPageState extends State<LoginPage> {
                                       child: Text(
                                         "Forgot Password?",
 
-                                        style: AppWidget
-                                            .semiBooldTextFeildStyle(),
+                                        style:
+                                            AppWidget.semiBooldTextFeildStyle(),
                                       ),
                                     ),
                                   ),
@@ -691,50 +589,31 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // LOGIN BUTTON
                                   // ==================================================
-
-                                  BlocBuilder<
-                                      AuthCubit,
-                                      AuthState>(
-                                    builder:
-                                        (context, state) {
-                                      final bool loading =
-                                          state
-                                              is AuthLoading;
+                                  BlocBuilder<AuthCubit, AuthState>(
+                                    builder: (context, state) {
+                                      final bool loading = state is AuthLoading;
 
                                       return GestureDetector(
-                                        onTap: loading
-                                            ? null
-                                            : userLogin,
+                                        onTap: loading ? null : userLogin,
 
                                         child: Material(
                                           elevation: 5,
 
-                                          borderRadius:
-                                              BorderRadius
-                                                  .circular(
+                                          borderRadius: BorderRadius.circular(
                                             20,
                                           ),
 
-                                          child:
-                                              Container(
-                                            padding:
-                                                const EdgeInsets
-                                                    .symmetric(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
                                               vertical: 12,
                                             ),
 
-                                            width:
-                                                isDesktop
-                                                    ? 220
-                                                    : 200,
+                                            width: isDesktop ? 220 : 200,
 
-                                            decoration:
-                                                BoxDecoration(
+                                            decoration: BoxDecoration(
                                               color: loading
-                                                  ? Colors
-                                                      .grey
-                                                  : const Color
-                                                      .fromARGB(
+                                                  ? Colors.grey
+                                                  : const Color.fromARGB(
                                                       255,
                                                       255,
                                                       164,
@@ -742,10 +621,7 @@ class _LoginPageState extends State<LoginPage> {
                                                     ),
 
                                               borderRadius:
-                                                  BorderRadius
-                                                      .circular(
-                                                20,
-                                              ),
+                                                  BorderRadius.circular(20),
                                             ),
 
                                             child: Center(
@@ -755,25 +631,18 @@ class _LoginPageState extends State<LoginPage> {
                                                       height: 22,
                                                       child:
                                                           CircularProgressIndicator(
-                                                        strokeWidth:
-                                                            2,
-                                                        color: Colors
-                                                            .white,
-                                                      ),
+                                                            strokeWidth: 2,
+                                                            color: Colors.white,
+                                                          ),
                                                     )
                                                   : const Text(
                                                       "LOGIN",
-                                                      style:
-                                                          TextStyle(
-                                                        color: Colors
-                                                            .white,
-                                                        fontSize:
-                                                            18,
-                                                        fontFamily:
-                                                            "Poppins",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 18,
+                                                        fontFamily: "Poppins",
                                                         fontWeight:
-                                                            FontWeight
-                                                                .bold,
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                             ),
@@ -788,33 +657,23 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // OR
                                   // ==================================================
-
                                   const Row(
                                     children: [
-                                      Expanded(
-                                        child: Divider(),
-                                      ),
+                                      Expanded(child: Divider()),
 
                                       Padding(
-                                        padding:
-                                            EdgeInsets
-                                                .symmetric(
+                                        padding: EdgeInsets.symmetric(
                                           horizontal: 8,
                                         ),
 
                                         child: Text(
                                           "OR",
 
-                                          style: TextStyle(
-                                            color:
-                                                Colors.grey,
-                                          ),
+                                          style: TextStyle(color: Colors.grey),
                                         ),
                                       ),
 
-                                      Expanded(
-                                        child: Divider(),
-                                      ),
+                                      Expanded(child: Divider()),
                                     ],
                                   ),
 
@@ -823,22 +682,15 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // GOOGLE
                                   // ==================================================
-
                                   SizedBox(
-                                    width:
-                                        double.infinity,
+                                    width: double.infinity,
 
                                     height: 45,
 
-                                    child:
-                                        OutlinedButton.icon(
-                                      style: OutlinedButton
-                                          .styleFrom(
-                                        shape:
-                                            RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius
-                                                  .circular(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
                                             20,
                                           ),
                                         ),
@@ -848,15 +700,12 @@ class _LoginPageState extends State<LoginPage> {
                                           ? const SizedBox(
                                               width: 20,
                                               height: 20,
-                                              child:
-                                                  CircularProgressIndicator(
-                                                strokeWidth:
-                                                    2,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
                                               ),
                                             )
                                           : const Icon(
-                                              Icons
-                                                  .g_mobiledata,
+                                              Icons.g_mobiledata,
                                               size: 28,
                                               color: Colors.red,
                                             ),
@@ -867,10 +716,9 @@ class _LoginPageState extends State<LoginPage> {
                                             : "Continue with Google",
                                       ),
 
-                                      onPressed:
-                                          googleLoading
-                                              ? null
-                                              : signInWithGoogle,
+                                      onPressed: googleLoading
+                                          ? null
+                                          : signInWithGoogle,
                                     ),
                                   ),
 
@@ -879,22 +727,15 @@ class _LoginPageState extends State<LoginPage> {
                                   // ==================================================
                                   // PHONE
                                   // ==================================================
-
                                   SizedBox(
-                                    width:
-                                        double.infinity,
+                                    width: double.infinity,
 
                                     height: 45,
 
-                                    child:
-                                        OutlinedButton.icon(
-                                      style: OutlinedButton
-                                          .styleFrom(
-                                        shape:
-                                            RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius
-                                                  .circular(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
                                             20,
                                           ),
                                         ),
@@ -906,9 +747,7 @@ class _LoginPageState extends State<LoginPage> {
                                         color: Colors.green,
                                       ),
 
-                                      label: const Text(
-                                        "Continue with Phone",
-                                      ),
+                                      label: const Text("Continue with Phone"),
 
                                       onPressed: phoneLoading
                                           ? null
@@ -927,15 +766,13 @@ class _LoginPageState extends State<LoginPage> {
                       // ==================================================
                       // REGISTER
                       // ==================================================
-
                       GestureDetector(
                         onTap: widget.ontap,
 
                         child: Text(
                           "Don't have an account? Sign up",
 
-                          style: AppWidget
-                              .semiBooldTextFeildStyle(),
+                          style: AppWidget.semiBooldTextFeildStyle(),
                         ),
                       ),
 

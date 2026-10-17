@@ -21,7 +21,12 @@ class UserDetail extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 115, 116, 117).withValues(alpha: 0.1),
+              color: const Color.fromARGB(
+                255,
+                115,
+                116,
+                117,
+              ).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

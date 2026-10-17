@@ -13,8 +13,11 @@ class AuthCubit extends Cubit<AuthState> {
 
   AppUser? _currentUser;
 
-  AuthCubit({required this.authRepo, required this.notificationCubit,required this.postCubit})
-    : super(AuthIntial());
+  AuthCubit({
+    required this.authRepo,
+    required this.notificationCubit,
+    required this.postCubit,
+  }) : super(AuthIntial());
 
   // Check if user is already authenticated
   void checkAuth() async {

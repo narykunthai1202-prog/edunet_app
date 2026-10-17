@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/todo_item.dart';
 import '../services/todo_service.dart';
 import '../widgets/add_edit_todo_sheet.dart';
@@ -23,7 +24,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _visibleMonth = DateTime(_today.year, _today.month);
 
   void _changeMonth(int delta) {
-    setState(() => _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta));
+    setState(
+      () => _visibleMonth = DateTime(
+        _visibleMonth.year,
+        _visibleMonth.month + delta,
+      ),
+    );
   }
 
   void _openDay(DateTime day) {
@@ -50,8 +56,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
         title: const Text('Delete task?'),
         content: Text(todo.title),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -62,7 +74,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final monthLabel = '${_monthName(_visibleMonth.month)} ${_visibleMonth.year}';
+    final monthLabel =
+        '${_monthName(_visibleMonth.month)} ${_visibleMonth.year}';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -70,15 +83,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black87,
-        title: Text(monthLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
-        leading: IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _changeMonth(-1)),
+        title: Text(
+          monthLabel,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () => _changeMonth(-1),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => _changeMonth(1)),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () => _changeMonth(1),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_none),
             tooltip: 'Reminders',
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => RemindersScreen(todoService: _todoService)),
+              MaterialPageRoute(
+                builder: (_) => RemindersScreen(todoService: _todoService),
+              ),
             ),
           ),
         ],
@@ -114,8 +138,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   String _monthName(int month) {
     const names = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return names[month - 1];
   }

@@ -6,10 +6,7 @@ import 'package:edunest_app/features/post/presentation/cubits/post_cubit.dart';
 class EditPostPage extends StatefulWidget {
   final Post post;
 
-  const EditPostPage({
-    super.key,
-    required this.post,
-  });
+  const EditPostPage({super.key, required this.post});
 
   @override
   State<EditPostPage> createState() => _EditPostPageState();
@@ -30,9 +27,7 @@ class _EditPostPageState extends State<EditPostPage> {
   void initState() {
     super.initState();
 
-    captionController = TextEditingController(
-      text: widget.post.text,
-    );
+    captionController = TextEditingController(text: widget.post.text);
 
     selectedPrivacy = widget.post.privacy;
 
@@ -54,18 +49,16 @@ class _EditPostPageState extends State<EditPostPage> {
 
     try {
       await context.read<PostCubit>().editPost(
-            post: widget.post,
-            text: caption,
-            privacy: selectedPrivacy,
-            imageUrls: imageUrls,
-          );
+        post: widget.post,
+        text: caption,
+        privacy: selectedPrivacy,
+        imageUrls: imageUrls,
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Post updated successfully'),
-        ),
+        const SnackBar(content: Text('Post updated successfully')),
       );
 
       Navigator.pop(context, true);
@@ -76,11 +69,8 @@ class _EditPostPageState extends State<EditPostPage> {
         isSaving = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update post: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to update post: $e')));
     }
   }
 
@@ -100,10 +90,7 @@ class _EditPostPageState extends State<EditPostPage> {
         elevation: 0,
 
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.black,
-          ),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: isSaving
               ? null
               : () {
@@ -113,10 +100,7 @@ class _EditPostPageState extends State<EditPostPage> {
 
         title: const Text(
           'Edit Post',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
 
         actions: [
@@ -126,16 +110,11 @@ class _EditPostPageState extends State<EditPostPage> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text(
                     'Save',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
           ),
         ],
@@ -151,10 +130,7 @@ class _EditPostPageState extends State<EditPostPage> {
             // =========================
             const Text(
               'Caption',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
@@ -180,18 +156,13 @@ class _EditPostPageState extends State<EditPostPage> {
             // =========================
             const Text(
               'Privacy',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
 
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
@@ -256,10 +227,7 @@ class _EditPostPageState extends State<EditPostPage> {
             // =========================
             const Text(
               'Photos',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
@@ -275,9 +243,7 @@ class _EditPostPageState extends State<EditPostPage> {
                 child: const Center(
                   child: Text(
                     'No photos',
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
               )
@@ -286,8 +252,7 @@ class _EditPostPageState extends State<EditPostPage> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: imageUrls.length,
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
@@ -304,8 +269,7 @@ class _EditPostPageState extends State<EditPostPage> {
                           height: double.infinity,
                           fit: BoxFit.cover,
 
-                          errorBuilder:
-                              (context, error, stackTrace) {
+                          errorBuilder: (context, error, stackTrace) {
                             return Container(
                               color: Colors.grey.shade200,
                               child: const Center(
@@ -325,9 +289,7 @@ class _EditPostPageState extends State<EditPostPage> {
                         top: 8,
                         right: 8,
                         child: GestureDetector(
-                          onTap: isSaving
-                              ? null
-                              : () => removeImage(index),
+                          onTap: isSaving ? null : () => removeImage(index),
                           child: Container(
                             width: 32,
                             height: 32,

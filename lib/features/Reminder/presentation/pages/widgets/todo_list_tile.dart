@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/todo_item.dart';
 
 /// A full-size row for one task, used on DayTodosScreen (as opposed to
@@ -56,7 +57,9 @@ class TodoListTile extends StatelessWidget {
                         todo.title,
                         style: TextStyle(
                           fontSize: 15,
-                          decoration: todo.done ? TextDecoration.lineThrough : null,
+                          decoration: todo.done
+                              ? TextDecoration.lineThrough
+                              : null,
                           color: todo.done ? Colors.grey : Colors.black87,
                         ),
                       ),
@@ -65,7 +68,10 @@ class TodoListTile extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             todo.time!,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ),
                     ],

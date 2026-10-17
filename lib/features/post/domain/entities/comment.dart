@@ -12,7 +12,6 @@ class Comment {
   final List<String> reactions;
   final List<Comment> replies;
 
-
   Comment({
     required this.id,
     required this.postId,
@@ -25,57 +24,59 @@ class Comment {
     required this.reactions,
     required this.replies,
   });
-  Comment CopyWith({
-  String? imageUrl,
-  String? text,
-  List<String>? reactions,
-  List<Comment>? replies,
-}) {
-  return Comment(
-    id: id,
-    postId: postId,
-    userId: userId,
-    userName: userName,
-    text: text ?? this.text,
-    imgurl: imageUrl ?? imgurl,
-    timestamp: timestamp,
-    userimgurl: userimgurl,
-    reactions: reactions ?? this.reactions,
-    replies: replies ?? this.replies,
-  );
-}
-  //convert comment ->
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'postId': postId,
-      'userId': userId,
-      'userName': userName,
-      'imgurl': imgurl,
-      'text': text,
-      'timestamp': Timestamp.fromDate(timestamp),
-      'userimgurl': userimgurl,
-      'reactions': reactions,
-      'replies': replies.map((reply) => reply.toJson()).toList(),
-    };
-  }
 
-  //convert json ->comment
-  factory Comment.fromJson(Map<String, dynamic> json) {
+  Comment CopyWith({
+    String? imageUrl,
+    String? text,
+    List<String>? reactions,
+    List<Comment>? replies,
+  }) {
     return Comment(
-      id: json['id'],
-      postId: json['postId'],
-      userId: json['userId'],
-      userName: json['userName'],
-      imgurl: json['imgurl'],
-      text: json['text'],
-      timestamp: (json['timestamp'] as Timestamp).toDate(),
-      userimgurl: json['userimgurl'],
-      reactions: List<String>.from(json['reactions'] ?? []),
-      replies: (json['replies'] as List<dynamic>?)
-              ?.map((replyJson) => Comment.fromJson(replyJson))
-              .toList() ??
-          [],
+      id: id,
+      postId: postId,
+      userId: userId,
+      userName: userName,
+      text: text ?? this.text,
+      imgurl: imageUrl ?? imgurl,
+      timestamp: timestamp,
+      userimgurl: userimgurl,
+      reactions: reactions ?? this.reactions,
+      replies: replies ?? this.replies,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'postId': postId,
+    'userId': userId,
+    'userName': userName,
+    'imgurl': imgurl,
+    'text': text,
+    'timestamp': Timestamp.fromDate(timestamp),
+    'userimgurl': userimgurl,
+    'reactions': reactions,
+    'replies': replies.map((reply) => reply.toJson()).toList(),
+  };
+
+  factory Comment.fromJson(Map<String, dynamic> json) => Comment(
+    id: json['id']?.toString() ?? '',
+    postId: json['postId']?.toString() ?? '',
+    userId: json['userId']?.toString() ?? '',
+    userName: json['userName']?.toString() ?? 'User',
+    imgurl: json['imgurl']?.toString(),
+    text: json['text']?.toString() ?? '',
+    timestamp: json['timestamp'] is Timestamp
+        ? (json['timestamp'] as Timestamp).toDate()
+        : DateTime.tryParse('${json['timestamp']}') ?? DateTime.now(),
+    userimgurl: json['userimgurl']?.toString(),
+    reactions: List<String>.from(json['reactions'] ?? []),
+    replies:
+        (json['replies'] as List<dynamic>?)
+            ?.map(
+              (item) =>
+                  Comment.fromJson(Map<String, dynamic>.from(item as Map)),
+            )
+            .toList() ??
+        [],
+  );
 }

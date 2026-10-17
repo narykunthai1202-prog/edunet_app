@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/todo_item.dart';
 import '../theme/app_colors.dart';
 import 'todo_chip.dart';
@@ -49,7 +50,14 @@ class DayCell extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: _DayNumber(day: day, inCurrentMonth: inCurrentMonth, isToday: isToday, isSunday: isSunday)),
+            Center(
+              child: _DayNumber(
+                day: day,
+                inCurrentMonth: inCurrentMonth,
+                isToday: isToday,
+                isSunday: isSunday,
+              ),
+            ),
             const SizedBox(height: 4),
             ...visible.map(
               (todo) => TodoChip(
@@ -93,7 +101,10 @@ class _DayNumber extends StatelessWidget {
       height: 22,
       alignment: Alignment.center,
       decoration: isToday
-          ? const BoxDecoration(color: AppColors.todayCircle, shape: BoxShape.circle)
+          ? const BoxDecoration(
+              color: AppColors.todayCircle,
+              shape: BoxShape.circle,
+            )
           : null,
       child: Text(
         '${day.day}',
@@ -103,10 +114,10 @@ class _DayNumber extends StatelessWidget {
           color: isToday
               ? Colors.white
               : !inCurrentMonth
-                  ? AppColors.outsideMonthText
-                  : isSunday
-                      ? AppColors.sunday
-                      : Colors.black87,
+              ? AppColors.outsideMonthText
+              : isSunday
+              ? AppColors.sunday
+              : Colors.black87,
         ),
       ),
     );

@@ -1,4 +1,3 @@
-
 import 'package:edunest_app/features/post/data/firebase_report_repos.dart';
 import 'package:edunest_app/features/post/domain/entities/report.dart';
 import 'package:edunest_app/features/post/presentation/cubits/report_state.dart';
@@ -7,9 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class ReportCubit extends Cubit<ReportState> {
   final ReportRepo reportRepo;
 
-  ReportCubit({
-    required this.reportRepo,
-  }) : super(ReportInitial());
+  ReportCubit({required this.reportRepo}) : super(ReportInitial());
 
   Future<void> submitReport({
     required String reporterId,
@@ -33,8 +30,7 @@ class ReportCubit extends Cubit<ReportState> {
         return;
       }
 
-      final reportId =
-          '${reporterId}_${targetType}_$targetId';
+      final reportId = '${reporterId}_${targetType}_$targetId';
 
       final report = Report(
         id: reportId,
@@ -49,23 +45,14 @@ class ReportCubit extends Cubit<ReportState> {
 
       await reportRepo.createReport(report);
 
-      final reportCount =
-          await reportRepo.getUniqueReporterCount(
+      final reportCount = await reportRepo.getUniqueReporterCount(
         targetId: targetId,
         targetType: targetType,
       );
 
-      emit(
-        ReportSubmitted(
-          uniqueReportCount: reportCount,
-        ),
-      );
+      emit(ReportSubmitted(uniqueReportCount: reportCount));
     } catch (e) {
-      emit(
-        ReportError(
-          message: e.toString(),
-        ),
-      );
+      emit(ReportError(message: e.toString()));
     }
   }
 }

@@ -54,7 +54,7 @@ class _PostPageState extends State<PostPage> {
   //post cubit
   late final postCubit = context.read<PostCubit>();
   int selectedTap = 0;
-  
+
   //on started
   @override
   void initState() {

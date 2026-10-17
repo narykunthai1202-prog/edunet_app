@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/todo_item.dart';
 import '../services/todo_service.dart';
 import '../theme/app_colors.dart';
@@ -37,7 +38,11 @@ class RemindersScreen extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.notifications_none, size: 48, color: Colors.grey.shade400),
+                    Icon(
+                      Icons.notifications_none,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       'No upcoming reminders.\nTurn on "Remind me" when adding '
@@ -73,14 +78,19 @@ class RemindersScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                ...entry.value.map((todo) => _ReminderTile(
-                      todo: todo,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DayTodosScreen(day: todo.date, todoService: todoService),
+                ...entry.value.map(
+                  (todo) => _ReminderTile(
+                    todo: todo,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DayTodosScreen(
+                          day: todo.date,
+                          todoService: todoService,
                         ),
                       ),
-                    )),
+                    ),
+                  ),
+                ),
               ];
             }).toList(),
           );
@@ -96,8 +106,18 @@ class RemindersScreen extends StatelessWidget {
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Tomorrow';
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}';
   }
@@ -121,7 +141,11 @@ class _ReminderTile extends StatelessWidget {
       ),
       title: Text(todo.title),
       subtitle: todo.time != null ? Text(todo.time!) : null,
-      trailing: const Icon(Icons.notifications_active, size: 18, color: AppColors.todayCircle),
+      trailing: const Icon(
+        Icons.notifications_active,
+        size: 18,
+        color: AppColors.todayCircle,
+      ),
     );
   }
 }

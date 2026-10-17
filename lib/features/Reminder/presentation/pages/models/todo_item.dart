@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 
 /// One task, shown as a colored bar in the month grid and as a full
@@ -52,7 +53,9 @@ class TodoItem {
       title: data['title'] as String? ?? '',
       date: DateTime(ts.year, ts.month, ts.day),
       time: data['time'] as String?,
-      color: Color(data['color'] as int? ?? AppColors.todoPalette.first.toARGB32()),
+      color: Color(
+        data['color'] as int? ?? AppColors.todoPalette.first.toARGB32(),
+      ),
       done: data['done'] as bool? ?? false,
       hasReminder: data['hasReminder'] as bool? ?? false,
     );

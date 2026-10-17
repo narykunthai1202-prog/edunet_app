@@ -16,6 +16,7 @@ import 'package:edunest_app/features/search/presentation/cubits/search_cubit.dar
 import 'package:edunest_app/themes/light_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 class MyApp extends StatelessWidget {
   final authRepo = FirebaseAuthRepos();
   final profileRepo = FirebaseProfileRepos();
@@ -54,30 +55,22 @@ class MyApp extends StatelessWidget {
           create: (context) => ProfileCubit(
             profileRepo: profileRepo,
             notificationRepo: notificationRepo,
-            postRepo: postRepo
+            postRepo: postRepo,
           ),
         ),
 
         // Use the SAME PostCubit
-        BlocProvider<PostCubit>.value(
-          value: postCubit,
-        ),
+        BlocProvider<PostCubit>.value(value: postCubit),
 
         BlocProvider<SearchCubit>(
-          create: (context) => SearchCubit(
-            searchrepo: searchrepo,
-          ),
+          create: (context) => SearchCubit(searchrepo: searchrepo),
         ),
 
         // Use the SAME NotificationCubit
-        BlocProvider<NotificationCubit>.value(
-          value: notificationCubit,
-        ),
+        BlocProvider<NotificationCubit>.value(value: notificationCubit),
 
         BlocProvider<ReportCubit>(
-          create: (context) => ReportCubit(
-            reportRepo: reportrepo,
-          ),
+          create: (context) => ReportCubit(reportRepo: reportrepo),
         ),
       ],
 
@@ -98,19 +91,14 @@ class MyApp extends StatelessWidget {
             }
 
             return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: Center(child: CircularProgressIndicator()),
             );
           },
 
           listener: (context, state) {
             if (state is AuthError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                ),
-              );
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
         ),

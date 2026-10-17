@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/todo_item.dart';
 
 /// The little colored bar you see stacked under a day number in the

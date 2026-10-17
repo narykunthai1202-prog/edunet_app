@@ -38,7 +38,6 @@ class Post {
       comments: comments,
       privacy: privacy ?? this.privacy,
       savedBy: savedBy,
-
     );
   }
 

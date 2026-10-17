@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/todo_item.dart';
 import 'notification_services.dart';
 
@@ -76,7 +77,11 @@ class TodoService {
   /// that link once and it'll work from then on.
   Stream<List<TodoItem>> watchUpcomingReminders() {
     final startOfToday = DateTime.now();
-    final start = DateTime(startOfToday.year, startOfToday.month, startOfToday.day);
+    final start = DateTime(
+      startOfToday.year,
+      startOfToday.month,
+      startOfToday.day,
+    );
 
     return _todosRef
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))

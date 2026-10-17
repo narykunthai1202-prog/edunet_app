@@ -20,7 +20,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-late final postCubit = context.read<PostCubit>();
+  late final postCubit = context.read<PostCubit>();
   bool _showBottomNav = true;
 
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();

@@ -78,7 +78,8 @@ class _DetailsState extends State<Details> {
         return;
       }
 
-      final bool looksLikePdf = bytes.length > 5 &&
+      final bool looksLikePdf =
+          bytes.length > 5 &&
           String.fromCharCodes(bytes.sublist(0, 5)) == "%PDF-";
 
       if (!looksLikePdf) {
@@ -117,16 +118,14 @@ class _DetailsState extends State<Details> {
       );
 
       if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("មិនអាចបើក PDF បានទេ")),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("មិនអាចបើក PDF បានទេ")));
       }
     } catch (e) {
       debugPrint("❌ Open PDF error: $e");
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("មិនអាចបើក PDF បាន: $e")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("មិនអាចបើក PDF បាន: $e")));
     }
   }
 
@@ -145,9 +144,7 @@ class _DetailsState extends State<Details> {
     }
 
     if (_isPdfLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.cyan),
-      );
+      return const Center(child: CircularProgressIndicator(color: Colors.cyan));
     }
 
     if (_pdfErrorMessage != null || _pdfBytes == null) {
@@ -179,7 +176,7 @@ class _DetailsState extends State<Details> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -360,7 +357,6 @@ class _DetailsState extends State<Details> {
       body: isPdf
           // PDF: ពេញអេក្រង់ គ្មាន card, គ្មាន title ស្ទួន (Title នៅ AppBar ហើយ)
           ? SafeArea(child: _buildPdfViewer())
-
           // TEXT / IMAGE: រក្សាទុករចនាប័ទ្មកាតដូចដើម
           : SafeArea(
               child: Padding(

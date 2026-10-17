@@ -5,8 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class FirebaseAuthRepos implements AuthRepo {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-  final FirebaseFirestore firebaseFirestore =
-      FirebaseFirestore.instance;
+  final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
 
   // ============================================================
   // GET CURRENT USER
@@ -40,9 +39,7 @@ class FirebaseAuthRepos implements AuthRepo {
       return AppUser(
         uid: firebaseUser.uid,
         email: firebaseUser.email ?? "",
-        name: data?['name']?.toString() ??
-            firebaseUser.displayName ??
-            "User",
+        name: data?['name']?.toString() ?? firebaseUser.displayName ?? "User",
       );
     } catch (e) {
       print("GET CURRENT USER ERROR: $e");
@@ -78,11 +75,11 @@ class FirebaseAuthRepos implements AuthRepo {
     required String name,
   }) async {
     try {
-      final UserCredential userCredential =
-          await firebaseAuth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final UserCredential userCredential = await firebaseAuth
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
 
       final User? firebaseUser = userCredential.user;
 
@@ -106,15 +103,11 @@ class FirebaseAuthRepos implements AuthRepo {
       print("REGISTER FIREBASE ERROR: ${e.code}");
       print("REGISTER FIREBASE MESSAGE: ${e.message}");
 
-      throw Exception(
-        "Firebase register error: ${e.code} - ${e.message}",
-      );
+      throw Exception("Firebase register error: ${e.code} - ${e.message}");
     } catch (e) {
       print("REGISTER ERROR: $e");
 
-      throw Exception(
-        "Failed to register: $e",
-      );
+      throw Exception("Failed to register: $e");
     }
   }
 
@@ -137,11 +130,8 @@ class FirebaseAuthRepos implements AuthRepo {
       // 1. Firebase Authentication
       // --------------------------------------------------------
 
-      final UserCredential userCredential =
-          await firebaseAuth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final UserCredential userCredential = await firebaseAuth
+          .signInWithEmailAndPassword(email: email.trim(), password: password);
 
       final User? firebaseUser = userCredential.user;
 
@@ -158,20 +148,17 @@ class FirebaseAuthRepos implements AuthRepo {
       // 2. Get Firestore profile
       // --------------------------------------------------------
 
-      final DocumentSnapshot userDoc =
-          await firebaseFirestore
-              .collection("users")
-              .doc(firebaseUser.uid)
-              .get();
+      final DocumentSnapshot userDoc = await firebaseFirestore
+          .collection("users")
+          .doc(firebaseUser.uid)
+          .get();
 
       // --------------------------------------------------------
       // 3. If profile does not exist, create one
       // --------------------------------------------------------
 
       if (!userDoc.exists) {
-        print(
-          "Firestore user document does not exist. Creating it...",
-        );
+        print("Firestore user document does not exist. Creating it...");
 
         final AppUser user = AppUser(
           uid: firebaseUser.uid,
@@ -193,13 +180,10 @@ class FirebaseAuthRepos implements AuthRepo {
       // 4. Read existing Firestore profile safely
       // --------------------------------------------------------
 
-      final data =
-          userDoc.data() as Map<String, dynamic>?;
+      final data = userDoc.data() as Map<String, dynamic>?;
 
       final String name =
-          data?['name']?.toString() ??
-          firebaseUser.displayName ??
-          "User";
+          data?['name']?.toString() ?? firebaseUser.displayName ?? "User";
 
       final AppUser user = AppUser(
         uid: firebaseUser.uid,
@@ -213,11 +197,9 @@ class FirebaseAuthRepos implements AuthRepo {
 
       return user;
     }
-
     // ==========================================================
     // FIREBASE AUTH ERROR
     // ==========================================================
-
     on FirebaseAuthException catch (e) {
       print("========================================");
       print("FIREBASE LOGIN ERROR");
@@ -225,25 +207,18 @@ class FirebaseAuthRepos implements AuthRepo {
       print("MESSAGE: ${e.message}");
       print("========================================");
 
-      throw Exception(
-        "Firebase login error: ${e.code} - ${e.message}",
-      );
+      throw Exception("Firebase login error: ${e.code} - ${e.message}");
     }
-
     // ==========================================================
     // OTHER ERROR
     // ==========================================================
-
     catch (e) {
       print("========================================");
       print("LOGIN ERROR");
       print(e);
       print("========================================");
 
-      throw Exception(
-        "Failed to login: $e",
-      );
+      throw Exception("Failed to login: $e");
     }
   }
 }
-

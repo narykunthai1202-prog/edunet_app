@@ -95,7 +95,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void updateProfile() {
     final profileCubit = context.read<ProfileCubit>();
-    
 
     profileCubit.updateProfile(
       uid: widget.user.uid,

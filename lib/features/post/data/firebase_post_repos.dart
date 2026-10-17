@@ -51,12 +51,14 @@ class FirebasePostRepo implements PostRepo {
           .where('userId', isEqualTo: userId)
           .get();
       //convert the snapshot to a list of posts to json
-     final userPosts = postSnapshot.docs.map((doc) {
-      final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>,);
-      data ['id' ] ??= doc.id;
-      return Post.fromJson(data);
-     }).toList();
-     userPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      final userPosts = postSnapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(
+          doc.data() as Map<String, dynamic>,
+        );
+        data['id'] ??= doc.id;
+        return Post.fromJson(data);
+      }).toList();
+      userPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return userPosts;
     } catch (e) {
       throw Exception('Failed to fetch posts by userId: $e');
@@ -128,101 +130,91 @@ class FirebasePostRepo implements PostRepo {
       throw Exception('Error deleting comment');
     }
   }
-@override
-Future<List<Post>> fetchpostbyfollowing(String userId) async {
-  try {
-    // Get current user's document
-    final currentUserDoc = await usercollection.doc(userId).get();
 
-    if (!currentUserDoc.exists) {
-      return [];
-    }
+  @override
+  Future<List<Post>> fetchpostbyfollowing(String userId) async {
+    try {
+      // Get current user's document
+      final currentUserDoc = await usercollection.doc(userId).get();
 
-    final currentUserData =
-        currentUserDoc.data() as Map<String, dynamic>;
+      if (!currentUserDoc.exists) {
+        return [];
+      }
 
-    // People that current user follows
-    final followingIds = List<String>.from(
-      currentUserData['following'] ?? [],
-    );
+      final currentUserData = currentUserDoc.data() as Map<String, dynamic>;
 
-    if (followingIds.isEmpty) {
-      return [];
-    }
-    // and check whether they follow current user back.
-    final List<String> mutualFriendIds = [];
+      // People that current user follows
+      final followingIds = List<String>.from(
+        currentUserData['following'] ?? [],
+      );
 
-    for (int i = 0; i < followingIds.length; i += 30) {
-      final batch = followingIds.skip(i).take(30).toList();
+      if (followingIds.isEmpty) {
+        return [];
+      }
+      // and check whether they follow current user back.
+      final List<String> mutualFriendIds = [];
 
-      final usersSnapshot = await usercollection
-          .where(FieldPath.documentId, whereIn: batch)
-          .get();
+      for (int i = 0; i < followingIds.length; i += 30) {
+        final batch = followingIds.skip(i).take(30).toList();
 
-      for (final doc in usersSnapshot.docs) {
-        final userData =
-            doc.data();
+        final usersSnapshot = await usercollection
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
 
-        final followers = List<String>.from(
-          userData['followers'] ?? [],
-        );
+        for (final doc in usersSnapshot.docs) {
+          final userData = doc.data();
 
-        // Both users follow each other
-        if (followers.contains(userId)) {
-          mutualFriendIds.add(doc.id);
+          final followers = List<String>.from(userData['followers'] ?? []);
+
+          // Both users follow each other
+          if (followers.contains(userId)) {
+            mutualFriendIds.add(doc.id);
+          }
         }
       }
+
+      if (mutualFriendIds.isEmpty) {
+        return [];
+      }
+
+      // Now fetch posts only from mutual friends
+      final List<Post> followingPosts = [];
+
+      for (int i = 0; i < mutualFriendIds.length; i += 30) {
+        final batch = mutualFriendIds.skip(i).take(30).toList();
+
+        final postSnapshot = await postscollection
+            .where('userId', whereIn: batch)
+            .where('privacy', isEqualTo: 'Friend')
+            .get();
+
+        final posts = postSnapshot.docs.map((doc) {
+          final data = Map<String, dynamic>.from(
+            doc.data() as Map<String, dynamic>,
+          );
+
+          data['id'] ??= doc.id;
+
+          return Post.fromJson(data);
+        }).toList();
+
+        followingPosts.addAll(posts);
+      }
+
+      // Newest posts first
+      followingPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      return followingPosts;
+    } catch (e) {
+      throw Exception('Failed to fetch posts by following: $e');
     }
-
-    if (mutualFriendIds.isEmpty) {
-      return [];
-    }
-
-    // Now fetch posts only from mutual friends
-    final List<Post> followingPosts = [];
-
-    for (int i = 0; i < mutualFriendIds.length; i += 30) {
-      final batch = mutualFriendIds.skip(i).take(30).toList();
-
-      final postSnapshot = await postscollection
-          .where('userId', whereIn: batch)
-          .where('privacy', isEqualTo: 'Friend')
-          .get();
-
-      final posts = postSnapshot.docs
-          .map((doc) {
-            final data = Map<String, dynamic>.from(
-              doc.data() as Map<String, dynamic>,
-            );
-
-            data['id'] ??= doc.id;
-
-            return Post.fromJson(data);
-          })
-          .toList();
-
-      followingPosts.addAll(posts);
-    }
-
-    // Newest posts first
-    followingPosts.sort(
-      (a, b) => b.timestamp.compareTo(a.timestamp),
-    );
-
-    return followingPosts;
-  } catch (e) {
-    throw Exception(
-      'Failed to fetch posts by following: $e',
-    );
   }
-}
 
   @override
   Future<List<Post>> fetchpostbypublic() async {
     try {
       final postSnapshot = await postscollection
           .where('privacy', isEqualTo: 'Public')
-          
           .get();
 
       final posts = postSnapshot.docs.map((doc) {
@@ -352,248 +344,220 @@ Future<List<Post>> fetchpostbyfollowing(String userId) async {
       throw Exception('Failed to fetch saved posts: $e');
     }
   }
-@override
-Future<List<Post>> fetchVisiblePostsByUserId(
-  String profileUserId,
-  String? viewerUserId,
-) async {
-  try {
-    final postSnapshot = await postscollection
-        .where('userId', isEqualTo: profileUserId)
-        .get();
-
-    final posts = postSnapshot.docs
-        .map((doc) {
-          final data = Map<String, dynamic>.from(
-            doc.data() as Map<String, dynamic>,
-          );
-
-          data['id'] ??= doc.id;
-
-          return Post.fromJson(data);
-        })
-        .toList();
-
-    // Get the profile owner's user document
-    final profileUserDoc =
-        await usercollection.doc(profileUserId).get();
-
-    if (!profileUserDoc.exists) {
-      return [];
-    }
-
-    final profileUserData =
-        profileUserDoc.data() as Map<String, dynamic>;
-
-    final List<String> profileFollowing =
-        List<String>.from(profileUserData['following'] ?? []);
-
-    // Check whether viewer follows profile owner
-    final viewerFollowsOwner =
-        viewerUserId != null &&
-        profileUserData['followers']?.contains(viewerUserId) == true;
-
-    // Check whether profile owner follows viewer
-    bool ownerFollowsViewer = false;
-
-    if (viewerUserId != null) {
-      final viewerDoc =
-          await usercollection.doc(viewerUserId).get();
-
-      if (viewerDoc.exists) {
-        final viewerData =
-            viewerDoc.data() as Map<String, dynamic>;
-
-        final List<String> viewerFollowing =
-            List<String>.from(viewerData['following'] ?? []);
-
-        ownerFollowsViewer =
-            viewerFollowing.contains(profileUserId);
-      }
-    }
-
-    final List<Post> visiblePosts = posts.where((post) {
-      // Owner can see everything on their own profile
-      if (viewerUserId == profileUserId) {
-        return true;
-      }
-
-      // PUBLIC
-      if (post.privacy == 'Public') {
-        return true;
-      }
-
-      // ONLY ME
-      if (post.privacy == 'private') {
-        return false;
-      }
-
-      // FRIENDS / FOLLOWING
-      if (post.privacy == 'Friend') {
-        return viewerFollowsOwner && ownerFollowsViewer;
-      }
-
-      return false;
-    }).toList();
-
-    visiblePosts.sort(
-      (a, b) => b.timestamp.compareTo(a.timestamp),
-    );
-
-    return visiblePosts;
-  } catch (e) {
-    throw Exception(
-      'Failed to fetch visible posts by userId: $e',
-    );
-  }
-}
 
   @override
-  Future<void> editPost(Post post, ) async {
-    try{
-       await postscollection.doc(post.id).update(post.toJson());
+  Future<List<Post>> fetchVisiblePostsByUserId(
+    String profileUserId,
+    String? viewerUserId,
+  ) async {
+    try {
+      final postSnapshot = await postscollection
+          .where('userId', isEqualTo: profileUserId)
+          .get();
+
+      final posts = postSnapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(
+          doc.data() as Map<String, dynamic>,
+        );
+
+        data['id'] ??= doc.id;
+
+        return Post.fromJson(data);
+      }).toList();
+
+      // Get the profile owner's user document
+      final profileUserDoc = await usercollection.doc(profileUserId).get();
+
+      if (!profileUserDoc.exists) {
+        return [];
+      }
+
+      final profileUserData = profileUserDoc.data() as Map<String, dynamic>;
+
+      final List<String> profileFollowing = List<String>.from(
+        profileUserData['following'] ?? [],
+      );
+
+      // Check whether viewer follows profile owner
+      final viewerFollowsOwner =
+          viewerUserId != null &&
+          profileUserData['followers']?.contains(viewerUserId) == true;
+
+      // Check whether profile owner follows viewer
+      bool ownerFollowsViewer = false;
+
+      if (viewerUserId != null) {
+        final viewerDoc = await usercollection.doc(viewerUserId).get();
+
+        if (viewerDoc.exists) {
+          final viewerData = viewerDoc.data() as Map<String, dynamic>;
+
+          final List<String> viewerFollowing = List<String>.from(
+            viewerData['following'] ?? [],
+          );
+
+          ownerFollowsViewer = viewerFollowing.contains(profileUserId);
+        }
+      }
+
+      final List<Post> visiblePosts = posts.where((post) {
+        // Owner can see everything on their own profile
+        if (viewerUserId == profileUserId) {
+          return true;
+        }
+
+        // PUBLIC
+        if (post.privacy == 'Public') {
+          return true;
+        }
+
+        // ONLY ME
+        if (post.privacy == 'private') {
+          return false;
+        }
+
+        // FRIENDS / FOLLOWING
+        if (post.privacy == 'Friend') {
+          return viewerFollowsOwner && ownerFollowsViewer;
+        }
+
+        return false;
+      }).toList();
+
+      visiblePosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      return visiblePosts;
+    } catch (e) {
+      throw Exception('Failed to fetch visible posts by userId: $e');
     }
-    catch (e){
+  }
+
+  @override
+  Future<void> editPost(Post post) async {
+    try {
+      await postscollection.doc(post.id).update(post.toJson());
+    } catch (e) {
       throw Exception('Failed to edit post: $e');
     }
   }
 
   @override
   Future<void> addReply(String postId, String commentId, Comment reply) async {
-   try{
-   final postDoc = await postscollection.doc(postId).get();
+    try {
+      final postDoc = await postscollection.doc(postId).get();
 
-    if (!postDoc.exists) {
-      throw Exception('Post not found');
+      if (!postDoc.exists) {
+        throw Exception('Post not found');
+      }
+
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+      final commentIndex = post.comments.indexWhere(
+        (comment) => comment.id == commentId,
+      );
+      if (commentIndex == -1) {
+        throw Exception('Comment not found');
+      }
+      final comment = post.comments[commentIndex];
+      final updatedReplies = List<Comment>.from(comment.replies);
+      updatedReplies.add(reply);
+      final updatedComment = comment.CopyWith(replies: updatedReplies);
+      final updatedComments = List<Comment>.from(post.comments);
+      updatedComments[commentIndex] = updatedComment;
+      await postscollection.doc(postId).update({
+        'comments': updatedComments.map((comment) => comment.toJson()).toList(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add reply: $e');
     }
-
-    final post = Post.fromJson(
-      postDoc.data() as Map<String, dynamic>,
-    );
-    final commentIndex = post.comments.indexWhere((comment) => comment.id == commentId);
-    if(commentIndex == -1){
-      throw Exception('Comment not found');
-    }
-    final comment = post.comments[commentIndex];
-    final updatedReplies = List<Comment>.from(comment.replies);
-    updatedReplies.add(reply);
-    final updatedComment = comment.CopyWith(
-      replies: updatedReplies,
-    );
-    final updatedComments = List<Comment>.from(post.comments);
-    updatedComments[commentIndex] = updatedComment;
-    await postscollection.doc(postId).update({
-      'comments': updatedComments.map((comment) => comment.toJson()).toList(),
-    });
-
-   } catch (e){
-    throw Exception('Failed to add reply: $e');
-   }
   }
 
   @override
-Future<void> deleteReply(
-  String postId,
-  String commentId,
-  String replyId,
-) async {
-  try {
-    final postDoc = await postscollection.doc(postId).get();
+  Future<void> deleteReply(
+    String postId,
+    String commentId,
+    String replyId,
+  ) async {
+    try {
+      final postDoc = await postscollection.doc(postId).get();
 
-    if (!postDoc.exists) {
-      throw Exception('Post not found');
+      if (!postDoc.exists) {
+        throw Exception('Post not found');
+      }
+
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+
+      final commentIndex = post.comments.indexWhere(
+        (comment) => comment.id == commentId,
+      );
+
+      if (commentIndex == -1) {
+        throw Exception('Comment not found');
+      }
+
+      final comment = post.comments[commentIndex];
+
+      final updatedReplies = List<Comment>.from(comment.replies);
+
+      updatedReplies.removeWhere((reply) => reply.id == replyId);
+
+      final updatedComment = comment.CopyWith(replies: updatedReplies);
+
+      final updatedComments = List<Comment>.from(post.comments);
+      updatedComments[commentIndex] = updatedComment;
+
+      await postscollection.doc(postId).update({
+        'comments': updatedComments.map((comment) => comment.toJson()).toList(),
+      });
+    } catch (e) {
+      throw Exception('Error deleting reply: $e');
     }
-
-    final post = Post.fromJson(
-      postDoc.data() as Map<String, dynamic>,
-    );
-
-    final commentIndex = post.comments.indexWhere(
-      (comment) => comment.id == commentId,
-    );
-
-    if (commentIndex == -1) {
-      throw Exception('Comment not found');
-    }
-
-    final comment = post.comments[commentIndex];
-
-    final updatedReplies = List<Comment>.from(comment.replies);
-
-    updatedReplies.removeWhere(
-      (reply) => reply.id == replyId,
-    );
-
-    final updatedComment = comment.CopyWith(
-      replies: updatedReplies,
-    );
-
-    final updatedComments = List<Comment>.from(post.comments);
-    updatedComments[commentIndex] = updatedComment;
-
-    await postscollection.doc(postId).update({
-      'comments': updatedComments
-          .map((comment) => comment.toJson())
-          .toList(),
-    });
-  } catch (e) {
-    throw Exception('Error deleting reply: $e');
   }
-}
-@override
-Future<void> toggleCommentReaction(
-  String postId,
-  String commentId,
-  String userId,
-) async {
-  try {
-    final postDoc = await postscollection.doc(postId).get();
 
-    if (!postDoc.exists) {
-      throw Exception('Post not found');
+  @override
+  Future<void> toggleCommentReaction(
+    String postId,
+    String commentId,
+    String userId,
+  ) async {
+    try {
+      final postDoc = await postscollection.doc(postId).get();
+
+      if (!postDoc.exists) {
+        throw Exception('Post not found');
+      }
+
+      final post = Post.fromJson(postDoc.data() as Map<String, dynamic>);
+
+      final commentIndex = post.comments.indexWhere(
+        (comment) => comment.id == commentId,
+      );
+
+      if (commentIndex == -1) {
+        throw Exception('Comment not found');
+      }
+
+      final comment = post.comments[commentIndex];
+
+      final updatedReactions = List<String>.from(comment.reactions);
+
+      if (updatedReactions.contains(userId)) {
+        // Remove reaction
+        updatedReactions.remove(userId);
+      } else {
+        // Add reaction
+        updatedReactions.add(userId);
+      }
+
+      final updatedComment = comment.CopyWith(reactions: updatedReactions);
+
+      final updatedComments = List<Comment>.from(post.comments);
+      updatedComments[commentIndex] = updatedComment;
+
+      await postscollection.doc(postId).update({
+        'comments': updatedComments.map((comment) => comment.toJson()).toList(),
+      });
+    } catch (e) {
+      throw Exception('Error toggling comment reaction: $e');
     }
-
-    final post = Post.fromJson(
-      postDoc.data() as Map<String, dynamic>,
-    );
-
-    final commentIndex = post.comments.indexWhere(
-      (comment) => comment.id == commentId,
-    );
-
-    if (commentIndex == -1) {
-      throw Exception('Comment not found');
-    }
-
-    final comment = post.comments[commentIndex];
-
-    final updatedReactions = List<String>.from(
-      comment.reactions,
-    );
-
-    if (updatedReactions.contains(userId)) {
-      // Remove reaction
-      updatedReactions.remove(userId);
-    } else {
-      // Add reaction
-      updatedReactions.add(userId);
-    }
-
-    final updatedComment = comment.CopyWith(
-      reactions: updatedReactions,
-    );
-
-    final updatedComments = List<Comment>.from(post.comments);
-    updatedComments[commentIndex] = updatedComment;
-
-    await postscollection.doc(postId).update({
-      'comments': updatedComments
-          .map((comment) => comment.toJson())
-          .toList(),
-    });
-  } catch (e) {
-    throw Exception('Error toggling comment reaction: $e');
   }
-}
-  
 }

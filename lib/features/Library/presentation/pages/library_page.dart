@@ -105,11 +105,11 @@ class _LibraryPageState extends State<LibraryPage> {
                     itemCount: docs.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 15,
-                      mainAxisSpacing: 15,
-                      childAspectRatio: 1.1,
-                    ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 15,
+                          childAspectRatio: 1.1,
+                        ),
                     itemBuilder: (context, index) {
                       final doc = docs[index];
                       final data = doc.data() as Map<String, dynamic>;
@@ -153,10 +153,8 @@ class _LibraryPageState extends State<LibraryPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => SubPage(
-                subjectId: subjectId,
-                categoryName: title,
-              ),
+              builder: (context) =>
+                  SubPage(subjectId: subjectId, categoryName: title),
             ),
           );
         },

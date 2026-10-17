@@ -44,7 +44,7 @@ class ImagePostCard extends StatefulWidget {
     required this.isSaved,
     required this.savedcount,
     required this.ondoubletap,
-    required this.privacy
+    required this.privacy,
   });
 
   @override
@@ -172,38 +172,41 @@ class _ImagePostCardState extends State<ImagePostCard> {
                               ),
 
                               Row(
-      children: [
-        Text(
-          widget.timestamp,
-          style: const TextStyle(
-            color: Color.fromARGB(255, 43, 42, 42),
-            fontSize: 12,
-            shadows: [
-              Shadow(blurRadius: 5),
-            ],
-          ),
-        ),
+                                children: [
+                                  Text(
+                                    widget.timestamp,
+                                    style: const TextStyle(
+                                      color: Color.fromARGB(255, 43, 42, 42),
+                                      fontSize: 12,
+                                      shadows: [Shadow(blurRadius: 5)],
+                                    ),
+                                  ),
 
-        const SizedBox(width: 6),
+                                  const SizedBox(width: 6),
 
-        const Icon(
-          Icons.circle,
-          size: 3,
-          color: Colors.grey,
-        ),
+                                  const Icon(
+                                    Icons.circle,
+                                    size: 3,
+                                    color: Colors.grey,
+                                  ),
 
-        const SizedBox(width: 6),
-        Icon(
-      widget.privacy == 'Public'
-          ? Iconsax.global
-          : widget.privacy == 'Friend'
-              ? Iconsax.people
-              : Iconsax.lock,
-      size: 13,
-      color: const Color.fromARGB(255, 21, 21, 21),
-    ),
-      ],
-    ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    widget.privacy == 'Public'
+                                        ? Iconsax.global
+                                        : widget.privacy == 'Friend'
+                                        ? Iconsax.people
+                                        : Iconsax.lock,
+                                    size: 13,
+                                    color: const Color.fromARGB(
+                                      255,
+                                      21,
+                                      21,
+                                      21,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ],

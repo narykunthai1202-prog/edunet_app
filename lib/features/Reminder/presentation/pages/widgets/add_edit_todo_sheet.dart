@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+
 import '../models/todo_item.dart';
 import '../theme/app_colors.dart';
 
@@ -39,7 +40,9 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.existing?.title ?? '');
+    _titleController = TextEditingController(
+      text: widget.existing?.title ?? '',
+    );
     _selectedColor = widget.existing?.color ?? AppColors.todoPalette.first;
     _hasReminder = widget.existing?.hasReminder ?? false;
     _selectedTime = _parseTime(widget.existing?.time);
@@ -55,8 +58,10 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
   /// TimeOfDay so the picker opens pre-filled when editing a task.
   TimeOfDay? _parseTime(String? raw) {
     if (raw == null || raw.trim().isEmpty) return null;
-    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(am|pm)?$', caseSensitive: false)
-        .firstMatch(raw.trim());
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})\s*(am|pm)?$',
+      caseSensitive: false,
+    ).firstMatch(raw.trim());
     if (match == null) return null;
     int hour = int.parse(match.group(1)!);
     final minute = int.parse(match.group(2)!);
@@ -83,9 +88,8 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
       initialTime: _selectedTime ?? TimeOfDay.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context).colorScheme.copyWith(
-                primary: AppColors.todayCircle,
-              ),
+          colorScheme: Theme.of(context).colorScheme
+              .copyWith(primary: AppColors.todayCircle),
         ),
         child: child!,
       ),
@@ -93,7 +97,8 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
     if (picked != null) {
       setState(() {
         _selectedTime = picked;
-        _hasReminder = true; // picking a time is a strong signal they want a reminder
+        _hasReminder =
+            true; // picking a time is a strong signal they want a reminder
       });
     }
   }
@@ -125,12 +130,20 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [BoxShadow(color: Color(0x22000000), blurRadius: 24, offset: Offset(0, -6))],
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 24,
+              offset: Offset(0, -6),
+            ),
+          ],
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: Column(
@@ -148,8 +161,10 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
                 ),
               ),
             ),
-            Text(isEditing ? 'Edit task' : 'New task',
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+            Text(
+              isEditing ? 'Edit task' : 'New task',
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 4),
             Text(
               '${widget.date.year}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}',
@@ -175,7 +190,9 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
             // --- The time picker button ---
             _TimePickerButton(
               time: _selectedTime,
-              formattedTime: _selectedTime != null ? _formatTime(_selectedTime!) : null,
+              formattedTime: _selectedTime != null
+                  ? _formatTime(_selectedTime!)
+                  : null,
               onTap: _pickTime,
               onClear: _clearTime,
             ),
@@ -189,13 +206,17 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
                       child: _ReminderSwitchCard(
                         enabled: _hasReminder,
                         time: _formatTime(_selectedTime!),
-                        onChanged: (value) => setState(() => _hasReminder = value),
+                        onChanged: (value) =>
+                            setState(() => _hasReminder = value),
                       ),
                     ),
             ),
 
             const SizedBox(height: 18),
-            const Text('Color', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Color',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 10),
             Row(
               children: AppColors.todoPalette.map((color) {
@@ -211,9 +232,16 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
                       decoration: BoxDecoration(
                         color: color,
                         shape: BoxShape.circle,
-                        border: selected ? Border.all(color: Colors.black87, width: 2.5) : null,
+                        border: selected
+                            ? Border.all(color: Colors.black87, width: 2.5)
+                            : null,
                         boxShadow: selected
-                            ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+                            ? [
+                                BoxShadow(
+                                  color: color.withValues(alpha: 0.5),
+                                  blurRadius: 8,
+                                ),
+                              ]
                             : null,
                       ),
                     ),
@@ -228,12 +256,17 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.todayCircle,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 onPressed: _save,
                 child: Text(
                   isEditing ? 'Save changes' : 'Add task',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -270,10 +303,14 @@ class _TimePickerButton extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: hasTime ? AppColors.todayCircle.withValues(alpha: 0.08) : Colors.grey.shade100,
+          color: hasTime
+              ? AppColors.todayCircle.withValues(alpha: 0.08)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: hasTime ? AppColors.todayCircle.withValues(alpha: 0.35) : Colors.transparent,
+            color: hasTime
+                ? AppColors.todayCircle.withValues(alpha: 0.35)
+                : Colors.transparent,
             width: 1.2,
           ),
         ),
@@ -301,11 +338,19 @@ class _TimePickerButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade500),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: Colors.grey.shade500,
+                  ),
                 ),
               )
             else
-              Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Colors.grey.shade400,
+              ),
           ],
         ),
       ),
@@ -337,7 +382,9 @@ class _ReminderSwitchCard extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            enabled ? Icons.notifications_active_rounded : Icons.notifications_off_outlined,
+            enabled
+                ? Icons.notifications_active_rounded
+                : Icons.notifications_off_outlined,
             size: 18,
             color: enabled ? AppColors.todayCircle : Colors.grey.shade400,
           ),

@@ -37,7 +37,7 @@ class _ViewProfileState extends State<ViewProfile> {
   late final authcubit = context.read<AuthCubit>();
   late final profileCubit = context.read<ProfileCubit>();
   late final postCubit = context.read<PostCubit>();
-  
+
   //current user
   late AppUser? currentUser = authcubit.currentUser;
   //on started

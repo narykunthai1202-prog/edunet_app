@@ -17,8 +17,7 @@ class ListViewPostByprivacy extends StatefulWidget {
   });
 
   @override
-  State<ListViewPostByprivacy> createState() =>
-      _ListViewPostByprivacyState();
+  State<ListViewPostByprivacy> createState() => _ListViewPostByprivacyState();
 }
 
 class _ListViewPostByprivacyState extends State<ListViewPostByprivacy> {
@@ -57,15 +56,11 @@ class _ListViewPostByprivacyState extends State<ListViewPostByprivacy> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_posts.isEmpty) {
-      return const Center(
-        child: Text('No Posts Yet'),
-      );
+      return const Center(child: Text('No Posts Yet'));
     }
 
     return ListView.builder(

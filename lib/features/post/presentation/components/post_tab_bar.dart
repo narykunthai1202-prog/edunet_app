@@ -5,7 +5,11 @@ class PostTabBar extends StatelessWidget {
   final int selectedTab;
   final Function(int) onTabSelected;
 
-  const PostTabBar({super.key, required this.selectedTab, required this.onTabSelected});
+  const PostTabBar({
+    super.key,
+    required this.selectedTab,
+    required this.onTabSelected,
+  });
 
   @override
   Widget build(BuildContext context) {

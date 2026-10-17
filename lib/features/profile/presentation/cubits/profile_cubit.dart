@@ -13,8 +13,11 @@ class ProfileCubit extends Cubit<ProfileStates> {
   final ProfileRepo profileRepo;
   final NotificationRepo notificationRepo;
   final PostRepo postRepo;
-  ProfileCubit({required this.profileRepo, required this.notificationRepo, required this.postRepo})
-    : super(ProfileInitial());
+  ProfileCubit({
+    required this.profileRepo,
+    required this.notificationRepo,
+    required this.postRepo,
+  }) : super(ProfileInitial());
 
   ProfileUser? get currentUser {
     final currentState = state;
@@ -183,5 +186,4 @@ class ProfileCubit extends Cubit<ProfileStates> {
   Future<List<ProfileUser>> fetchSuggestedUsers(String currentUserId) async {
     return await profileRepo.fetchSuggestedUsers(currentUserId);
   }
-  
 }

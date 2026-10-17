@@ -37,7 +37,12 @@ class FollowButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: isFollowing
               ? Theme.of(context).colorScheme.surface
-              : const Color.fromARGB(255, 234, 197, 160).withValues(alpha: 0.25),
+              : const Color.fromARGB(
+                  255,
+                  234,
+                  197,
+                  160,
+                ).withValues(alpha: 0.25),
           borderRadius: radius,
           border: Border.all(color: Colors.grey),
         ),

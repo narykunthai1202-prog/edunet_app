@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+
 import '../models/todo_item.dart';
 import '../services/todo_service.dart';
 import '../widgets/add_edit_todo_sheet.dart';
@@ -8,6 +9,7 @@ import '../theme/app_colors.dart';
 
 /// Filter options for tasks
 enum TaskFilter { all, pending, completed }
+
 /// Sorting options for tasks
 enum TaskSort { time, alphabetical, status }
 
@@ -151,8 +153,11 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
           // 2. Search query filter
           if (_searchQuery.isNotEmpty) {
             filtered = filtered
-                .where((t) =>
-                    t.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+                .where(
+                  (t) => t.title.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ),
+                )
                 .toList();
           }
 
@@ -174,8 +179,9 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
           });
 
           final completedCount = allTodos.where((t) => t.done).length;
-          final progress =
-              allTodos.isNotEmpty ? completedCount / allTodos.length : 0.0;
+          final progress = allTodos.isNotEmpty
+              ? completedCount / allTodos.length
+              : 0.0;
 
           return Column(
             children: [
@@ -191,18 +197,19 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
                 child: allTodos.isEmpty
                     ? _buildEmptyState(context)
                     : filtered.isEmpty
-                        ? _buildFilteredEmptyState()
-                        : ListView.separated(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final todo = filtered[index];
-                              return _buildDismissibleTask(context, todo);
-                            },
-                          ),
+                    ? _buildFilteredEmptyState()
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final todo = filtered[index];
+                          return _buildDismissibleTask(context, todo);
+                        },
+                      ),
               ),
 
               // Quick Inline Add Bar at bottom
@@ -214,8 +221,10 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addTodo(context),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Detailed Task',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Detailed Task',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Theme.of(context).primaryColor,
       ),
     );
@@ -277,8 +286,11 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
                   value: 'move_tomorrow',
                   child: Row(
                     children: [
-                      Icon(Icons.next_plan_outlined,
-                          color: Colors.orange, size: 20),
+                      Icon(
+                        Icons.next_plan_outlined,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
                       SizedBox(width: 10),
                       Text('Move Pending to Tomorrow'),
                     ],
@@ -288,8 +300,11 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
                   value: 'clear_completed',
                   child: Row(
                     children: [
-                      Icon(Icons.cleaning_services_outlined,
-                          color: Colors.redAccent, size: 20),
+                      Icon(
+                        Icons.cleaning_services_outlined,
+                        color: Colors.redAccent,
+                        size: 20,
+                      ),
                       SizedBox(width: 10),
                       Text('Clear Completed Tasks'),
                     ],
@@ -399,10 +414,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
             tooltip: 'Sort tasks',
             onSelected: (sort) => setState(() => _selectedSort = sort),
             itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: TaskSort.time,
-                child: Text('Sort by Time'),
-              ),
+              PopupMenuItem(value: TaskSort.time, child: Text('Sort by Time')),
               PopupMenuItem(
                 value: TaskSort.alphabetical,
                 child: Text('Sort Alphabetically'),
@@ -476,12 +488,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border(
-            left: BorderSide(
-              color: todo.color,
-              width: 5,
-            ),
-          ),
+          border: Border(left: BorderSide(color: todo.color, width: 5)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -517,17 +524,25 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (alignment == Alignment.centerRight) ...[
-            Text(text,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(width: 8),
           ],
           Icon(icon, color: Colors.white, size: 24),
           if (alignment == Alignment.centerLeft) ...[
             const SizedBox(width: 8),
-            Text(text,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ],
       ),
@@ -545,8 +560,10 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
               controller: _quickAddController,
               decoration: InputDecoration(
                 hintText: 'Quick add task...',
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 fillColor: const Color(0xFFF1F3F5),
                 filled: true,
                 border: OutlineInputBorder(
@@ -647,8 +664,18 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
 
   String _monthName(int month) {
     const names = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return names[month - 1];
   }

@@ -22,17 +22,9 @@ abstract class PostRepo {
   );
 
   // Comment reply
-  Future<void> addReply(
-    String postId,
-    String commentId,
-    Comment reply,
-  );
+  Future<void> addReply(String postId, String commentId, Comment reply);
 
-  Future<void> deleteReply(
-    String postId,
-    String commentId,
-    String replyId,
-  );
+  Future<void> deleteReply(String postId, String commentId, String replyId);
 
   // Following / Public posts
   Future<List<Post>> fetchpostbyfollowing(String userId);
