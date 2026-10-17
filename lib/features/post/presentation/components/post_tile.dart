@@ -18,6 +18,7 @@ import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.d
 import 'package:edunest_app/features/profile/presentation/pages/other_view_profile.dart';
 import 'package:edunest_app/features/profile/presentation/pages/view_profile.dart';
 import 'package:edunest_app/helper/helper_method.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
@@ -53,12 +54,15 @@ class _PostTileState extends State<PostTile> {
   //post user
   ProfileUser? postuser;
   ProfileUser? currentUserProfile;
+  Map<String, String> taggedUserIdsByName = {};
+  final List<TapGestureRecognizer> _tagTapRecognizers = [];
 
   @override
   void initState() {
     super.initState();
     getcurrentUser();
     fetchPostUser();
+    fetchTaggedUsers();
     checkSavedPosts();
 
     if (widget.onopencomment) {
@@ -155,6 +159,36 @@ class _PostTileState extends State<PostTile> {
     }
   }
 
+  Future<void> fetchTaggedUsers() async {
+    final taggedUserIds = widget.post.taggedUserIds ?? const <String>[];
+    if (taggedUserIds.isEmpty) return;
+
+    final taggedUsers = await Future.wait(
+      taggedUserIds.map((userId) async {
+        try {
+          return await profileCubit.getUserProfile(userId);
+        } catch (error) {
+          debugPrint('Error loading tagged user $userId: $error');
+          return null;
+        }
+      }),
+    );
+
+    if (!mounted) return;
+
+    final usersByName = <String, String>{};
+    for (var index = 0; index < taggedUsers.length; index++) {
+      final user = taggedUsers[index];
+      if (user != null && user.name.isNotEmpty) {
+        usersByName.putIfAbsent(user.name, () => taggedUserIds[index]);
+      }
+    }
+
+    setState(() {
+      taggedUserIdsByName = usersByName;
+    });
+  }
+
   void togglelikePost() {
     if (currentUser == null) return;
     final uid = currentUser!.uid;
@@ -225,7 +259,7 @@ class _PostTileState extends State<PostTile> {
           userprofileimg: currentUserProfile?.profileImageUrl,
           currentUserName: currentUser?.uid,
           onSubmit: addComment,
-          on_comment_profile_tap: onCommentProfileTap,
+          onCommentProfileTap: onUserProfileTap,
         );
       },
     );
@@ -277,7 +311,7 @@ class _PostTileState extends State<PostTile> {
     }
   }
 
-  void onCommentProfileTap(String userId) {
+  void onUserProfileTap(String userId) {
     final currentuser = context.read<AuthCubit>().currentUser;
 
     if (currentuser?.uid == userId) {
@@ -305,6 +339,74 @@ class _PostTileState extends State<PostTile> {
         MaterialPageRoute(builder: (context) => OtherViewProfile(uid: userId)),
       );
     }
+  }
+
+  Widget buildTaggedPostText({
+    required TextStyle style,
+    required TextAlign textAlign,
+  }) {
+    for (final recognizer in _tagTapRecognizers) {
+      recognizer.dispose();
+    }
+    _tagTapRecognizers.clear();
+
+    final text = widget.post.text;
+    final taggedUsers = taggedUserIdsByName.entries.toList()
+      ..sort((first, second) => second.key.length.compareTo(first.key.length));
+    final spans = <InlineSpan>[];
+    var cursor = 0;
+    var plainTextStart = 0;
+
+    while (cursor < text.length) {
+      if (text[cursor] == '@') {
+        MapEntry<String, String>? match;
+        for (final taggedUser in taggedUsers) {
+          final mention = '@${taggedUser.key}';
+          final end = cursor + mention.length;
+          if (!text.startsWith(mention, cursor)) continue;
+          if (end < text.length &&
+              RegExp(r'[A-Za-z0-9_.]').hasMatch(text[end])) {
+            continue;
+          }
+          match = taggedUser;
+          break;
+        }
+
+        if (match != null) {
+          if (plainTextStart < cursor) {
+            spans.add(TextSpan(text: text.substring(plainTextStart, cursor)));
+          }
+          final userId = match.value;
+          final recognizer = TapGestureRecognizer()
+            ..onTap = () => onUserProfileTap(userId);
+          _tagTapRecognizers.add(recognizer);
+          spans.add(
+            TextSpan(
+              text: '@${match.key}',
+              style: style.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+              recognizer: recognizer,
+            ),
+          );
+          cursor += match.key.length + 1;
+          plainTextStart = cursor;
+          continue;
+        }
+      }
+      cursor++;
+    }
+
+    if (plainTextStart < text.length) {
+      spans.add(TextSpan(text: text.substring(plainTextStart)));
+    }
+
+    return Text.rich(
+      TextSpan(children: spans),
+      textAlign: textAlign,
+      style: style,
+    );
   }
 
   Future<Comment?> addComment(String text, File? image) async {
@@ -352,6 +454,9 @@ class _PostTileState extends State<PostTile> {
 
   @override
   void dispose() {
+    for (final recognizer in _tagTapRecognizers) {
+      recognizer.dispose();
+    }
     super.dispose();
   }
 
@@ -428,6 +533,10 @@ class _PostTileState extends State<PostTile> {
               profileImageUrl: postuser?.profileImageUrl ?? '',
               imageUrls: widget.post.imageUrls,
               text: widget.post.text,
+              textContent: buildTaggedPostText(
+                style: const TextStyle(fontSize: 15),
+                textAlign: TextAlign.start,
+              ),
               isLiked: isLiked,
               likecount: widget.post.likes.length.toString(),
               timestamp: formatDate(widget.post.timestamp),
@@ -437,7 +546,7 @@ class _PostTileState extends State<PostTile> {
               onSave: toggleSavePost,
               savedcount: widget.post.savedBy.length.toString(),
               isSaved: isSaved,
-              commentcount: widget.post.comments.length.toString() ,
+              commentcount: widget.post.comments.length.toString(),
               ondoubletap: togglelikePost,
               onprofiletap: onprofiletap,
               privacy: widget.post.privacy,
@@ -445,6 +554,13 @@ class _PostTileState extends State<PostTile> {
           : TextPostCard(
               username: widget.post.userName,
               text: widget.post.text,
+              textContent: buildTaggedPostText(
+                style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w400,
+                ),
+                textAlign: TextAlign.center,
+              ),
               timestamp: formatDate(widget.post.timestamp),
               profileImageUrl: postuser?.profileImageUrl ?? '',
               trailing: MyOptionmenu(options: menuOptions),

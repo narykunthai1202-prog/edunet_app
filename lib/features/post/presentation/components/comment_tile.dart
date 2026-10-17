@@ -122,8 +122,8 @@ class _CommentTileState extends State<CommentTile> {
                             ),
                           ),
                           SizedBox(
-                            height: 26,
-                            width: 28,
+                            height: 36,
+                            width: 36,
                             child: CommentActionMenu(
                               canDelete: isOwner,
                               isReply: isNested,
@@ -134,7 +134,7 @@ class _CommentTileState extends State<CommentTile> {
                                   widget.onDeleteComment?.call(comment);
                                 }
                               },
-                              onReport: !isNested && !isOwner
+                              onReport: !isOwner
                                   ? () => widget.onReportComment?.call(comment)
                                   : null,
                             ),
@@ -238,14 +238,6 @@ class _CommentTileState extends State<CommentTile> {
                     padding: const EdgeInsets.only(left: 7, top: 7),
                     child: Container(
                       padding: const EdgeInsets.only(left: 10),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(
-                            color: theme.colorScheme.outlineVariant,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
                       child: Column(
                         children: [
                           for (final reply in replies.take(visibleCount))

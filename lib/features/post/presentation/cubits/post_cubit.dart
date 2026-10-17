@@ -6,6 +6,7 @@ import 'package:edunest_app/features/notifications/data/repositories/firebase_no
 import 'package:edunest_app/features/notifications/domain/entities/notification.dart';
 import 'package:edunest_app/features/post/domain/entities/comment.dart';
 import 'package:edunest_app/features/profile/domain/repos/profile_repo.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:edunest_app/features/post/domain/entities/post.dart';
 import 'package:edunest_app/features/post/domain/repos/post_repos.dart';
@@ -50,11 +51,50 @@ class PostCubit extends Cubit<PostState> {
       final newPost = post.copyWith(imageUrls: imageUrls);
 
       await postRepo.createPost(newPost);
+      await _notifyTaggedUsers(newPost);
 
       // Refresh posts after upload
       await fetchAllPostsbypublic();
     } catch (e) {
       emit(PostErrorState(message: e.toString()));
+    }
+  }
+
+  Future<void> _notifyTaggedUsers(Post post) async {
+    final taggedUserIds = post.taggedUserIds ?? const <String>[];
+    final receivers = taggedUserIds
+        .where((userId) => userId.isNotEmpty && userId != post.userId)
+        .toSet();
+    if (receivers.isEmpty) return;
+
+    String? senderImageUrl;
+    try {
+      final sender = await profileRepo.fetchUserProfile(post.userId);
+      senderImageUrl = sender?.profileImageUrl;
+    } catch (error) {
+      debugPrint(
+        'Could not load post author profile for tag notifications: $error',
+      );
+    }
+
+    for (final receiverId in receivers) {
+      final notification = Notification(
+        id: 'mention_${Uri.encodeComponent(post.id)}_${Uri.encodeComponent(receiverId)}',
+        receiverId: receiverId,
+        senderId: post.userId,
+        type: 'mention',
+        title: 'You were tagged',
+        message: '${post.userName} mentioned you in a post',
+        postId: post.id,
+        isRead: false,
+        senderProfileImageurl: senderImageUrl,
+        createdAt: Timestamp.now(),
+      );
+      try {
+        await notificationRepo.createNotification(notification);
+      } catch (error) {
+        debugPrint('Could not send tag notification to $receiverId: $error');
+      }
     }
   }
 
@@ -346,6 +386,7 @@ class PostCubit extends Cubit<PostState> {
     String postId,
     String commentId,
     Comment reply, {
+    required Comment parent,
     File? image,
   }) async {
     try {
@@ -360,6 +401,30 @@ class PostCubit extends Cubit<PostState> {
         updatedReply = reply.CopyWith(imageUrl: result.imageUrl);
       }
       await postRepo.addReply(postId, commentId, updatedReply);
+      if (parent.userId != reply.userId) {
+        try {
+          await notificationRepo.createNotification(
+            Notification(
+              id: FirebaseFirestore.instance
+                  .collection('notifications')
+                  .doc()
+                  .id,
+              receiverId: parent.userId,
+              senderId: reply.userId,
+              type: 'reply',
+              title: 'New Reply',
+              message: '${reply.userName} replied to your comment',
+              postId: postId,
+              commentId: commentId,
+              isRead: false,
+              senderProfileImageurl: reply.userimgurl,
+              createdAt: Timestamp.now(),
+            ),
+          );
+        } catch (error) {
+          debugPrint('Could not send reply notification: $error');
+        }
+      }
     } catch (e) {
       emit(PostErrorState(message: 'Failed to add reply: $e'));
       rethrow;
@@ -381,14 +446,58 @@ class PostCubit extends Cubit<PostState> {
 
   Future<void> toggleCommentReaction(
     String postId,
-    String commentId,
-    String userId,
-  ) async {
+    Comment comment,
+    String userId, {
+    required bool isAdding,
+  }) async {
     try {
-      await postRepo.toggleCommentReaction(postId, commentId, userId);
+      await postRepo.toggleCommentReaction(postId, comment.id, userId);
     } catch (e) {
       emit(PostErrorState(message: 'Failed to toggle comment reaction: $e'));
       rethrow;
     }
+
+    if (comment.userId == userId) return;
+
+    final notificationId =
+        'comment_reaction_${Uri.encodeComponent(postId)}_'
+        '${Uri.encodeComponent(comment.id)}_${Uri.encodeComponent(userId)}';
+    try {
+      if (!isAdding) {
+        await notificationRepo.deleteNotification(notificationId);
+      } else {
+        final sender = await profileRepo.fetchUserProfile(userId);
+        if (sender == null) {
+          debugPrint(
+            'Could not send reaction notification: actor profile not found',
+          );
+          return;
+        }
+        await notificationRepo.createNotification(
+          Notification(
+            id: notificationId,
+            receiverId: comment.userId,
+            senderId: userId,
+            type: 'comment_reaction',
+            title: 'New Reaction',
+            message: '${sender.name} reacted to your comment',
+            postId: postId,
+            commentId: comment.id,
+            isRead: false,
+            senderProfileImageurl: sender.profileImageUrl,
+            createdAt: Timestamp.now(),
+          ),
+        );
+      }
+    } catch (error) {
+      debugPrint('Could not update comment reaction notification: $error');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchUsersForMention(
+    String query,
+    String currentUserId,
+  ) {
+    return postRepo.searchUsersForMention(query, currentUserId);
   }
 }

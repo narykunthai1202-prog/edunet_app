@@ -21,7 +21,7 @@ class CommentBottomSheet extends StatefulWidget {
   final List<Comment> comments;
   final Future<Comment?> Function(String text, File? image)? onSubmit;
   final String? currentUserName;
-  final void Function(String userId) on_comment_profile_tap;
+  final void Function(String userId) onCommentProfileTap;
 
   const CommentBottomSheet({
     super.key,
@@ -30,7 +30,7 @@ class CommentBottomSheet extends StatefulWidget {
     required this.comments,
     this.onSubmit,
     this.currentUserName,
-    required this.on_comment_profile_tap,
+    required this.onCommentProfileTap,
   });
 
   @override
@@ -63,8 +63,9 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
       source: ImageSource.gallery,
       imageQuality: 80,
     );
-    if (picked != null && mounted)
+    if (picked != null && mounted) {
       setState(() => _selectedImage = File(picked.path));
+    }
   }
 
   void _startReply(Comment comment) {
@@ -86,8 +87,9 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
   Future<String> _resolveCurrentUserName() async {
     final uid = _currentUser?.uid;
     final supplied = widget.currentUserName?.trim();
-    if (supplied != null && supplied.isNotEmpty && supplied != uid)
+    if (supplied != null && supplied.isNotEmpty && supplied != uid) {
       return supplied;
+    }
     if (uid == null) return 'User';
     try {
       final doc = await FirebaseFirestore.instance
@@ -116,6 +118,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
 
   Future<void> _submit() async {
     if (_isSending || _currentUser == null) return;
+    final postCubit = context.read<PostCubit>();
     final text = _controller.text.trim();
     if (text.isEmpty && _selectedImage == null) return;
     setState(() => _isSending = true);
@@ -136,31 +139,33 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
           replies: [],
         );
         final replyWithImage = _selectedImage;
-        await context.read<PostCubit>().addReply(
+        await postCubit.addReply(
           widget.postId,
           parent.id,
           reply,
+          parent: parent,
           image: replyWithImage,
         );
+
         if (!mounted) return;
+
         setState(() {
-          parent.replies.add(reply);
-          // Cloudinary URL is persisted by the cubit; refresh this local tree with it.
           _replyingTo = null;
           _controller.clear();
           _selectedImage = null;
         });
-        // Re-read the saved comment tree so the local reply includes its uploaded image URL.
+
         await _refreshCommentsFromFirestore();
       } else {
         final newComment = await widget.onSubmit?.call(text, _selectedImage);
         if (!mounted) return;
-        if (newComment != null)
+        if (newComment != null) {
           setState(() {
             _comments.add(newComment);
             _controller.clear();
             _selectedImage = null;
           });
+        }
       }
     } catch (error, stackTrace) {
       debugPrint('Failed to submit comment/reply: $error\n$stackTrace');
@@ -221,8 +226,9 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
     try {
       await context.read<PostCubit>().toggleCommentReaction(
         widget.postId,
-        comment.id,
+        comment,
         uid,
+        isAdding: !hadReacted,
       );
     } catch (e) {
       if (!mounted) return;
@@ -242,13 +248,15 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
   Future<void> _deleteTopLevelComment(Comment comment) async {
     try {
       await context.read<PostCubit>().deleteComment(widget.postId, comment.id);
-      if (mounted)
+      if (mounted) {
         setState(() => _comments.removeWhere((item) => item.id == comment.id));
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to delete comment.')),
         );
+      }
     }
   }
 
@@ -262,10 +270,11 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
       );
       if (mounted) await _refreshCommentsFromFirestore();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to delete reply.')),
         );
+      }
     }
   }
 
@@ -397,7 +406,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                           comment: _comments[index],
                           currentUserId: _currentUser?.uid,
                           formatTime: _formatTime,
-                          onProfileTap: widget.on_comment_profile_tap,
+                          onProfileTap: widget.onCommentProfileTap,
                           onReact: _toggleReaction,
                           onReply: _startReply,
                           onDeleteComment: _deleteTopLevelComment,

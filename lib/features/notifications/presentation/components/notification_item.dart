@@ -124,12 +124,22 @@ class NotificationItem extends StatelessWidget {
         );
         break;
       case 'comment':
+      case 'reply':
+      case 'comment_reaction':
         // Open the post
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) =>
                 PostDetailPage(postId: notification.postId, onpencomment: true),
+          ),
+        );
+        break;
+      case 'mention':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PostDetailPage(postId: notification.postId),
           ),
         );
         break;

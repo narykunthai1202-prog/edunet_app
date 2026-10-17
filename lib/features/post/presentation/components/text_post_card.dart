@@ -6,6 +6,7 @@ class TextPostCard extends StatefulWidget {
   final String username;
   final String? profileImageUrl;
   final String text;
+  final Widget? textContent;
   final String timestamp;
   final VoidCallback? onlike;
   final VoidCallback? onComment;
@@ -25,6 +26,7 @@ class TextPostCard extends StatefulWidget {
     super.key,
     required this.username,
     required this.text,
+    this.textContent,
     required this.timestamp,
     this.profileImageUrl,
     this.onlike,
@@ -140,14 +142,16 @@ class _TextPostCardState extends State<TextPostCard> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 35),
-                child: Text(
-                  widget.text,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
+                child:
+                    widget.textContent ??
+                    Text(
+                      widget.text,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
               ),
             ),
           ),

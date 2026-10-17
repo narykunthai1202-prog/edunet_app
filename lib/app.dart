@@ -5,7 +5,8 @@ import 'package:edunest_app/features/auth/presentation/pages/auth_page.dart';
 import 'package:edunest_app/features/home/presentation/page/home_page.dart';
 import 'package:edunest_app/features/notifications/data/repositories/firebase_notification_repo.dart';
 import 'package:edunest_app/features/notifications/presentation/cubits/notification_cubit.dart';
-import 'package:edunest_app/features/post/data/firebase_post_repos.dart';
+import 'package:edunest_app/features/post/data/firebase_post_repo.dart';
+
 import 'package:edunest_app/features/post/data/firebase_report_repos.dart';
 import 'package:edunest_app/features/post/presentation/cubits/post_cubit.dart';
 import 'package:edunest_app/features/post/presentation/cubits/report_cubit.dart';

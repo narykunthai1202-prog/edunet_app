@@ -43,4 +43,8 @@ abstract class PostRepo {
 
   // Edit post
   Future<void> editPost(Post post);
+  Future<List<Map<String, dynamic>>> searchUsersForMention(
+    String query,
+    String currentUserId,
+  );
 }

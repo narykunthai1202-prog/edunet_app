@@ -584,4 +584,48 @@ class FirebasePostRepo implements PostRepo {
       throw Exception('Failed to toggle comment reaction: $e');
     }
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> searchUsersForMention(
+    String query,
+    String currentUserId,
+  ) async {
+    final searchText = query.trim().toLowerCase();
+
+    if (searchText.isEmpty) return [];
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .limit(100)
+        .get();
+
+    final results = <Map<String, dynamic>>[];
+
+    for (final doc in snapshot.docs) {
+      if (doc.id == currentUserId) continue;
+
+      final data = doc.data();
+
+      final name =
+          (data['name'] ??
+                  data['fullName'] ??
+                  data['fullname'] ??
+                  data['displayName'] ??
+                  data['username'] ??
+                  '')
+              .toString();
+
+      if (name.toLowerCase().contains(searchText)) {
+        results.add({
+          'uid': doc.id,
+          'name': name,
+          'profileImageUrl': data['profileImageUrl']?.toString() ?? '',
+        });
+      }
+
+      if (results.length >= 10) break;
+    }
+
+    return results;
+  }
 }

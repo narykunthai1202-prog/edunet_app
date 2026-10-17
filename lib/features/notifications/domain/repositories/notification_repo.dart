@@ -27,4 +27,15 @@ abstract class NotificationRepo {
     String receiverId,
   );
   Future<void> deleteNotification(String notificationId);
+  Future<Notification?> getreplyNotification(
+    String postId,
+    String senderId,
+    String receiverId,
+  );
+
+  Future<Notification?> getmentionNotification(
+    String postId,
+    String senderId,
+    String receiverId,
+  );
 }

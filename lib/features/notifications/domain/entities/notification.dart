@@ -8,6 +8,7 @@ class Notification {
   final String title;
   final String message;
   final String? postId;
+  final String? commentId;
   final bool isRead;
   final String? senderProfileImageurl;
   final Timestamp createdAt;
@@ -20,6 +21,7 @@ class Notification {
     required this.title,
     required this.message,
     this.postId,
+    this.commentId,
     required this.isRead,
     this.senderProfileImageurl,
     required this.createdAt,
@@ -33,6 +35,7 @@ class Notification {
     String? title,
     String? message,
     String? postId,
+    String? commentId,
     bool? isRead,
     String? senderProfileImageurl,
     Timestamp? createdAt,
@@ -45,6 +48,7 @@ class Notification {
       title: title ?? this.title,
       message: message ?? this.message,
       postId: postId ?? this.postId,
+      commentId: commentId ?? this.commentId,
       isRead: isRead ?? this.isRead,
       senderProfileImageurl:
           senderProfileImageurl ?? this.senderProfileImageurl,
@@ -61,6 +65,7 @@ class Notification {
       'title': title,
       'message': message,
       'postId': postId,
+      'commentId': commentId,
       'isRead': isRead,
       'senderProfileImageurl': senderProfileImageurl,
       'createdAt': createdAt,
@@ -76,6 +81,7 @@ class Notification {
       title: map['title'] ?? '',
       message: map['message'] ?? '',
       postId: map['postId'],
+      commentId: map['commentId'],
       isRead: map['isRead'] ?? false,
       senderProfileImageurl: map['senderProfileImageurl'],
       createdAt: map['createdAt'] is Timestamp

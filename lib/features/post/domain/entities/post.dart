@@ -12,6 +12,7 @@ class Post {
   final List<Comment> comments;
   final String privacy;
   final List<String> savedBy;
+  final List<String>? taggedUserIds;
 
   Post({
     required this.id,
@@ -24,9 +25,15 @@ class Post {
     required this.comments,
     required this.privacy,
     required this.savedBy,
+    this.taggedUserIds = const [],
   });
 
-  Post copyWith({List<String>? imageUrls, String? text, String? privacy}) {
+  Post copyWith({
+    List<String>? imageUrls,
+    String? text,
+    String? privacy,
+    List<String>? taggedUserIds,
+  }) {
     return Post(
       id: id,
       userId: userId,
@@ -38,6 +45,7 @@ class Post {
       comments: comments,
       privacy: privacy ?? this.privacy,
       savedBy: savedBy,
+      taggedUserIds: taggedUserIds ?? this.taggedUserIds,
     );
   }
 
@@ -53,6 +61,7 @@ class Post {
       'comments': comments.map((comment) => comment.toJson()).toList(),
       'privacy': privacy,
       'savedBy': savedBy,
+      'taggedUserIds': taggedUserIds,
     };
   }
 
@@ -100,6 +109,7 @@ class Post {
 
       // IMPORTANT: must be a List, not ""
       savedBy: List<String>.from(json['savedBy'] ?? []),
+      taggedUserIds: List<String>.from(json['taggedUserIds'] ?? []),
     );
   }
 }

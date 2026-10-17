@@ -10,6 +10,7 @@ class ImagePostCard extends StatefulWidget {
   // Multiple image URLs
   final List<String> imageUrls;
   final String text;
+  final Widget? textContent;
   final String timestamp;
   final VoidCallback? onlike;
   final VoidCallback? onComment;
@@ -31,6 +32,7 @@ class ImagePostCard extends StatefulWidget {
     this.profileImageUrl,
     required this.imageUrls,
     required this.text,
+    this.textContent,
     required this.timestamp,
     this.onlike,
     this.onComment,
@@ -345,10 +347,9 @@ class _ImagePostCardState extends State<ImagePostCard> {
                 const SizedBox(width: 5),
 
                 Expanded(
-                  child: Text(
-                    widget.text,
-                    style: const TextStyle(fontSize: 15),
-                  ),
+                  child:
+                      widget.textContent ??
+                      Text(widget.text, style: const TextStyle(fontSize: 15)),
                 ),
               ],
             ),

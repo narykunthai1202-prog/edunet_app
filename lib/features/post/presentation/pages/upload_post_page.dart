@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:edunest_app/features/auth/domain/entities/app_user.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
 import 'package:edunest_app/features/post/domain/entities/post.dart';
+import 'package:edunest_app/features/post/presentation/components/mention_text_file.dart';
 import 'package:edunest_app/features/post/presentation/components/my_bubble.dart';
 import 'package:edunest_app/features/post/presentation/cubits/post_cubit.dart';
 import 'package:edunest_app/features/post/presentation/cubits/post_states.dart';
@@ -24,6 +25,7 @@ class UploadPostPage extends StatefulWidget {
 class _UploadPostPageState extends State<UploadPostPage> {
   List<File> selectedImages = [];
   final textController = TextEditingController();
+  List<String> taggedUserIds = [];
 
   // Current user
   AppUser? currentUser;
@@ -201,6 +203,7 @@ class _UploadPostPageState extends State<UploadPostPage> {
       comments: [],
       privacy: selectedPrivacy,
       savedBy: [],
+      taggedUserIds: taggedUserIds,
     );
 
     final postCubit = context.read<PostCubit>();
@@ -278,10 +281,12 @@ class _UploadPostPageState extends State<UploadPostPage> {
               const SizedBox(height: 20.0),
 
               // Caption Textbox
-              TextField(
+              MentionTextField(
                 controller: textController,
+                onTaggedUsersChanged: (userIds) {
+                  taggedUserIds = userIds;
+                },
                 maxLines: 4,
-                minLines: 2,
                 decoration: InputDecoration(
                   hintText: "What's on your mind?",
                   border: OutlineInputBorder(

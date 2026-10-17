@@ -158,4 +158,59 @@ class FirebaseNotificationRepo implements NotificationRepo {
       throw Exception('Failed to get like notification: $e');
     }
   }
+
+  @override
+  Future<Notification?> getmentionNotification(
+    String postId,
+    String senderId,
+    String receiverId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection(collectionName)
+          .where('postId', isEqualTo: postId)
+          .where('senderId', isEqualTo: senderId)
+          .where('receiverId', isEqualTo: receiverId)
+          .where('type', isEqualTo: 'mention')
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+
+      return Notification.fromMap({...doc.data(), 'id': doc.id});
+    } catch (e) {
+      throw Exception('Failed to get mention notification: $e');
+    }
+  }
+
+  @override
+  Future<Notification?> getreplyNotification(
+    String postId,
+    String senderId,
+    String receiverId,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection(collectionName)
+          .where('postId', isEqualTo: postId)
+          .where('senderId', isEqualTo: senderId)
+          .where('receiverId', isEqualTo: receiverId)
+          .where('type', isEqualTo: 'reply')
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+      return Notification.fromMap({...doc.data(), 'id': doc.id});
+    } catch (e) {
+      throw Exception('Failed to get reply notification: $e');
+    }
+  }
 }
