@@ -1,4 +1,4 @@
-import 'package:edunest_app/features/ChatPage/presentation/pages/chat_room_page.dart';
+import 'package:edunest_app/features/chat/views/chat_list_view.dart';
 import 'package:edunest_app/features/Library/presentation/pages/library_page.dart';
 import 'package:edunest_app/features/Reminder/presentation/pages/reminder_page.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
@@ -79,7 +79,13 @@ class _HomePageState extends State<HomePage> {
             case 2:
               return ReminderPage();
             case 3:
-              return ChatRoomPage();
+              final userId = context.read<AuthCubit>().currentUser?.uid;
+              if (userId == null) {
+                return const Scaffold(
+                  body: Center(child: Text('Please sign in to view chats.')),
+                );
+              }
+              return ChatListView(currentUserId: userId);
             case 4:
               final uid = context.read<AuthCubit>().currentUser?.uid ?? '';
               return ViewProfile(

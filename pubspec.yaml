@@ -40,26 +40,42 @@ dependencies:
   firebase_auth: ^6.5.6
   flutter_bloc: ^9.1.1
   cloud_firestore: ^6.7.1
+  firebase_storage: ^13.4.6
+  firebase_messaging: ^16.0.0
   iconsax: ^0.0.8
   image_picker: ^1.2.3
   http: ^1.6.0
   mime: ^2.0.0
   path: ^1.9.1
-  cached_network_image: ^3.4.1
+  cached_network_image: ^4.0.4
   google_sign_in: ^6.2.1
-  syncfusion_flutter_pdfviewer: 33.2.12
+  syncfusion_flutter_pdfviewer: 35.1.40+1
   curved_navigation_bar: ^1.0.3
   flutter_stripe: ^12.6.0
   random_string: ^2.3.1
   shared_preferences: ^2.5.5
   url_launcher: ^6.3.2
   easy_pdf_viewer: ^1.0.8 # 🔥 ថែម Package នេះសម្រាប់បើកមើលឯកសារ PDF ផ្ទាល់
-  file_picker: ^11.0.2
+  file_picker: 13.1.0
   pdfx: ^2.9.2
   # Notifications & Timezone
-  flutter_local_notifications: ^18.0.1
-  timezone: ^0.9.4
+  flutter_local_notifications: ^22.3.2
+  timezone: ^0.11.0
   flutter_timezone: ^5.0.0
+  record: ^6.2.1
+  audioplayers: ^6.8.1
+  path_provider: ^2.1.6
+  get: ^4.7.3
+  just_audio: ^0.10.6
+  uuid: ^4.6.0
+  permission_handler: ^13.0.2
+  zego_uikit_prebuilt_call: ^4.18.2
+  emoji_picker_flutter: ^4.3.0
+  video_player: ^2.9.2
+  zego_uikit_signaling_plugin: ^2.8.0
+  zego_uikit: ^2.29.2
+ 
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -37,7 +37,10 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
+      settings: const InitializationSettings(
+        android: androidInit,
+        iOS: iosInit,
+      ),
     );
 
     // Android 13+ requires this explicit runtime permission request.
@@ -64,11 +67,11 @@ class NotificationService {
     if (scheduledDate.isBefore(DateTime.now())) return;
 
     await _plugin.zonedSchedule(
-      todo.notificationId,
-      todo.title,
-      todo.time != null ? 'Scheduled for ${todo.time}' : 'Task reminder',
-      tz.TZDateTime.from(scheduledDate, tz.local),
-      const NotificationDetails(
+      id: todo.notificationId,
+      title: todo.title,
+      body: todo.time != null ? 'Scheduled for ${todo.time}' : 'Task reminder',
+      scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'todo_reminders',
           'Task reminders',
@@ -79,17 +82,15 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
   static Future<void> cancelForTodo(TodoItem todo) {
-    return _plugin.cancel(todo.notificationId);
+    return _plugin.cancel(id: todo.notificationId);
   }
 
   static Future<void> cancelById(String todoId) {
-    return _plugin.cancel(todoId.hashCode & 0x7FFFFFFF);
+    return _plugin.cancel(id: todoId.hashCode & 0x7FFFFFFF);
   }
 
   /// Parses todo.date + todo.time (e.g. "5:30am", "17:30", "9pm") into a

@@ -3,10 +3,15 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_linux
+  emoji_picker_flutter
   file_selector_linux
   flutter_timezone
+  flutter_volume_controller
+  record_linux
   syncfusion_pdfviewer_linux
   url_launcher_linux
+  zego_express_engine_for_uikit
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

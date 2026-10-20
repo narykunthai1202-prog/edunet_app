@@ -374,10 +374,6 @@ class FirebasePostRepo implements PostRepo {
 
       final profileUserData = profileUserDoc.data() as Map<String, dynamic>;
 
-      final List<String> profileFollowing = List<String>.from(
-        profileUserData['following'] ?? [],
-      );
-
       // Check whether viewer follows profile owner
       final viewerFollowsOwner =
           viewerUserId != null &&
