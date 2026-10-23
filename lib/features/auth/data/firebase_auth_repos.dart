@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edunest_app/features/auth/domain/entities/app_user.dart';
 import 'package:edunest_app/features/auth/domain/repos/auth_repo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class FirebaseAuthRepos implements AuthRepo {
+  static final Future<void> _googleSignInInitialization = GoogleSignIn.instance
+      .initialize();
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
 
@@ -220,5 +223,56 @@ class FirebaseAuthRepos implements AuthRepo {
 
       throw Exception("Failed to login: $e");
     }
+  }
+
+  @override
+  Future<AppUser?> signInWithGoogle() async {
+    final googleSignIn = GoogleSignIn.instance;
+    await _googleSignInInitialization;
+
+    if (!googleSignIn.supportsAuthenticate()) {
+      throw UnsupportedError(
+        'Google sign-in is not supported on this platform.',
+      );
+    }
+
+    late final GoogleSignInAccount googleUser;
+    try {
+      googleUser = await googleSignIn.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      rethrow;
+    }
+
+    final idToken = googleUser.authentication.idToken;
+    if (idToken == null) {
+      throw StateError('Google sign-in did not return an ID token.');
+    }
+
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+    final userCredential = await firebaseAuth.signInWithCredential(credential);
+    final firebaseUser = userCredential.user;
+    if (firebaseUser == null) {
+      throw StateError('Firebase sign-in did not return a user.');
+    }
+
+    final userRef = firebaseFirestore.collection('users').doc(firebaseUser.uid);
+    final userDoc = await userRef.get();
+    final userData = userDoc.data();
+    final user = AppUser(
+      uid: firebaseUser.uid,
+      email: firebaseUser.email ?? googleUser.email,
+      name:
+          userData?['name']?.toString() ??
+          firebaseUser.displayName ??
+          googleUser.displayName ??
+          'User',
+    );
+
+    if (!userDoc.exists) {
+      await userRef.set(user.toJson());
+    }
+
+    return user;
   }
 }

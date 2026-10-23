@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:edunest_app/features/auth/domain/entities/app_user.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
+import 'package:edunest_app/features/post/data/img_download_services.dart';
 import 'package:edunest_app/features/post/domain/entities/comment.dart';
 import 'package:edunest_app/features/post/domain/entities/post.dart';
 import 'package:edunest_app/features/post/presentation/components/comment_bottom_sheet.dart';
@@ -460,6 +461,25 @@ class _PostTileState extends State<PostTile> {
     super.dispose();
   }
 
+  void downloadImage() async {
+    if (widget.post.imageUrls.isEmpty) return;
+
+    final imageUrl = widget.post.imageUrls.first;
+
+    try {
+      await ImageDownloadService.downloadImage(imageUrl);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Image downloaded successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to download image: $e')));
+    }
+  }
+
   void reportPost() {
     if (currentUser == null) return;
 
@@ -513,6 +533,11 @@ class _PostTileState extends State<PostTile> {
       ];
     } else {
       return [
+        OptionItem(
+          title: 'Download image',
+          value: downloadImage,
+          icon: Iconsax.document_upload,
+        ),
         OptionItem(title: 'Report', value: reportPost, icon: Iconsax.flag),
         OptionItem(title: 'Copy Link', value: copyLink, icon: Iconsax.link),
       ];

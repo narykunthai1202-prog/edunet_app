@@ -1,10 +1,12 @@
 // lib/chat/views/create_group_view.dart
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../services/group_service.dart';
-import '../widgets/group_avatar.dart';
+import '../widgets/member_profile_tile.dart';
 import 'group_chat_view.dart';
 import 'member_picker_view.dart';
 
@@ -27,6 +29,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
 
   Uint8List? _photoBytes;
   List<String> _members = [];
+  final Map<String, Map<String, dynamic>> _memberProfiles = {};
   bool _creating = false;
 
   bool get _canCreate =>
@@ -76,7 +79,26 @@ class _CreateGroupViewState extends State<CreateGroupView> {
       ),
     );
     if (result == null || result.isEmpty) return;
+    final newMembers = result.where((id) => !_members.contains(id)).toList();
     setState(() => _members = {..._members, ...result}.toList());
+    if (newMembers.isEmpty) return;
+
+    try {
+      final userCollection = FirebaseFirestore.instance.collection('users');
+      final userDocs = await Future.wait(
+        newMembers.map((id) => userCollection.doc(id).get()),
+      );
+      if (!mounted) return;
+      setState(() {
+        for (final doc in userDocs) {
+          if (doc.exists && doc.data() != null) {
+            _memberProfiles[doc.id] = doc.data()!;
+          }
+        }
+      });
+    } catch (error) {
+      _toast('Could not load member profiles: $error');
+    }
   }
 
   void _removeMember(String id) {
@@ -248,9 +270,9 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                   // +1 because you are in the group too
                   '${_members.length + 1} members',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -263,17 +285,17 @@ class _CreateGroupViewState extends State<CreateGroupView> {
   // ------------------------------------------------------------------ cards
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      );
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(24),
+    border: Border.all(color: const Color(0xFFE2E8F0)),
+    boxShadow: [
+      BoxShadow(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+        blurRadius: 24,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
 
   Widget _cardTitle(IconData icon, String title, {Widget? trailing}) {
     return Row(
@@ -391,8 +413,8 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                       child: Text(
                         'Add members',
                         style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
                             color: _blue),
                       ),
                     ),
@@ -414,30 +436,19 @@ class _CreateGroupViewState extends State<CreateGroupView> {
           else
             ..._members.map(
               (id) => Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Row(
-                  children: [
-                    GroupAvatar(name: id, radius: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        id,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.5,
-                            color: _ink),
-                      ),
+                padding: const EdgeInsets.only(top: 8),
+                child: MemberProfileTile(
+                  userId: id,
+                  profile: _memberProfiles[id],
+                  trailing: IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Remove',
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Color(0xFFEF4444),
                     ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Remove',
-                      icon: const Icon(Icons.close_rounded,
-                          color: Color(0xFFEF4444)),
-                      onPressed: () => _removeMember(id),
-                    ),
-                  ],
+                    onPressed: () => _removeMember(id),
+                  ),
                 ),
               ),
             ),
@@ -485,7 +496,9 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2.5, color: Colors.white),
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
                   )
                 : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -495,7 +508,9 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                       Text(
                         'Create group',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),

@@ -2,9 +2,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../widgets/member_profile_tile.dart';
+
 /// Lets the user pick members from people they already chat with,
 /// or add someone by typing their user ID.
-/// Returns List<String> of selected user IDs via Navigator.pop.
+/// Returns a list of selected user IDs via Navigator.pop.
 class MemberPickerView extends StatefulWidget {
   final String currentUserId;
   final List<String> excludeIds; // already in the group
@@ -25,7 +27,9 @@ class _MemberPickerViewState extends State<MemberPickerView> {
   final TextEditingController _idController = TextEditingController();
   final Set<String> _selected = {};
   List<String> _contacts = [];
+  final Map<String, Map<String, dynamic>> _profiles = {};
   bool _loading = true;
+  Object? _loadError;
 
   @override
   void initState() {
@@ -46,31 +50,56 @@ class _MemberPickerViewState extends State<MemberPickerView> {
       !widget.excludeIds.contains(id);
 
   Future<void> _loadContacts() async {
-    final snap = await FirebaseFirestore.instance
-        .collection('chats')
-        .where('participants', arrayContains: widget.currentUserId)
-        .get();
-
-    final ids = <String>{};
-    for (final doc in snap.docs) {
-      final data = doc.data();
-      if (data['isGroup'] == true) continue;
-      for (final p in List<String>.from(data['participants'] ?? [])) {
-        if (_allowed(p)) ids.add(p);
-      }
-    }
-    for (final id in _selected) {
-      if (_allowed(id)) ids.add(id);
-    }
-
-    if (!mounted) return;
     setState(() {
-      _contacts = ids.toList()..sort();
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('chats')
+          .where('participants', arrayContains: widget.currentUserId)
+          .get();
+
+      final ids = <String>{};
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if (data['isGroup'] == true) continue;
+        for (final p in List<String>.from(data['participants'] ?? [])) {
+          if (_allowed(p)) ids.add(p);
+        }
+      }
+      for (final id in _selected) {
+        if (_allowed(id)) ids.add(id);
+      }
+
+      final userCollection = FirebaseFirestore.instance.collection('users');
+      final userDocs = await Future.wait(
+        ids.map((id) => userCollection.doc(id).get()),
+      );
+      final profiles = <String, Map<String, dynamic>>{
+        for (final doc in userDocs)
+          if (doc.exists && doc.data() != null) doc.id: doc.data()!,
+      };
+
+      if (!mounted) return;
+      setState(() {
+        _contacts = ids.toList()..sort();
+        _profiles
+          ..clear()
+          ..addAll(profiles);
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _loading = false;
+      });
+    }
   }
 
-  void _addById() {
+  Future<void> _addById() async {
     final id = _idController.text.trim();
     if (!_allowed(id)) return;
     setState(() {
@@ -78,6 +107,21 @@ class _MemberPickerViewState extends State<MemberPickerView> {
       _selected.add(id);
       _idController.clear();
     });
+    if (_profiles.containsKey(id)) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(id)
+          .get();
+      if (!mounted || !doc.exists || doc.data() == null) return;
+      setState(() => _profiles[id] = doc.data()!);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load user profile: $error')),
+      );
+    }
   }
 
   @override
@@ -123,31 +167,48 @@ class _MemberPickerViewState extends State<MemberPickerView> {
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : _contacts.isEmpty
-                    ? const Center(
-                        child: Text('No contacts yet. Add a user ID above.',
-                            style: TextStyle(color: Colors.grey)))
-                    : ListView.builder(
-                        itemCount: _contacts.length,
-                        itemBuilder: (context, i) {
-                          final id = _contacts[i];
-                          return CheckboxListTile(
-                            value: _selected.contains(id),
-                            title: Text(id),
-                            secondary: CircleAvatar(
-                              backgroundColor: const Color(0xFFE0E7FF),
-                              child: Text(id[0].toUpperCase()),
-                            ),
-                            onChanged: (v) => setState(() {
-                              if (v == true) {
-                                _selected.add(id);
-                              } else {
-                                _selected.remove(id);
-                              }
-                            }),
-                          );
-                        },
+                : _loadError != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Could not load members: $_loadError'),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: _loadContacts,
+                            child: const Text('Try again'),
+                          ),
+                        ],
                       ),
+                    ),
+                  )
+                : _contacts.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No contacts yet. Add a user ID above.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _contacts.length,
+                    itemBuilder: (context, i) {
+                      final id = _contacts[i];
+                      return MemberProfileTile(
+                        userId: id,
+                        profile: _profiles[id],
+                        selected: _selected.contains(id),
+                        onChanged: (value) => setState(() {
+                          if (value == true) {
+                            _selected.add(id);
+                          } else {
+                            _selected.remove(id);
+                          }
+                        }),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

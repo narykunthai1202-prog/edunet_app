@@ -2,7 +2,6 @@ import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
 import 'package:edunest_app/features/post/presentation/components/my_bubble.dart';
 import 'package:edunest_app/features/profile/domain/entities/profile_user.dart';
 import 'package:edunest_app/features/profile/presentation/components/about_section.dart';
-import 'package:edunest_app/features/profile/presentation/components/icons_places.dart';
 import 'package:edunest_app/features/profile/presentation/components/list_view_post_byprivacy.dart';
 import 'package:edunest_app/features/profile/presentation/components/other_user_info.dart';
 import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.dart';
@@ -119,7 +118,7 @@ class _OtherViewProfileState extends State<OtherViewProfile> {
                         icon: const Icon(Iconsax.arrow_left),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      IconsPlaces(icons3: Iconsax.notification),
+                     
                     ],
                   ),
                 ),

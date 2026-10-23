@@ -1,4 +1,5 @@
 {
+  "originHash" : "e9971e72cf689d9cf4386902e0ba86ce0307f1d9eda4d899c5f422a8debeb903",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -28,30 +29,21 @@
       }
     },
     {
-      "identity" : "dkcamera",
+      "identity" : "cryptoswift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zhangao0086/DKCamera",
+      "location" : "https://github.com/krzyzanowskim/CryptoSwift.git",
       "state" : {
-        "branch" : "master",
-        "revision" : "5c691d11014b910aff69f960475d70e65d9dcc96"
+        "revision" : "f2a627b84c1ff96f21ac2fcb623ab36142dd5512",
+        "version" : "1.10.0"
       }
     },
     {
-      "identity" : "dkimagepickercontroller",
+      "identity" : "express-video-ios",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zhangao0086/DKImagePickerController",
+      "location" : "https://github.com/zegolibrary/express-video-ios.git",
       "state" : {
-        "branch" : "4.3.9",
-        "revision" : "0bdfeacefa308545adde07bef86e349186335915"
-      }
-    },
-    {
-      "identity" : "dkphotogallery",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zhangao0086/DKPhotoGallery",
-      "state" : {
-        "branch" : "master",
-        "revision" : "311c1bc7a94f1538f82773a79c84374b12a2ef3d"
+        "revision" : "a01ddee703d43132c65856d66818006c3ea370fa",
+        "version" : "3.25.0"
       }
     },
     {
@@ -104,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/GoogleUtilities.git",
       "state" : {
-        "revision" : "92c8f6dc3ac375d6febdfcb3db68bc3d10633db3",
-        "version" : "8.1.3"
+        "revision" : "5459ee5603def3db0fe14ca522185f42c48d978e",
+        "version" : "8.1.5"
       }
     },
     {
@@ -172,15 +164,6 @@
       }
     },
     {
-      "identity" : "sdwebimage",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SDWebImage/SDWebImage",
-      "state" : {
-        "revision" : "2de3a496eaf6df9a1312862adcfd54acd73c39c0",
-        "version" : "5.21.7"
-      }
-    },
-    {
       "identity" : "stripe-ios-spm",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/stripe/stripe-ios-spm",
@@ -190,23 +173,14 @@
       }
     },
     {
-      "identity" : "swiftygif",
+      "identity" : "zipfoundation",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/kirualex/SwiftyGif.git",
+      "location" : "https://github.com/weichsel/ZIPFoundation.git",
       "state" : {
-        "revision" : "4430cbc148baa3907651d40562d96325426f409a",
-        "version" : "5.4.5"
-      }
-    },
-    {
-      "identity" : "tocropviewcontroller",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/TimOliver/TOCropViewController",
-      "state" : {
-        "revision" : "d4a6d8100f4b886fdbc8ae399bf144ff3e9afb7e",
-        "version" : "2.8.0"
+        "revision" : "22787ffb59de99e5dc1fbfe80b19c97a904ad48d",
+        "version" : "0.9.20"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

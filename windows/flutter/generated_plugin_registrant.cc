@@ -16,6 +16,7 @@
 #include <firebase_storage/firebase_storage_plugin_c_api.h>
 #include <flutter_timezone/flutter_timezone_plugin_c_api.h>
 #include <flutter_volume_controller/flutter_volume_controller_plugin_c_api.h>
+#include <gal/gal_plugin_c_api.h>
 #include <pdfx/pdfx_plugin.h>
 #include <permission_handler_windows/permission_handler_windows_plugin.h>
 #include <record_windows/record_windows_plugin_c_api.h>
@@ -47,6 +48,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FlutterTimezonePluginCApi"));
   FlutterVolumeControllerPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterVolumeControllerPluginCApi"));
+  GalPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("GalPluginCApi"));
   PdfxPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PdfxPlugin"));
   PermissionHandlerWindowsPluginRegisterWithRegistrar(

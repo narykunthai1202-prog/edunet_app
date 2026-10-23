@@ -6,7 +6,7 @@ import 'package:edunest_app/widget/widget_support.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/services.dart';
 
 class LoginPage extends StatefulWidget {
   final void Function()? ontap;
@@ -42,62 +42,13 @@ class _LoginPageState extends State<LoginPage> {
     context.read<AuthCubit>().login(email, password);
   }
 
-  // ============================================================
-  // GOOGLE LOGIN
-  // ============================================================
-
   Future<void> signInWithGoogle() async {
     try {
       setState(() {
         googleLoading = true;
       });
 
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
-
-      final User? user = userCredential.user;
-
-      if (user == null) {
-        return;
-      }
-
-      // Check if user already exists in Firestore
-      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
-
-      // Create Firestore document for new Google user
-      if (!userDoc.exists) {
-        await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
-          "uid": user.uid,
-          "email": user.email ?? "",
-          "name": user.displayName ?? "User",
-        });
-      }
-
-      if (!mounted) return;
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
-      _showSnackBar(
-        "Google Login Error: ${e.message ?? e.code}",
-        Colors.redAccent,
-      );
+      await context.read<AuthCubit>().signInWithGoogle();
     } catch (e) {
       if (!mounted) return;
 
@@ -111,24 +62,50 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _ensureUserDocument(User user) async {
+    final userRef = FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid);
+    final userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      await userRef.set({
+        "uid": user.uid,
+        "email": user.email ?? "",
+        "name": user.displayName ?? "User",
+      });
+    }
+  }
+
   // ============================================================
   // PHONE LOGIN
   // ============================================================
 
   void showPhoneLoginDialog() {
     final TextEditingController phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text("Login with Phone Number"),
-          content: TextField(
-            controller: phoneController,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              hintText: "+855 12 345 678",
-              border: OutlineInputBorder(),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                hintText: "+855 12 345 678",
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                final phone = _normalizePhoneNumber(value ?? '');
+                if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
+                  return "Enter a valid number with country code";
+                }
+                return null;
+              },
             ),
           ),
           actions: [
@@ -140,25 +117,26 @@ class _LoginPageState extends State<LoginPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                final phone = phoneController.text.trim();
-
-                if (phone.isEmpty) {
-                  return;
-                }
+                if (!(formKey.currentState?.validate() ?? false)) return;
 
                 Navigator.pop(dialogContext);
-
-                verifyPhoneNumber(phone);
+                verifyPhoneNumber(_normalizePhoneNumber(phoneController.text));
               },
               child: const Text("Send OTP"),
             ),
           ],
         );
       },
-    );
+    ).whenComplete(phoneController.dispose);
+  }
+
+  String _normalizePhoneNumber(String phone) {
+    return phone.replaceAll(RegExp(r'[\s()-]'), '');
   }
 
   Future<void> verifyPhoneNumber(String phone) async {
+    if (phoneLoading) return;
+
     try {
       setState(() {
         phoneLoading = true;
@@ -170,9 +148,17 @@ class _LoginPageState extends State<LoginPage> {
         // Automatic verification
         verificationCompleted: (PhoneAuthCredential credential) async {
           try {
-            await FirebaseAuth.instance.signInWithCredential(credential);
+            final userCredential = await FirebaseAuth.instance
+                .signInWithCredential(credential);
+            final user = userCredential.user;
+            if (user == null) {
+              throw StateError('Phone sign-in did not return a user.');
+            }
+
+            await _ensureUserDocument(user);
 
             if (!mounted) return;
+            context.read<AuthCubit>().checkAuth();
           } catch (e) {
             if (!mounted) return;
 
@@ -217,92 +203,109 @@ class _LoginPageState extends State<LoginPage> {
   void showOtpDialog(String verificationId) {
     final TextEditingController otpController = TextEditingController();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text("Enter OTP Code"),
-          content: TextField(
-            controller: otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            decoration: const InputDecoration(
-              hintText: "6-digit OTP",
-              border: OutlineInputBorder(),
+        var verifying = false;
+        String? errorMessage;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text("Enter OTP Code"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: otpController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    hintText: "6-digit OTP",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (errorMessage != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+              ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final otp = otpController.text.trim();
+            actions: [
+              TextButton(
+                onPressed: verifying
+                    ? null
+                    : () => Navigator.pop(dialogContext),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: verifying
+                    ? null
+                    : () async {
+                        final otp = otpController.text.trim();
+                        if (otp.length != 6) {
+                          setDialogState(
+                            () => errorMessage = "Enter the 6-digit code.",
+                          );
+                          return;
+                        }
 
-                if (otp.isEmpty) {
-                  return;
-                }
-
-                try {
-                  final PhoneAuthCredential credential =
-                      PhoneAuthProvider.credential(
-                        verificationId: verificationId,
-                        smsCode: otp,
-                      );
-
-                  final UserCredential userCredential = await FirebaseAuth
-                      .instance
-                      .signInWithCredential(credential);
-
-                  if (userCredential.user == null) {
-                    return;
-                  }
-
-                  // Create Firestore user if necessary
-                  final user = userCredential.user!;
-
-                  final userDoc = await FirebaseFirestore.instance
-                      .collection("users")
-                      .doc(user.uid)
-                      .get();
-
-                  if (!userDoc.exists) {
-                    await FirebaseFirestore.instance
-                        .collection("users")
-                        .doc(user.uid)
-                        .set({
-                          "uid": user.uid,
-                          "email": user.email ?? "",
-                          "name": user.displayName ?? "User",
+                        setDialogState(() {
+                          verifying = true;
+                          errorMessage = null;
                         });
-                  }
 
-                  if (!mounted) return;
+                        try {
+                          final credential = PhoneAuthProvider.credential(
+                            verificationId: verificationId,
+                            smsCode: otp,
+                          );
+                          final userCredential = await FirebaseAuth.instance
+                              .signInWithCredential(credential);
+                          final user = userCredential.user;
+                          if (user == null) {
+                            throw StateError(
+                              'Phone sign-in did not return a user.',
+                            );
+                          }
 
-                  Navigator.pop(dialogContext);
-                } on FirebaseAuthException catch (e) {
-                  if (!mounted) return;
+                          await _ensureUserDocument(user);
+                          if (!mounted || !dialogContext.mounted) return;
 
-                  _showSnackBar(
-                    "Invalid OTP: ${e.message ?? e.code}",
-                    Colors.redAccent,
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-
-                  _showSnackBar("OTP Error: $e", Colors.redAccent);
-                }
-              },
-              child: const Text("Verify"),
-            ),
-          ],
+                          context.read<AuthCubit>().checkAuth();
+                          Navigator.pop(dialogContext);
+                        } on FirebaseAuthException catch (e) {
+                          if (!dialogContext.mounted) return;
+                          setDialogState(() {
+                            verifying = false;
+                            errorMessage = e.message ?? e.code;
+                          });
+                        } catch (e) {
+                          if (!dialogContext.mounted) return;
+                          setDialogState(() {
+                            verifying = false;
+                            errorMessage = e.toString();
+                          });
+                        }
+                      },
+                child: verifying
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text("Verify"),
+              ),
+            ],
+          ),
         );
       },
-    );
+    ).whenComplete(otpController.dispose);
   }
 
   // ============================================================

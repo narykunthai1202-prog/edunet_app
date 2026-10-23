@@ -1,0 +1,51 @@
+PODS:
+  - easy_pdf_viewer (1.0.8):
+    - Flutter
+  - Flutter (1.0.0)
+  - zego_callkit_for_uikit (1.0.0):
+    - Flutter
+  - zego_zim (3.2.0):
+    - Flutter
+    - ZIM (= 3.2.0)
+  - zego_zpns (2.6.0):
+    - Flutter
+    - ZPNs (= 2.7.0)
+  - ZIM (3.2.0)
+  - ZPNs (2.7.0)
+
+DEPENDENCIES:
+  - easy_pdf_viewer (from `.symlinks/plugins/easy_pdf_viewer/ios`)
+  - Flutter (from `Flutter`)
+  - zego_callkit_for_uikit (from `.symlinks/plugins/zego_callkit_for_uikit/ios`)
+  - zego_zim (from `.symlinks/plugins/zego_zim/ios`)
+  - zego_zpns (from `.symlinks/plugins/zego_zpns/ios`)
+
+SPEC REPOS:
+  trunk:
+    - ZIM
+    - ZPNs
+
+EXTERNAL SOURCES:
+  easy_pdf_viewer:
+    :path: ".symlinks/plugins/easy_pdf_viewer/ios"
+  Flutter:
+    :path: Flutter
+  zego_callkit_for_uikit:
+    :path: ".symlinks/plugins/zego_callkit_for_uikit/ios"
+  zego_zim:
+    :path: ".symlinks/plugins/zego_zim/ios"
+  zego_zpns:
+    :path: ".symlinks/plugins/zego_zpns/ios"
+
+SPEC CHECKSUMS:
+  easy_pdf_viewer: b9a0f47133abe7c7843ac0aa8071ad1ad6edf4c2
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  zego_callkit_for_uikit: b7fe78d4d554f7c406adeec1b4191b4eb6c918ef
+  zego_zim: c9f883d006e164e61687caa57c371dd09f6bc5d9
+  zego_zpns: 9b41a69051477ba7067fd2e27937d62d4a90d79e
+  ZIM: 85dd65c5e8efd015ff6a8bc864036e6437e562ae
+  ZPNs: d0b2f60087ee72756d18a59642bae87b77bdc6ce
+
+PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
+
+COCOAPODS: 1.17.0

@@ -48,7 +48,7 @@ dependencies:
   mime: ^2.0.0
   path: ^1.9.1
   cached_network_image: ^4.0.4
-  google_sign_in: ^6.2.1
+  google_sign_in: ^7.2.0
   syncfusion_flutter_pdfviewer: 35.1.40+1
   curved_navigation_bar: ^1.0.3
   flutter_stripe: ^12.6.0
@@ -74,6 +74,8 @@ dependencies:
   video_player: ^2.9.2
   zego_uikit_signaling_plugin: ^2.8.0
   zego_uikit: ^2.29.2
+  gal: ^2.3.3
+  dio: ^5.11.1
  
   
 dev_dependencies:
