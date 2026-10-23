@@ -85,7 +85,7 @@ class EmojiStickerPanel extends StatelessWidget {
                             child: Image.asset(
                               stickers[i],
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(
+                              errorBuilder: (_, _, _) => const Icon(
                                 Icons.broken_image_outlined,
                                 color: Color(0xFF94A3B8),
                               ),
@@ -117,7 +117,7 @@ class StickerBubble extends StatelessWidget {
       width: 130,
       height: 130,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const SizedBox(
+      errorBuilder: (_, _, _) => const SizedBox(
         width: 130,
         height: 130,
         child: Icon(Icons.broken_image_outlined, color: Colors.grey),

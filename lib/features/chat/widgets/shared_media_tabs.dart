@@ -319,7 +319,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
           duration: const Duration(milliseconds: 350),
           child: child,
         ),
-        errorBuilder: (_, __, ___) => const Center(
+        errorBuilder: (_, _, _) => const Center(
           child: Icon(Icons.broken_image_rounded, color: Color(0xFF94A3B8)),
         ),
       ),
@@ -466,7 +466,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: files.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
         final m = files[i];
         final name = _fileName(m);
@@ -588,7 +588,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: links.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
         final l = links[i];
         final domain = _domain(l.url);

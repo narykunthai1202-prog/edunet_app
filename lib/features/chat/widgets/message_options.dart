@@ -49,11 +49,11 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.92),
+          color: Colors.white.withValues(alpha: 0.92),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
+              color: Colors.black.withValues(alpha: 0.12),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -82,7 +82,7 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 15,
                     spreadRadius: 1,
                     offset: const Offset(0, 4),
@@ -111,7 +111,7 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: Container(
-                color: Colors.grey.shade100.withOpacity(0.8),
+                color: Colors.grey.shade100.withValues(alpha: 0.8),
                 child: Column(
                   children: [
                     _buildOptionTile(
@@ -191,7 +191,7 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
       thickness: 1,
       indent: 52,
       endIndent: 16,
-      color: Colors.grey.shade300.withOpacity(0.5),
+      color: Colors.grey.shade300.withValues(alpha: 0.5),
     );
   }
 
@@ -211,7 +211,7 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 18),
@@ -268,7 +268,7 @@ class _EmojiButtonState extends State<_EmojiButton> {
           padding: const EdgeInsets.all(6),
           decoration: widget.isSelected
               ? BoxDecoration(
-                  color: const Color(0xFF2563EB).withOpacity(0.15),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 )
               : null,

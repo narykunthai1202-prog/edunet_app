@@ -8,6 +8,7 @@ import '../widgets/shared_media_tabs.dart';
 
 class ChatProfileView extends StatefulWidget {
   final String receiverName;
+  final String? receiverPhotoUrl;
   final String currentUserId;
   final String receiverId;
   final String chatId;
@@ -15,6 +16,7 @@ class ChatProfileView extends StatefulWidget {
   const ChatProfileView({
     super.key,
     required this.receiverName,
+    this.receiverPhotoUrl,
     required this.currentUserId,
     required this.receiverId,
     required this.chatId,
@@ -620,6 +622,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
 
   Widget _header() {
     final top = MediaQuery.of(context).padding.top + kToolbarHeight;
+    final photoUrl = widget.receiverPhotoUrl?.trim();
+    final profileImage = photoUrl == null || photoUrl.isEmpty
+        ? null
+        : NetworkImage(photoUrl);
 
     return Container(
       width: double.infinity,
@@ -651,14 +657,19 @@ class _ChatProfileViewState extends State<ChatProfileView> {
             child: CircleAvatar(
               radius: 52,
               backgroundColor: const Color(0xFFDBEAFE),
-              child: Text(
-                _displayName.isNotEmpty ? _displayName[0].toUpperCase() : 'U',
-                style: const TextStyle(
-                  fontSize: 42,
-                  color: _blue,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              backgroundImage: profileImage,
+              child: profileImage != null
+                  ? null
+                  : Text(
+                      _displayName.isNotEmpty
+                          ? _displayName[0].toUpperCase()
+                          : 'U',
+                      style: const TextStyle(
+                        fontSize: 42,
+                        color: _blue,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 14),

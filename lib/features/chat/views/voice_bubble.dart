@@ -105,7 +105,7 @@ class _VoiceBubbleState extends State<VoiceBubble> {
                       const RoundSliderThumbShape(enabledThumbRadius: 5),
                   overlayShape: SliderComponentShape.noOverlay,
                   activeTrackColor: fg,
-                  inactiveTrackColor: fg.withOpacity(0.4),
+                  inactiveTrackColor: fg.withValues(alpha: 0.4),
                   thumbColor: fg,
                 ),
                 child: Slider(

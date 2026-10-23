@@ -299,7 +299,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                 fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
           ),
         ),
-        if (trailing != null) trailing,
+        ?trailing,
       ],
     );
   }

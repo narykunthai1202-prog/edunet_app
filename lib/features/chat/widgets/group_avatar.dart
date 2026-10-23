@@ -1,6 +1,8 @@
 // lib/chat/widgets/group_avatar.dart
 import 'package:flutter/material.dart';
 
+import 'chat_palette.dart';
+
 class GroupAvatar extends StatelessWidget {
   final String? photoUrl;
   final String name;
@@ -18,14 +20,14 @@ class GroupAvatar extends StatelessWidget {
     final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: const Color(0xFFE0E7FF),
+      backgroundColor: ChatPalette.rose.withValues(alpha: 0.35),
       backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
       child: hasPhoto
           ? null
           : Text(
               name.isNotEmpty ? name[0].toUpperCase() : '?',
               style: TextStyle(
-                color: const Color(0xFF2563EB),
+                color: ChatPalette.plum,
                 fontWeight: FontWeight.bold,
                 fontSize: radius * 0.8,
               ),

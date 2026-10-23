@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:edunest_app/features/chat/widgets/chat_options_sheet.dart';
+import 'package:edunest_app/features/chat/widgets/chat_palette.dart';
 import 'package:edunest_app/features/chat/widgets/chat_tile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../services/chat_service.dart';
 import 'chat_view.dart';
 import 'create_group_view.dart';
 import 'group_chat_view.dart';
+import 'new_chat_view.dart';
 
 class ChatListView extends StatefulWidget {
   final String currentUserId;
@@ -18,15 +24,14 @@ class ChatListView extends StatefulWidget {
 
 class _ChatListViewState extends State<ChatListView>
     with WidgetsBindingObserver {
-  static const _blue = Color(0xFF2563EB);
-  static const _ink = Color(0xFF0F172A);
-  static const _muted = Color(0xFF64748B);
-
   final ChatService _chatService = ChatService();
   final TextEditingController _searchController = TextEditingController();
+  StreamSubscription<User?>? _authSubscription;
+  String? _activeUserId;
 
   String _searchQuery = '';
   String _activeTab = 'All'; // 'All', 'Unread', 'Favorites'
+  String get _currentUserId => _activeUserId ?? '';
 
   @override
   void initState() {
@@ -34,7 +39,21 @@ class _ChatListViewState extends State<ChatListView>
 
     // You are "online" while the app is open on this screen
     WidgetsBinding.instance.addObserver(this);
-    _chatService.updateUserPresence(widget.currentUserId, true);
+    _activeUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (_activeUserId != null) {
+      _chatService.updateUserPresence(_activeUserId!, true);
+    }
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      final previousUserId = _activeUserId;
+      if (previousUserId != null && previousUserId != user?.uid) {
+        _chatService.updateUserPresence(previousUserId, false);
+      }
+      _activeUserId = user?.uid;
+      if (_activeUserId != null) {
+        _chatService.updateUserPresence(_activeUserId!, true);
+      }
+      if (mounted) setState(() {});
+    });
 
     _searchController.addListener(() {
       setState(() {
@@ -46,18 +65,25 @@ class _ChatListViewState extends State<ChatListView>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _chatService.updateUserPresence(widget.currentUserId, true);
+      if (_currentUserId.isNotEmpty) {
+        _chatService.updateUserPresence(_currentUserId, true);
+      }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
-      _chatService.updateUserPresence(widget.currentUserId, false);
+      if (_currentUserId.isNotEmpty) {
+        _chatService.updateUserPresence(_currentUserId, false);
+      }
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _chatService.updateUserPresence(widget.currentUserId, false);
+    _authSubscription?.cancel();
+    if (_currentUserId.isNotEmpty) {
+      _chatService.updateUserPresence(_currentUserId, false);
+    }
     _searchController.dispose();
     super.dispose();
   }
@@ -65,15 +91,15 @@ class _ChatListViewState extends State<ChatListView>
   // ---------------------------------------------------------------- helpers
 
   String _buildChatId(String otherId) {
-    final ids = [widget.currentUserId, otherId]..sort();
+    final ids = [_currentUserId, otherId]..sort();
     return ids.join('_');
   }
 
   String _targetId(Map<String, dynamic> chatData) {
     final List participants = chatData['participants'] ?? [];
     return participants.firstWhere(
-      (id) => id != widget.currentUserId,
-      orElse: () => widget.currentUserId,
+      (id) => id != _currentUserId,
+      orElse: () => _currentUserId,
     ) as String;
   }
 
@@ -88,7 +114,7 @@ class _ChatListViewState extends State<ChatListView>
       : (d['receiverName'] ?? _targetId(d)) as String;
 
   int _unreadOf(Map<String, dynamic> d) =>
-      ((d['unreadCount_${widget.currentUserId}'] ?? 0) as num).toInt();
+      ((d['unreadCount_$_currentUserId'] ?? 0) as num).toInt();
 
   /// Builds the text shown under each chat in the list.
   /// Sticker/photo previews depend on who sent the last message.
@@ -97,7 +123,7 @@ class _ChatListViewState extends State<ChatListView>
     required String lastSenderId,
     required String otherUserName,
   }) {
-    final isMine = lastSenderId == widget.currentUserId;
+    final isMine = lastSenderId == _currentUserId;
 
     if (lastMessage == 'You sent a sticker') {
       return isMine
@@ -114,22 +140,27 @@ class _ChatListViewState extends State<ChatListView>
 
   @override
   Widget build(BuildContext context) {
+    if (_currentUserId.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('Please sign in to view chats.')),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: ChatPalette.canvas,
       body: Column(
         children: [
           _header(),
           Expanded(
             child: StreamBuilder<Map<String, Map<String, dynamic>>>(
-              stream: _chatService.watchChatSettings(widget.currentUserId),
+              stream: _chatService.watchChatSettings(_currentUserId),
               builder: (context, settingsSnap) {
                 final settings = settingsSnap.data ?? {};
 
                 return StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('chats')
-                      .where('participants',
-                          arrayContains: widget.currentUserId)
+                      .where('participants', arrayContains: _currentUserId)
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
@@ -144,14 +175,17 @@ class _ChatListViewState extends State<ChatListView>
                     // Every chat that was not deleted (used for the counts)
                     final base = chatDocs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      final s = settings[_chatIdFor(doc.id, data)] ??
+                      final s =
+                          settings[_chatIdFor(doc.id, data)] ??
                           <String, dynamic>{};
                       return s['deleted'] != true;
                     }).toList();
 
                     final unreadChats = base
-                        .where((d) =>
-                            _unreadOf(d.data() as Map<String, dynamic>) > 0)
+                        .where(
+                          (d) =>
+                              _unreadOf(d.data() as Map<String, dynamic>) > 0,
+                        )
                         .length;
                     final favoriteChats = base.where((d) {
                       final data = d.data() as Map<String, dynamic>;
@@ -162,14 +196,15 @@ class _ChatListViewState extends State<ChatListView>
                     // Filter by search + active tab
                     final visible = base.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      final targetUserId =
-                          _isGroup(data) ? '' : _targetId(data);
+                      final targetUserId = _isGroup(data)
+                          ? ''
+                          : _targetId(data);
                       final chatId = _chatIdFor(doc.id, data);
                       final s = settings[chatId] ?? <String, dynamic>{};
 
                       final String realName = _nameFor(data);
-                      final String nick =
-                          ((s['nickname'] as String?) ?? '').trim();
+                      final String nick = ((s['nickname'] as String?) ?? '')
+                          .trim();
 
                       // Search matches nickname, real name, or user id
                       if (_searchQuery.isNotEmpty &&
@@ -193,12 +228,12 @@ class _ChatListViewState extends State<ChatListView>
                       final bData = b.data() as Map<String, dynamic>;
                       final aPinned =
                           settings[_chatIdFor(a.id, aData)]?['pinned'] == true
-                              ? 0
-                              : 1;
+                          ? 0
+                          : 1;
                       final bPinned =
                           settings[_chatIdFor(b.id, bData)]?['pinned'] == true
-                              ? 0
-                              : 1;
+                          ? 0
+                          : 1;
                       if (aPinned != bPinned) return aPinned.compareTo(bPinned);
 
                       final aTime = aData['lastMessageTime'] as Timestamp?;
@@ -238,91 +273,152 @@ class _ChatListViewState extends State<ChatListView>
     return Container(
       padding: EdgeInsets.fromLTRB(20, top + 10, 20, 16),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6), Color(0xFF60A5FA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: ChatPalette.headerGradient,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
-      child: Column(
-        children: [
-          Row(
+      child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(_currentUserId)
+            .snapshots(),
+        builder: (context, profileSnapshot) {
+          final profile = profileSnapshot.data?.data();
+          final userName = profile?['name']?.toString().trim();
+          final photoUrl = profile?['profileImageUrl']?.toString().trim();
+          final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
+          return Column(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Chats',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                      ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Chats',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          userName == null || userName.isEmpty
+                              ? 'Your conversations'
+                              : 'Welcome back, $userName',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.currentUserId,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500),
+                  ),
+                  if (hasPhoto) ...[
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.white.withValues(alpha: 0.25),
+                      backgroundImage: NetworkImage(photoUrl),
                     ),
+                    const SizedBox(width: 10),
                   ],
-                ),
-              ),
-              Tooltip(
-                message: 'New group',
-                child: Material(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateGroupView(
-                            currentUserId: widget.currentUserId),
+                  Tooltip(
+                    message: 'New message',
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                NewChatView(currentUserId: _currentUserId),
+                          ),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(
+                            Icons.edit_square,
+                            color: Colors.white,
+                            size: 23,
+                          ),
+                        ),
                       ),
                     ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(Icons.group_add_rounded,
-                          color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'New group',
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CreateGroupView(currentUserId: _currentUserId),
+                          ),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(
+                            Icons.group_add_rounded,
+                            color: Colors.white,
+                            size: 23,
+                          ),
+                        ),
+                      ),
                     ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _searchController,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: ChatPalette.ink,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search chats...',
+                  hintStyle: const TextStyle(color: ChatPalette.muted),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: ChatPalette.plum,
+                  ),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          tooltip: 'Clear search',
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 19,
+                            color: ChatPalette.muted,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: ChatPalette.surface,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-
-          // search bar
-          TextField(
-            controller: _searchController,
-            style: const TextStyle(fontSize: 15),
-            decoration: InputDecoration(
-              hintText: 'Search chats...',
-              hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-              prefixIcon: const Icon(Icons.search_rounded, color: _blue),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.close_rounded,
-                          size: 19, color: _muted),
-                      onPressed: () => _searchController.clear(),
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(vertical: 13),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -336,7 +432,7 @@ class _ChatListViewState extends State<ChatListView>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
         children: [
-          _chip('All', 0),
+          _chip('All', all),
           const SizedBox(width: 8),
           _chip('Unread', unread),
           const SizedBox(width: 8),
@@ -353,10 +449,22 @@ class _ChatListViewState extends State<ChatListView>
       onTap: () => setState(() => _activeTab = label),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? _blue : const Color(0xFFF1F5F9),
+          color: selected ? ChatPalette.plum : ChatPalette.surface,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? ChatPalette.plum : ChatPalette.border,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: ChatPalette.plum.withValues(alpha: 0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -365,8 +473,8 @@ class _ChatListViewState extends State<ChatListView>
               label,
               style: TextStyle(
                 fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : _muted,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : ChatPalette.ink,
               ),
             ),
             if (count > 0) ...[
@@ -376,7 +484,7 @@ class _ChatListViewState extends State<ChatListView>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: selected ? Colors.white : _blue,
+                  color: selected ? Colors.white : ChatPalette.plum,
                 ),
               ),
             ],
@@ -397,19 +505,29 @@ class _ChatListViewState extends State<ChatListView>
             width: 84,
             height: 84,
             decoration: const BoxDecoration(
-              color: Color(0xFFDBEAFE),
+              color: ChatPalette.unreadSurface,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 38, color: _blue),
+            child: Icon(icon, size: 38, color: ChatPalette.plum),
           ),
           const SizedBox(height: 16),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w800, color: _ink)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: ChatPalette.ink,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: _muted)),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: ChatPalette.muted,
+            ),
+          ),
         ],
       ),
     );
@@ -437,9 +555,10 @@ class _ChatListViewState extends State<ChatListView>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 24),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       itemCount: visible.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 9),
       itemBuilder: (context, i) => _buildTile(visible[i], settings),
     );
   }
@@ -456,73 +575,106 @@ class _ChatListViewState extends State<ChatListView>
     final s = settings[chatId] ?? <String, dynamic>{};
 
     // Real name + optional nickname
-    final String realName = _nameFor(chatData);
+    final String storedName = _nameFor(chatData);
     final String nick = ((s['nickname'] as String?) ?? '').trim();
-    final String displayName = nick.isNotEmpty ? nick : realName;
 
     // Preview text (handles "user1 sent you a sticker")
-    final String rawLastMessage =
-        chatData['lastMessage'] ?? 'No messages yet';
+    final String rawLastMessage = chatData['lastMessage'] ?? 'No messages yet';
     final String lastSenderId =
         (chatData['lastMessageSenderId'] ?? '') as String;
-    final String lastMessage = isGroup
-        ? (lastSenderId.isEmpty
-            ? rawLastMessage
-            : '${lastSenderId == widget.currentUserId ? 'You' : lastSenderId}: $rawLastMessage')
-        : _previewText(
-            lastMessage: rawLastMessage,
-            lastSenderId: lastSenderId,
-            otherUserName: displayName,
-          );
+    final DateTime? lastTime = (chatData['lastMessageTime'] as Timestamp?)
+        ?.toDate();
 
-    final DateTime? lastTime =
-        (chatData['lastMessageTime'] as Timestamp?)?.toDate();
+    Widget buildTile({required String realName, required String? photoUrl}) {
+      final displayName = nick.isNotEmpty ? nick : realName;
+      final lastMessage = isGroup
+          ? (lastSenderId.isEmpty
+                ? rawLastMessage
+                : '${lastSenderId == _currentUserId ? 'You' : lastSenderId}: $rawLastMessage')
+          : _previewText(
+              lastMessage: rawLastMessage,
+              lastSenderId: lastSenderId,
+              otherUserName: displayName,
+            );
 
-    return ChatTile(
-      displayName: displayName,
-      photoUrl: isGroup ? chatData['groupPhotoUrl'] as String? : null,
-      lastMessage: lastMessage,
-      lastMessageTime: lastTime,
-      unreadCount: _unreadOf(chatData),
-      isPinned: s['pinned'] == true,
-      isFavorite: s['favorite'] == true,
-      isMuted: s['muted'] == true,
-      peerId: isGroup ? null : targetUserId,
-      onTap: () {
-        if (isGroup) {
+      return ChatTile(
+        displayName: displayName,
+        photoUrl: photoUrl,
+        lastMessage: lastMessage,
+        lastMessageTime: lastTime,
+        unreadCount: _unreadOf(chatData),
+        isPinned: s['pinned'] == true,
+        isFavorite: s['favorite'] == true,
+        isMuted: s['muted'] == true,
+        peerId: isGroup ? null : targetUserId,
+        onTap: () {
+          if (isGroup) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => GroupChatView(
+                  groupId: groupId,
+                  currentUserId: _currentUserId,
+                ),
+              ),
+            );
+            return;
+          }
+          _chatService.markAsRead(_currentUserId, targetUserId);
+
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => GroupChatView(
-                groupId: groupId,
-                currentUserId: widget.currentUserId,
+              builder: (context) => ChatView(
+                currentUserId: _currentUserId,
+                receiverId: targetUserId,
+                receiverName: realName,
+                chatId: chatId,
+                peerId: targetUserId,
               ),
             ),
           );
-          return;
-        }
-        _chatService.markAsRead(widget.currentUserId, targetUserId);
-
-        Navigator.push(
+        },
+        onLongPress: () => showChatOptions(
           context,
-          MaterialPageRoute(
-            builder: (context) => ChatView(
-              currentUserId: widget.currentUserId,
-              receiverId: targetUserId,
-              receiverName: realName,
-              chatId: chatId,
-              peerId: targetUserId,
-            ),
-          ),
+          currentUserId: _currentUserId,
+          chatId: chatId,
+          title: displayName,
+          settings: s,
+        ),
+      );
+    }
+
+    if (isGroup) {
+      return buildTile(
+        realName: storedName,
+        photoUrl: chatData['groupPhotoUrl'] as String?,
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUserId)
+          .snapshots(),
+      builder: (context, profileSnapshot) {
+        final profile = profileSnapshot.data?.data();
+        final profileName = profile?['name']?.toString().trim();
+        final fallbackName = storedName.trim();
+        final realName =
+            profileName != null &&
+                profileName.isNotEmpty &&
+                profileName != targetUserId
+            ? profileName
+            : fallbackName.isNotEmpty && fallbackName != targetUserId
+            ? fallbackName
+            : 'User';
+        final photoUrl = profile?['profileImageUrl']?.toString().trim();
+        return buildTile(
+          realName: realName,
+          photoUrl: photoUrl == null || photoUrl.isEmpty ? null : photoUrl,
         );
       },
-      onLongPress: () => showChatOptions(
-        context,
-        currentUserId: widget.currentUserId,
-        chatId: chatId,
-        title: displayName,
-        settings: s,
-      ),
     );
   }
 }

@@ -174,9 +174,9 @@ class GroupService {
       'senderId': senderId,
       'type': type,
       'text': content,
-      if (duration != null) 'duration': duration,
-      if (fileName != null) 'fileName': fileName,
-      if (fileSize != null) 'fileSize': fileSize,
+      'duration': ?duration,
+      'fileName': ?fileName,
+      'fileSize': ?fileSize,
       if (type == 'file') 'fileUrl': content,
       'timestamp': FieldValue.serverTimestamp(),
     });

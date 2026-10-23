@@ -264,8 +264,8 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
     barrierLabel: 'Delete',
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 200),
-    pageBuilder: (_, __, ___) => const SizedBox.shrink(),
-    transitionBuilder: (ctx, anim, _, __) {
+    pageBuilder: (_, _, _) => const SizedBox.shrink(),
+    transitionBuilder: (ctx, anim, _, _) {
       final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
       return ScaleTransition(
         scale: curved,
@@ -284,7 +284,7 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
+                        color: Colors.black.withValues(alpha: 0.12),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -438,7 +438,7 @@ class _OptionTile extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.14),
+          color: color.withValues(alpha: 0.14),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color, size: 22),

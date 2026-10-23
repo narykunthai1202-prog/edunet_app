@@ -205,7 +205,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.10),
+          color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -362,7 +362,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
           color: Theme.of(context).scaffoldBackgroundColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               offset: const Offset(0, -2),
               blurRadius: 4,
             ),

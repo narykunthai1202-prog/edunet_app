@@ -102,7 +102,7 @@ class _SharedFilesListState extends State<SharedFilesList> {
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: files.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
+          separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, i) {
             final m = files[i];
             final name = _nameOf(m);

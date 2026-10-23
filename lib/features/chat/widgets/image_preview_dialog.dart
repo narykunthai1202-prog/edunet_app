@@ -60,7 +60,7 @@ class ImagePreviewDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.9),
+                color: Colors.black.withValues(alpha: 0.9),
                 border: const Border(
                   top: BorderSide(color: Colors.white10, width: 1),
                 ),

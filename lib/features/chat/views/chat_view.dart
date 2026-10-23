@@ -1,22 +1,27 @@
 import 'dart:async';
+
 import 'package:edunest_app/features/chat/views/chat_profile_view.dart';
 import 'package:edunest_app/features/chat/widgets/chat_extras.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../widgets/presence.dart';
 import '../models/message_model.dart';
 import '../services/chat_service.dart';
 import '../widgets/blocked_bar.dart';
 import '../widgets/chat_input_field.dart';
+import '../widgets/group_avatar.dart';
 import '../widgets/message_options.dart';
 import '../widgets/image_preview_dialog.dart';
 import '../widgets/chat_image_bubble.dart';
 import '../widgets/chat_text_bubble.dart';
 import '../widgets/chat_audio_bubble.dart';
 import '../widgets/forward_contact_sheet.dart';
+
 import 'package:zego_uikit_prebuilt_call/zego_uikit_prebuilt_call.dart';
 import 'package:zego_uikit/zego_uikit.dart';
 
@@ -28,13 +33,13 @@ class ChatView extends StatefulWidget {
   final String? peerId; // optional now
 
   const ChatView({
-    Key? key,
+    super.key,
     required this.currentUserId,
     required this.receiverId,
     required this.receiverName,
     required this.chatId,
     this.peerId,
-  }) : super(key: key);
+  });
 
   @override
   State<ChatView> createState() => _ChatViewState();
@@ -46,6 +51,10 @@ class _ChatViewState extends State<ChatView> {
   final ScrollController _scrollController = ScrollController();
   bool isBlocked = false;
   StreamSubscription<bool>? _blockSub;
+  StreamSubscription<User?>? _authSub;
+  late final Stream<DocumentSnapshot<Map<String, dynamic>>>
+  _receiverProfileStream;
+  bool _isSessionValid = false;
   MessageModel? replyingToMessage;
   bool _isTyping = false;
   Timer? _debounceTimer;
@@ -57,8 +66,9 @@ class _ChatViewState extends State<ChatView> {
   }
 
   String _formatTime(DateTime time) {
-    final hour =
-        time.hour == 0 ? 12 : (time.hour > 12 ? time.hour - 12 : time.hour);
+    final hour = time.hour == 0
+        ? 12
+        : (time.hour > 12 ? time.hour - 12 : time.hour);
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
@@ -67,11 +77,42 @@ class _ChatViewState extends State<ChatView> {
   @override
   void initState() {
     super.initState();
-    _blockSub = _watchBlocked().listen((blocked) {
-      if (mounted) setState(() => isBlocked = blocked);
+    _receiverProfileStream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.receiverId)
+        .snapshots();
+    _isSessionValid =
+        FirebaseAuth.instance.currentUser?.uid == widget.currentUserId;
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      final isValid = user?.uid == widget.currentUserId;
+      if (_isSessionValid && !isValid) {
+        _blockSub?.cancel();
+        _blockSub = null;
+        _chatService.updateUserPresence(widget.currentUserId, false);
+        _chatService.setTypingStatus(
+          widget.currentUserId,
+          widget.receiverId,
+          false,
+        );
+      } else if (!_isSessionValid && isValid) {
+        _blockSub = _watchBlocked().listen((blocked) {
+          if (mounted) setState(() => isBlocked = blocked);
+        });
+        _chatService.updateUserPresence(widget.currentUserId, true);
+        _chatService.markMessagesAsSeen(
+          widget.currentUserId,
+          widget.receiverId,
+        );
+      }
+      if (mounted) setState(() => _isSessionValid = isValid);
     });
-    _chatService.updateUserPresence(widget.currentUserId, true);
-    _chatService.markMessagesAsSeen(widget.currentUserId, widget.receiverId);
+    if (_isSessionValid) {
+      _blockSub = _watchBlocked().listen((blocked) {
+        if (mounted) setState(() => isBlocked = blocked);
+      });
+      _chatService.updateUserPresence(widget.currentUserId, true);
+      _chatService.markMessagesAsSeen(widget.currentUserId, widget.receiverId);
+    }
   }
 
   // ------------------------------------------------------------- blocking
@@ -112,16 +153,14 @@ class _ChatViewState extends State<ChatView> {
 
   Widget _mediaWithTime(Widget media, String time, bool isMe) {
     return Column(
-      crossAxisAlignment:
-          isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: isMe
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         media,
         const SizedBox(height: 2),
-        Text(
-          time,
-          style: TextStyle(color: Colors.grey[600], fontSize: 10),
-        ),
+        Text(time, style: TextStyle(color: Colors.grey[600], fontSize: 10)),
       ],
     );
   }
@@ -222,8 +261,7 @@ class _ChatViewState extends State<ChatView> {
                   : () {
                       ZegoUIKitPrebuiltCallInvitationService().send(
                         invitees: [
-                          ZegoCallUser(
-                              widget.receiverId, widget.receiverName),
+                          ZegoCallUser(widget.receiverId, widget.receiverName),
                         ],
                         isVideoCall: isVideo,
                       );
@@ -299,14 +337,17 @@ class _ChatViewState extends State<ChatView> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: textColor, fontWeight: FontWeight.w600),
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (fmt(size).isNotEmpty)
                         Text(
                           fmt(size),
                           style: TextStyle(
-                              color: textColor.withValues(alpha: 0.7),
-                              fontSize: 11),
+                            color: textColor.withValues(alpha: 0.7),
+                            fontSize: 11,
+                          ),
                         ),
                     ],
                   ),
@@ -392,8 +433,10 @@ class _ChatViewState extends State<ChatView> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded,
-                  color: Color(0xFF2563EB)),
+              leading: const Icon(
+                Icons.camera_alt_rounded,
+                color: Color(0xFF2563EB),
+              ),
               title: const Text('Take a Photo'),
               onTap: () {
                 Navigator.pop(context);
@@ -401,8 +444,10 @@ class _ChatViewState extends State<ChatView> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded,
-                  color: Color(0xFF2563EB)),
+              leading: const Icon(
+                Icons.photo_library_rounded,
+                color: Color(0xFF2563EB),
+              ),
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(context);
@@ -435,9 +480,8 @@ class _ChatViewState extends State<ChatView> {
   // 📍 Message Context Handlers
   void _handleCopy(MessageModel message) {
     Clipboard.setData(ClipboardData(text: message.text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied to clipboard')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
   }
 
   void _handleReply(MessageModel message) {
@@ -537,7 +581,10 @@ class _ChatViewState extends State<ChatView> {
     if (!_isTyping) {
       _isTyping = true;
       _chatService.setTypingStatus(
-          widget.currentUserId, widget.receiverId, true);
+        widget.currentUserId,
+        widget.receiverId,
+        true,
+      );
     }
 
     _debounceTimer?.cancel();
@@ -545,7 +592,10 @@ class _ChatViewState extends State<ChatView> {
       if (_isTyping) {
         _isTyping = false;
         _chatService.setTypingStatus(
-            widget.currentUserId, widget.receiverId, false);
+          widget.currentUserId,
+          widget.receiverId,
+          false,
+        );
       }
     });
   }
@@ -566,12 +616,18 @@ class _ChatViewState extends State<ChatView> {
         });
       } else {
         _chatService.sendMessage(
-            widget.currentUserId, widget.receiverId, trimmedText);
+          widget.currentUserId,
+          widget.receiverId,
+          trimmedText,
+        );
       }
 
       _isTyping = false;
       _chatService.setTypingStatus(
-          widget.currentUserId, widget.receiverId, false);
+        widget.currentUserId,
+        widget.receiverId,
+        false,
+      );
       _scrollToBottom();
     }
   }
@@ -579,132 +635,194 @@ class _ChatViewState extends State<ChatView> {
   @override
   void dispose() {
     _blockSub?.cancel();
+    _authSub?.cancel();
     _debounceTimer?.cancel();
     _scrollController.dispose();
-    _chatService.setTypingStatus(
-        widget.currentUserId, widget.receiverId, false);
+    if (_isSessionValid) {
+      _chatService.setTypingStatus(
+        widget.currentUserId,
+        widget.receiverId,
+        false,
+      );
+    }
     // (presence is handled by the chat list screen, so leaving a chat
     // does not make you look offline)
     super.dispose();
+  }
+
+  String _receiverDisplayName(Map<String, dynamic>? profile) {
+    final profileName = profile?['name']?.toString().trim();
+    if (profileName != null &&
+        profileName.isNotEmpty &&
+        profileName != widget.receiverId) {
+      return profileName;
+    }
+
+    final fallbackName = widget.receiverName.trim();
+    if (fallbackName.isNotEmpty && fallbackName != widget.receiverId) {
+      return fallbackName;
+    }
+    return 'User';
+  }
+
+  String? _receiverPhotoUrl(Map<String, dynamic>? profile) {
+    final photoUrl = profile?['profileImageUrl']?.toString().trim();
+    return photoUrl == null || photoUrl.isEmpty ? null : photoUrl;
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: _receiverProfileStream,
+        builder: (context, snapshot) {
+          final profile = snapshot.data?.data();
+          final receiverName = _receiverDisplayName(profile);
+          final receiverPhotoUrl = _receiverPhotoUrl(profile);
+
+          return AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Row(
+              children: [
+                GroupAvatar(
+                  name: receiverName,
+                  photoUrl: receiverPhotoUrl,
+                  radius: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        receiverName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (snapshot.hasError)
+                        const Text(
+                          'Unable to load profile',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 11,
+                          ),
+                        )
+                      else
+                        PresenceLabel(userId: widget.receiverId),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              if (isBlocked)
+                const IconButton(
+                  icon: Icon(Icons.call, color: Colors.grey),
+                  onPressed: null,
+                )
+              else
+                ZegoSendCallInvitationButton(
+                  isVideoCall: false,
+                  resourceID: "zego_call",
+                  invitees: [
+                    ZegoUIKitUser(id: widget.receiverId, name: receiverName),
+                  ],
+                  onPressed: (code, message, errors) {
+                    debugPrint(
+                      'VOICE CALL RESULT -> code: $code, message: $message, errors: $errors',
+                    );
+                  },
+                  iconSize: const Size(40, 40),
+                  buttonSize: const Size(40, 40),
+                  icon: ButtonIcon(
+                    icon: const Icon(Icons.call, color: Color(0xFF2563EB)),
+                  ),
+                ),
+              if (isBlocked)
+                const IconButton(
+                  icon: Icon(Icons.videocam, color: Colors.grey),
+                  onPressed: null,
+                )
+              else
+                ZegoSendCallInvitationButton(
+                  isVideoCall: true,
+                  resourceID: "zego_call",
+                  invitees: [
+                    ZegoUIKitUser(id: widget.receiverId, name: receiverName),
+                  ],
+                  onPressed: (code, message, errors) {
+                    debugPrint(
+                      'VIDEO CALL RESULT -> code: $code, message: $message, errors: $errors',
+                    );
+                  },
+                  iconSize: const Size(40, 40),
+                  buttonSize: const Size(40, 40),
+                  icon: ButtonIcon(
+                    icon: const Icon(Icons.videocam, color: Color(0xFF2563EB)),
+                  ),
+                ),
+              IconButton(
+                icon: const Icon(Icons.info, color: Color(0xFF2563EB)),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatProfileView(
+                        receiverName: receiverName,
+                        receiverPhotoUrl: receiverPhotoUrl,
+                        currentUserId: widget.currentUserId,
+                        receiverId: widget.receiverId,
+                        chatId: widget.chatId,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   // ----------------------------------------------------------------- build
 
   @override
   Widget build(BuildContext context) {
+    if (!_isSessionValid) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Text('Your signed-in account changed. Reopen this chat.'),
+        ),
+      );
+    }
+
     final conversationId = _conversationId;
 
     debugPrint(
-        'CALL CHECK -> me: ${widget.currentUserId}, receiver: ${widget.receiverId}');
+      'CALL CHECK -> me: ${widget.currentUserId}, receiver: ${widget.receiverId}',
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: const Color(0xFFDBEAFE),
-              child: Text(
-                widget.receiverName[0].toUpperCase(),
-                style: const TextStyle(
-                    color: Color(0xFF2563EB), fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.receiverName,
-                  style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold),
-                ),
-                PresenceLabel(userId: widget.receiverId),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          // Voice Call Button (disabled while blocked)
-          if (isBlocked)
-            const IconButton(
-              icon: Icon(Icons.call, color: Colors.grey),
-              onPressed: null,
-            )
-          else
-            ZegoSendCallInvitationButton(
-              isVideoCall: false,
-              resourceID: "zego_call",
-              invitees: [
-                ZegoUIKitUser(
-                  id: widget.receiverId,
-                  name: widget.receiverName,
-                ),
-              ],
-              onPressed: (code, message, errors) {
-                debugPrint(
-                    'VOICE CALL RESULT -> code: $code, message: $message, errors: $errors');
-              },
-              iconSize: const Size(40, 40),
-              buttonSize: const Size(40, 40),
-              icon: ButtonIcon(
-                icon: const Icon(Icons.call, color: Color(0xFF2563EB)),
-              ),
-            ),
-          // Video Call Button (disabled while blocked).
-          // Now uses the same Zego invitation as voice, so the other user
-          // gets an incoming-call screen instead of silently joining a room.
-          if (isBlocked)
-            const IconButton(
-              icon: Icon(Icons.videocam, color: Colors.grey),
-              onPressed: null,
-            )
-          else
-            ZegoSendCallInvitationButton(
-              isVideoCall: true,
-              resourceID: "zego_call",
-              invitees: [
-                ZegoUIKitUser(
-                  id: widget.receiverId,
-                  name: widget.receiverName,
-                ),
-              ],
-              onPressed: (code, message, errors) {
-                debugPrint(
-                    'VIDEO CALL RESULT -> code: $code, message: $message, errors: $errors');
-              },
-              iconSize: const Size(40, 40),
-              buttonSize: const Size(40, 40),
-              icon: ButtonIcon(
-                icon: const Icon(Icons.videocam, color: Color(0xFF2563EB)),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.info, color: Color(0xFF2563EB)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatProfileView(
-                    receiverName: widget.receiverName,
-                    currentUserId: widget.currentUserId,
-                    receiverId: widget.receiverId,
-                    chatId: widget.chatId,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
           // 💬 MESSAGES LIST
@@ -723,19 +841,25 @@ class _ChatViewState extends State<ChatView> {
 
                 if (messages.isNotEmpty) {
                   _chatService.markMessagesAsSeen(
-                      widget.currentUserId, widget.receiverId);
+                    widget.currentUserId,
+                    widget.receiverId,
+                  );
                 } else {
                   return const Center(
-                    child: Text('No messages yet. Say hi! 👋',
-                        style: TextStyle(color: Colors.grey)),
+                    child: Text(
+                      'No messages yet. Say hi! 👋',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   );
                 }
 
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
@@ -787,10 +911,12 @@ class _ChatViewState extends State<ChatView> {
                     }
 
                     return Align(
-                      alignment:
-                          isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment: isMe
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
                       child: GestureDetector(
-                        onLongPress: () => _showMessageOptions(context, message),
+                        onLongPress: () =>
+                            _showMessageOptions(context, message),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: content,
@@ -872,8 +998,11 @@ class _ChatViewState extends State<ChatView> {
                 else if (isReplyFile)
                   Row(
                     children: [
-                      const Icon(Icons.insert_drive_file,
-                          size: 16, color: Colors.black87),
+                      const Icon(
+                        Icons.insert_drive_file,
+                        size: 16,
+                        color: Colors.black87,
+                      ),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
@@ -899,8 +1028,11 @@ class _ChatViewState extends State<ChatView> {
                           height: 32,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.image,
-                                  size: 24, color: Colors.grey),
+                              const Icon(
+                                Icons.image,
+                                size: 24,
+                                color: Colors.grey,
+                              ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -915,8 +1047,7 @@ class _ChatViewState extends State<ChatView> {
                     replyingToMessage!.text,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(fontSize: 13, color: Colors.black87),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
                   ),
               ],
             ),
