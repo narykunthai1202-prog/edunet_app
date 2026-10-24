@@ -13,6 +13,7 @@ class NotificationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isUnread = !notification.isRead;
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () async {
         // Mark notification as read
@@ -35,10 +36,12 @@ class NotificationItem extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: isUnread ? const Color(0xFFFFF7F8) : Colors.white,
+          color: isUnread
+              ? colors.secondaryContainer
+              : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isUnread ? const Color(0xFFF3E1E4) : const Color(0xFFF4F4F4),
+            color: isUnread ? colors.primary : colors.outlineVariant,
             width: 0.8,
           ),
         ),
@@ -64,7 +67,7 @@ class NotificationItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
-                      color: const Color(0xFF3D3033),
+                      color: colors.onSurface,
                     ),
                   ),
 
@@ -74,10 +77,10 @@ class NotificationItem extends StatelessWidget {
                     notification.message,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
-                      color: Color(0xFF75686B),
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
 
@@ -85,9 +88,9 @@ class NotificationItem extends StatelessWidget {
 
                   Text(
                     _notificationTime(notification.createdAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: Color(0xFFAAA0A2),
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -101,8 +104,8 @@ class NotificationItem extends StatelessWidget {
                 margin: const EdgeInsets.only(top: 5, right: 2),
                 width: 7,
                 height: 7,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFC58F9A),
+                decoration: BoxDecoration(
+                  color: colors.primary,
                   shape: BoxShape.circle,
                 ),
               ),

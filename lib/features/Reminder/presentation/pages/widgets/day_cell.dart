@@ -33,6 +33,7 @@ class DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final visible = todos.take(_maxVisibleChips).toList();
     final overflowCount = todos.length - visible.length;
 
@@ -41,10 +42,10 @@ class DayCell extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 110),
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(color: AppColors.gridLine),
-            left: BorderSide(color: AppColors.gridLine),
+            top: BorderSide(color: colors.outlineVariant),
+            left: BorderSide(color: colors.outlineVariant),
           ),
         ),
         child: Column(
@@ -96,6 +97,8 @@ class _DayNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       width: 22,
       height: 22,
@@ -114,10 +117,10 @@ class _DayNumber extends StatelessWidget {
           color: isToday
               ? Colors.white
               : !inCurrentMonth
-              ? AppColors.outsideMonthText
+              ? colors.onSurface.withValues(alpha: 0.35)
               : isSunday
               ? AppColors.sunday
-              : Colors.black87,
+              : colors.onSurface,
         ),
       ),
     );

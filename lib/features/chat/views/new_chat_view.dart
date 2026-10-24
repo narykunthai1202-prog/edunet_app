@@ -75,11 +75,12 @@ class _NewChatViewState extends State<NewChatView> {
 
   Widget _header() {
     final top = MediaQuery.of(context).padding.top;
+    final palette = ChatPalette.of(context);
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, top + 8, 16, 20),
-      decoration: const BoxDecoration(
-        gradient: ChatPalette.headerGradient,
+      decoration: BoxDecoration(
+        gradient: palette.headerGradient,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       child: Column(
@@ -132,17 +133,11 @@ class _NewChatViewState extends State<NewChatView> {
             onChanged: (value) {
               setState(() => _searchQuery = value.trim().toLowerCase());
             },
-            style: const TextStyle(
-              color: ChatPalette.ink,
-              fontSize: 15,
-            ),
+            style: TextStyle(color: palette.ink, fontSize: 15),
             decoration: InputDecoration(
               hintText: 'Search friends or usernames',
-              hintStyle: const TextStyle(color: ChatPalette.muted),
-              prefixIcon: const Icon(
-                Icons.search_rounded,
-                color: ChatPalette.plum,
-              ),
+              hintStyle: TextStyle(color: palette.muted),
+              prefixIcon: Icon(Icons.search_rounded, color: palette.plum),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
                       tooltip: 'Clear search',
@@ -150,15 +145,15 @@ class _NewChatViewState extends State<NewChatView> {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
                       },
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close_rounded,
-                        color: ChatPalette.muted,
+                        color: palette.muted,
                         size: 19,
                       ),
                     )
                   : null,
               filled: true,
-              fillColor: ChatPalette.surface,
+              fillColor: palette.surface,
               contentPadding: const EdgeInsets.symmetric(vertical: 13),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
@@ -172,6 +167,7 @@ class _NewChatViewState extends State<NewChatView> {
   }
 
   Widget _emptyFriends({required bool hasFriends}) {
+    final palette = ChatPalette.of(context);
     final title = hasFriends
         ? 'No friends found'
         : 'Your chat list starts here';
@@ -189,21 +185,17 @@ class _NewChatViewState extends State<NewChatView> {
               width: 76,
               height: 76,
               decoration: BoxDecoration(
-                color: ChatPalette.rose.withValues(alpha: 0.35),
+                color: palette.rose.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(26),
               ),
-              child: const Icon(
-                Icons.forum_rounded,
-                size: 34,
-                color: ChatPalette.plum,
-              ),
+              child: Icon(Icons.forum_rounded, size: 34, color: palette.plum),
             ),
             const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: ChatPalette.ink,
+              style: TextStyle(
+                color: palette.ink,
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
               ),
@@ -212,11 +204,7 @@ class _NewChatViewState extends State<NewChatView> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: ChatPalette.muted,
-                fontSize: 14,
-                height: 1.4,
-              ),
+              style: TextStyle(color: palette.muted, fontSize: 14, height: 1.4),
             ),
           ],
         ),
@@ -227,12 +215,13 @@ class _NewChatViewState extends State<NewChatView> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = _activeUserId;
+    final palette = ChatPalette.of(context);
 
     if (currentUserId == null) {
       return Scaffold(
-        backgroundColor: ChatPalette.canvas,
+        backgroundColor: palette.canvas,
         appBar: AppBar(
-          backgroundColor: ChatPalette.canvas,
+          backgroundColor: palette.canvas,
           title: const Text('New message'),
         ),
         body: const Center(child: Text('Please sign in to start a chat.')),
@@ -244,7 +233,7 @@ class _NewChatViewState extends State<NewChatView> {
         .doc(currentUserId);
 
     return Scaffold(
-      backgroundColor: ChatPalette.canvas,
+      backgroundColor: palette.canvas,
       body: Column(
         children: [
           _header(),
@@ -327,11 +316,11 @@ class _NewChatViewState extends State<NewChatView> {
                           padding: const EdgeInsets.fromLTRB(20, 22, 20, 6),
                           child: Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
                                   'Your friends',
                                   style: TextStyle(
-                                    color: ChatPalette.ink,
+                                    color: palette.ink,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -343,15 +332,13 @@ class _NewChatViewState extends State<NewChatView> {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: ChatPalette.rose.withValues(
-                                    alpha: 0.35,
-                                  ),
+                                  color: palette.rose.withValues(alpha: 0.35),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
                                   '${friends.length}',
-                                  style: const TextStyle(
-                                    color: ChatPalette.plum,
+                                  style: TextStyle(
+                                    color: palette.plum,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -378,7 +365,7 @@ class _NewChatViewState extends State<NewChatView> {
                                   photoUrl != null && photoUrl.isNotEmpty;
 
                               return Material(
-                                color: ChatPalette.surface,
+                                color: palette.surface,
                                 borderRadius: BorderRadius.circular(20),
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(20),
@@ -396,7 +383,7 @@ class _NewChatViewState extends State<NewChatView> {
                                       children: [
                                         CircleAvatar(
                                           radius: 25,
-                                          backgroundColor: ChatPalette.rose
+                                          backgroundColor: palette.rose
                                               .withValues(alpha: 0.35),
                                           backgroundImage: hasPhoto
                                               ? NetworkImage(photoUrl)
@@ -405,8 +392,8 @@ class _NewChatViewState extends State<NewChatView> {
                                               ? null
                                               : Text(
                                                   name[0].toUpperCase(),
-                                                  style: const TextStyle(
-                                                    color: ChatPalette.plum,
+                                                  style: TextStyle(
+                                                    color: palette.plum,
                                                     fontWeight: FontWeight.w800,
                                                     fontSize: 18,
                                                   ),
@@ -422,8 +409,8 @@ class _NewChatViewState extends State<NewChatView> {
                                                 name,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  color: ChatPalette.ink,
+                                                style: TextStyle(
+                                                  color: palette.ink,
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.w700,
                                                 ),
@@ -434,8 +421,8 @@ class _NewChatViewState extends State<NewChatView> {
                                                     'Tap to start chatting',
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  color: ChatPalette.muted,
+                                                style: TextStyle(
+                                                  color: palette.muted,
                                                   fontSize: 13,
                                                 ),
                                               ),
@@ -447,16 +434,16 @@ class _NewChatViewState extends State<NewChatView> {
                                           width: 38,
                                           height: 38,
                                           decoration: BoxDecoration(
-                                            color: ChatPalette.rose.withValues(
+                                            color: palette.rose.withValues(
                                               alpha: 0.28,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               14,
                                             ),
                                           ),
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.chat_bubble_rounded,
-                                            color: ChatPalette.plum,
+                                            color: palette.plum,
                                             size: 18,
                                           ),
                                         ),

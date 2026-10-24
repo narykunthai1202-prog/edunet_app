@@ -195,6 +195,7 @@ class _DetailsState extends State<Details> {
   Widget _buildTextOrImageContent() {
     final String type = widget.detailType.trim().toUpperCase();
     final String fileUrl = widget.fileUrl.trim();
+    final colors = Theme.of(context).colorScheme;
 
     if (type == "TEXT") {
       return Align(
@@ -203,11 +204,7 @@ class _DetailsState extends State<Details> {
           widget.lessonText.trim().isNotEmpty
               ? widget.lessonText
               : "គ្មានខ្លឹមសារអត្ថបទឡើយ។",
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.7,
-            color: Colors.black87,
-          ),
+          style: TextStyle(fontSize: 16, height: 1.7, color: colors.onSurface),
           textAlign: TextAlign.justify,
         ),
       );
@@ -302,19 +299,20 @@ class _DetailsState extends State<Details> {
   Widget build(BuildContext context) {
     final String type = widget.detailType.trim().toUpperCase();
     final bool isPdf = type == "PDF";
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isPdf ? Colors.black12 : const Color(0xFFFFFDFB),
+      backgroundColor: isPdf ? Colors.black : colors.surface,
 
       // ================================================================
       // AppBar: ចំណងជើងមេរៀន (Title) នៅលើគេ, Type/Generation ជា subtitle
       // ================================================================
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0.5,
         titleSpacing: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: colors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
@@ -325,10 +323,10 @@ class _DetailsState extends State<Details> {
               widget.lessonName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: colors.onSurface,
               ),
             ),
             Text(
@@ -345,7 +343,7 @@ class _DetailsState extends State<Details> {
             IconButton(
               tooltip: "ទាញយក PDF",
               onPressed: _openPdfExternally,
-              icon: const Icon(Icons.download_outlined, color: Colors.black87),
+              icon: Icon(Icons.download_outlined, color: colors.onSurface),
             ),
           const SizedBox(width: 8),
         ],
@@ -365,9 +363,9 @@ class _DetailsState extends State<Details> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: colors.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: colors.outlineVariant),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withAlpha(10),

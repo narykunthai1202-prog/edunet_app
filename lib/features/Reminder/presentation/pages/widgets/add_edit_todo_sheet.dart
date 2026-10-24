@@ -129,13 +129,15 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existing != null;
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: colors.surfaceContainer,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
@@ -233,7 +235,7 @@ class _AddEditTodoSheetState extends State<AddEditTodoSheet> {
                         color: color,
                         shape: BoxShape.circle,
                         border: selected
-                            ? Border.all(color: Colors.black87, width: 2.5)
+                            ? Border.all(color: colors.onSurface, width: 2.5)
                             : null,
                         boxShadow: selected
                             ? [
@@ -328,7 +330,9 @@ class _TimePickerButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: hasTime ? FontWeight.w600 : FontWeight.w400,
-                  color: hasTime ? Colors.black87 : Colors.grey.shade600,
+                  color: hasTime
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -376,7 +380,7 @@ class _ReminderSwitchCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(

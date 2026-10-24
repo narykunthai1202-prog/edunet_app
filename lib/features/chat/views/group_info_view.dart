@@ -5,6 +5,7 @@ import 'package:edunest_app/features/chat/models/message_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../services/group_service.dart';
 import '../widgets/group_avatar.dart';
 import '../widgets/shared_media_tabs.dart';
@@ -38,17 +39,20 @@ class _GroupInfoViewState extends State<GroupInfoView> {
     super.initState();
     // The group's messages (chats/{groupId}/messages) for the
     // Media / Files / Links card.
-    _messagesStream = _service.watchMessages(widget.groupId).map(
+    _messagesStream = _service
+        .watchMessages(widget.groupId)
+        .map(
           (snap) => snap.docs
               .map((d) => MessageModel.fromMap(d.data(), d.id))
               .toList(),
         );
   }
+
   @override
-void dispose() {
-  _messagesSub.cancel();
-  super.dispose();
-}
+  void dispose() {
+    _messagesSub.cancel();
+    super.dispose();
+  }
 
   void _toast(String msg) {
     if (!mounted) return;
@@ -92,7 +96,9 @@ void dispose() {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('Save'),
@@ -132,12 +138,14 @@ void dispose() {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Leave group?'),
-        content:
-            const Text('You will no longer receive messages from this group.'),
+        content: const Text(
+          'You will no longer receive messages from this group.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Leave', style: TextStyle(color: Colors.red)),
@@ -158,9 +166,11 @@ void dispose() {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -273,8 +283,11 @@ void dispose() {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 3),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        size: 16, color: Colors.white),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -301,8 +314,11 @@ void dispose() {
               const SizedBox(width: 4),
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.edit_rounded,
-                    size: 19, color: Colors.white70),
+                icon: const Icon(
+                  Icons.edit_rounded,
+                  size: 19,
+                  color: Colors.white70,
+                ),
                 onPressed: () => _editName(name),
               ),
             ],
@@ -324,9 +340,10 @@ void dispose() {
                 Text(
                   '${participants.length} members',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -337,10 +354,16 @@ void dispose() {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _action(Icons.person_add_alt_1_rounded, 'Add',
-                  () => _addMembers(participants)),
-              _action(Icons.photo_camera_rounded, 'Photo',
-                  _busy ? null : _changePhoto),
+              _action(
+                Icons.person_add_alt_1_rounded,
+                'Add',
+                () => _addMembers(participants),
+              ),
+              _action(
+                Icons.photo_camera_rounded,
+                'Photo',
+                _busy ? null : _changePhoto,
+              ),
               _action(Icons.edit_rounded, 'Rename', () => _editName(name)),
             ],
           ),
@@ -361,7 +384,9 @@ void dispose() {
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
               border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35), width: 1),
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 1,
+              ),
             ),
             child: Icon(icon, color: Colors.white, size: 24),
           ),
@@ -369,9 +394,10 @@ void dispose() {
           Text(
             label,
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600),
+              color: Colors.white,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -381,27 +407,31 @@ void dispose() {
   // ---------------------------------------------------------------- members
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      );
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+    borderRadius: BorderRadius.circular(24),
+    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+    boxShadow: [
+      BoxShadow(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+        blurRadius: 24,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
 
   Widget _membersCard(
-      List<String> participants, List<String> admins, bool isAdmin) {
+    List<String> participants,
+    List<String> admins,
+    bool isAdmin,
+  ) {
     // you first, then admins, then everybody else
-    final sorted = [...participants]..sort((a, b) {
+    final sorted = [...participants]
+      ..sort((a, b) {
         int rank(String id) => id == widget.currentUserId
             ? 0
             : admins.contains(id)
-                ? 1
-                : 2;
+            ? 1
+            : 2;
         final r = rank(a).compareTo(rank(b));
         return r != 0 ? r : a.compareTo(b);
       });
@@ -425,20 +455,28 @@ void dispose() {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.group_rounded,
-                    color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.group_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
                   'Members',
                   style: TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: _ink,
+                  ),
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDBEAFE),
                   borderRadius: BorderRadius.circular(20),
@@ -446,7 +484,10 @@ void dispose() {
                 child: Text(
                   '${participants.length}',
                   style: const TextStyle(
-                      color: _blue, fontWeight: FontWeight.w800, fontSize: 12),
+                    color: _blue,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -455,7 +496,7 @@ void dispose() {
 
           // add members button
           Material(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -471,17 +512,21 @@ void dispose() {
                         color: _blue,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person_add_alt_1_rounded,
-                          color: Colors.white, size: 21),
+                      child: const Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: Colors.white,
+                        size: 21,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
                         'Add members',
                         style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14.5,
-                            color: _blue),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                          color: _blue,
+                        ),
                       ),
                     ),
                     const Icon(Icons.chevron_right_rounded, color: _blue),
@@ -518,11 +563,16 @@ void dispose() {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 14.5, color: _ink),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                    color: _ink,
+                  ),
                 ),
                 if (isMe)
-                  const Text('You',
-                      style: TextStyle(fontSize: 12, color: _muted)),
+                  const Text(
+                    'You',
+                    style: TextStyle(fontSize: 12, color: _muted),
+                  ),
               ],
             ),
           ),
@@ -536,19 +586,25 @@ void dispose() {
               child: const Text(
                 'Admin',
                 style: TextStyle(
-                    color: Color(0xFFB45309),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800),
+                  color: Color(0xFFB45309),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           if (isAdmin && !isMe)
             IconButton(
               visualDensity: VisualDensity.compact,
               tooltip: 'Remove from group',
-              icon: const Icon(Icons.remove_circle_outline_rounded,
-                  color: Color(0xFFEF4444)),
+              icon: const Icon(
+                Icons.remove_circle_outline_rounded,
+                color: Color(0xFFEF4444),
+              ),
               onPressed: () => _service.removeMember(
-                  widget.groupId, id, widget.currentUserId),
+                widget.groupId,
+                id,
+                widget.currentUserId,
+              ),
             ),
         ],
       ),
@@ -559,7 +615,7 @@ void dispose() {
 
   Widget _leaveButton() {
     return Material(
-      color:Colors.white,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -578,9 +634,10 @@ void dispose() {
               Text(
                 'Leave group',
                 style: TextStyle(
-                    color: Color(0xFFEF4444),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15),
+                  color: Color(0xFFEF4444),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
               ),
             ],
           ),

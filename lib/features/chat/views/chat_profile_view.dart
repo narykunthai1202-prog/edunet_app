@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:edunest_app/features/chat/models/message_model.dart';
 import 'package:edunest_app/features/chat/widgets/chat_options_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../services/chat_service.dart';
 import '../widgets/shared_media_tabs.dart';
 
@@ -28,7 +30,6 @@ class ChatProfileView extends StatefulWidget {
 
 class _ChatProfileViewState extends State<ChatProfileView> {
   static const _blue = Color(0xFF2563EB);
-  static const _ink = Color(0xFF0F172A);
   static const _muted = Color(0xFF64748B);
 
   final ChatService _chatService = ChatService();
@@ -56,15 +57,17 @@ class _ChatProfileViewState extends State<ChatProfileView> {
         .doc(activeChatRoomId)
         .collection('messages')
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => MessageModel.fromMap(d.data(), d.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => MessageModel.fromMap(d.data(), d.id))
+              .toList(),
+        );
 
     _nickSub = _chatService
         .watchNickname(widget.currentUserId, activeChatRoomId)
         .listen((nick) {
-      if (mounted) setState(() => _nickname = nick);
-    });
+          if (mounted) setState(() => _nickname = nick);
+        });
 
     _loadMuteStatus();
   }
@@ -123,21 +126,25 @@ class _ChatProfileViewState extends State<ChatProfileView> {
 
     try {
       await _chatService.setNickname(
-          widget.currentUserId, activeChatRoomId, result);
+        widget.currentUserId,
+        activeChatRoomId,
+        result,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text(result.isEmpty ? 'Nickname removed' : 'Nickname saved'),
+            content: Text(
+              result.isEmpty ? 'Nickname removed' : 'Nickname saved',
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save nickname: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save nickname: $e')));
       }
     }
   }
@@ -162,22 +169,26 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   color: Color(0xFFFEE2E2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.block,
-                    color: Color(0xFFEF4444), size: 32),
+                child: const Icon(
+                  Icons.block,
+                  color: Color(0xFFEF4444),
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 18),
               Text(
                 'Block ${widget.receiverName}?',
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 10),
               const Text(
                 "They won't be able to message or call you, and you won't be able to message or call them unless you unblock.",
                 textAlign: TextAlign.center,
-                style:
-                    TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
+                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
               ),
               const SizedBox(height: 24),
               Row(
@@ -188,14 +199,18 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                         backgroundColor: const Color(0xFFF1F4F9),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel',
-                          style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -205,14 +220,18 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                         backgroundColor: const Color(0xFFEF4444),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Block',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15)),
+                      child: const Text(
+                        'Block',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -239,9 +258,8 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error blocking user: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error blocking user: $e')));
       }
     }
   }
@@ -264,8 +282,9 @@ class _ChatProfileViewState extends State<ChatProfileView> {
         builder: (context, setLocal) => Dialog(
           backgroundColor: Colors.white,
           insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
             child: SingleChildScrollView(
@@ -281,25 +300,34 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                         color: Color(0xFFFEF3C7),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.flag,
-                          color: Color(0xFFF59E0B), size: 32),
+                      child: const Icon(
+                        Icons.flag,
+                        color: Color(0xFFF59E0B),
+                        size: 32,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Center(
-                    child: Text('Report ${widget.receiverName}',
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Report ${widget.receiverName}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  ...reasons.map((r) => RadioListTile<String>(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(r),
-                        value: r,
-                        groupValue: selected,
-                        onChanged: (v) => setLocal(() => selected = v),
-                      )),
+                  ...reasons.map(
+                    (r) => RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(r),
+                      value: r,
+                      groupValue: selected,
+                      onChanged: (v) => setLocal(() => selected = v),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: detailsController,
@@ -323,13 +351,17 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                             backgroundColor: const Color(0xFFF1F4F9),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                           onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel',
-                              style: TextStyle(
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.w600)),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -341,15 +373,19 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                                 : const Color(0xFFF59E0B),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                           onPressed: selected == null
                               ? null
                               : () => Navigator.pop(context, true),
-                          child: const Text('Report',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600)),
+                          child: const Text(
+                            'Report',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -381,9 +417,8 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not send report: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not send report: $e')));
       }
     }
   }
@@ -391,27 +426,27 @@ class _ChatProfileViewState extends State<ChatProfileView> {
   Future<void> _handlePurgeMessages() async {
     // small "what will be deleted" pill used inside the dialog
     Widget pill(IconData icon, String text) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: const Color(0xFF64748B)),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF475569),
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 15, color: const Color(0xFF64748B)),
-              const SizedBox(width: 6),
-              Text(
-                text,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF475569),
-                ),
-              ),
-            ],
-          ),
-        );
+        ],
+      ),
+    );
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -432,8 +467,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   color: Color(0xFFFEE2E2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.delete_forever_rounded,
-                    color: Color(0xFFEF4444), size: 36),
+                child: const Icon(
+                  Icons.delete_forever_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 18),
               const Text(
@@ -450,7 +488,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 'Everything in this conversation will be deleted for good:',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 14, color: Color(0xFF64748B), height: 1.4),
+                  fontSize: 14,
+                  color: Color(0xFF64748B),
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 14),
               Wrap(
@@ -467,8 +508,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(14),
@@ -477,8 +520,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.warning_amber_rounded,
-                        size: 18, color: Color(0xFFEF4444)),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 18,
+                      color: Color(0xFFEF4444),
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'This action cannot be undone.',
@@ -500,14 +546,18 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                         backgroundColor: const Color(0xFFF1F4F9),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel',
-                          style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -517,14 +567,18 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                         backgroundColor: const Color(0xFFEF4444),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete all',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15)),
+                      child: const Text(
+                        'Delete all',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -550,9 +604,9 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error purging messages: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error purging messages: $e')));
       }
     }
   }
@@ -567,9 +621,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -711,9 +767,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 Text(
                   'Active now',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -745,8 +802,12 @@ class _ChatProfileViewState extends State<ChatProfileView> {
     );
   }
 
-  Widget _action(IconData icon, String label, VoidCallback onTap,
-      {bool active = false}) {
+  Widget _action(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    bool active = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -761,7 +822,9 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   : Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
               border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35), width: 1),
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 1,
+              ),
             ),
             child: Icon(icon, color: active ? _blue : Colors.white, size: 24),
           ),
@@ -769,9 +832,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
           Text(
             label,
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600),
+              color: Colors.white,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -781,12 +845,14 @@ class _ChatProfileViewState extends State<ChatProfileView> {
   // ------------------------------------------------------ privacy and safety
 
   Widget _safetyCard() {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: colors.outlineVariant),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.05),
@@ -811,14 +877,20 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.shield_rounded,
-                    color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.shield_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Privacy & safety',
                 style: TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: colors.onSurface,
+                ),
               ),
             ],
           ),
@@ -878,9 +950,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                       Text(
                         title,
                         style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14.5),
+                          color: color,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14.5,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -890,8 +963,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded,
-                    color: color.withValues(alpha: 0.7)),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: color.withValues(alpha: 0.7),
+                ),
               ],
             ),
           ),

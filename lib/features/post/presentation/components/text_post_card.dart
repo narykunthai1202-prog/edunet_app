@@ -51,11 +51,13 @@ class TextPostCard extends StatefulWidget {
 class _TextPostCardState extends State<TextPostCard> {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       height: 390,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xfff1f1f1),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Stack(
@@ -84,13 +86,10 @@ class _TextPostCardState extends State<TextPostCard> {
                         children: [
                           Text(
                             widget.username,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: colorScheme.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              shadows: [
-                                Shadow(blurRadius: 5, color: Colors.black),
-                              ],
                             ),
                           ),
 
@@ -98,19 +97,18 @@ class _TextPostCardState extends State<TextPostCard> {
                             children: [
                               Text(
                                 widget.timestamp,
-                                style: const TextStyle(
-                                  color: Color.fromARGB(255, 43, 42, 42),
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
                                   fontSize: 12,
-                                  shadows: [Shadow(blurRadius: 5)],
                                 ),
                               ),
 
                               const SizedBox(width: 6),
 
-                              const Icon(
+                              Icon(
                                 Icons.circle,
                                 size: 3,
-                                color: Colors.grey,
+                                color: colorScheme.onSurfaceVariant,
                               ),
 
                               const SizedBox(width: 6),
@@ -121,7 +119,7 @@ class _TextPostCardState extends State<TextPostCard> {
                                     ? Iconsax.people
                                     : Iconsax.lock,
                                 size: 13,
-                                color: const Color.fromARGB(255, 28, 26, 26),
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ],
                           ),
@@ -162,7 +160,7 @@ class _TextPostCardState extends State<TextPostCard> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(17),
                 boxShadow: [
                   BoxShadow(
@@ -187,7 +185,11 @@ class _TextPostCardState extends State<TextPostCard> {
                   // Comment
                   GestureDetector(
                     onTap: widget.onComment,
-                    child: const Icon(Iconsax.message, size: 23),
+                    child: Icon(
+                      Iconsax.message,
+                      size: 23,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(width: 3),
                   Text(widget.commentcount),
@@ -208,7 +210,11 @@ class _TextPostCardState extends State<TextPostCard> {
                   // Share
                   GestureDetector(
                     onTap: widget.onShare,
-                    child: const Icon(Iconsax.send_2, size: 23),
+                    child: Icon(
+                      Iconsax.send_2,
+                      size: 23,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ],
               ),

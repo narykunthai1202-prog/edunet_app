@@ -15,9 +15,10 @@ class NotificationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifications = context.watch<NotificationCubit>().state;
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
 
       body: SafeArea(
         child: Column(
@@ -34,14 +35,14 @@ class NotificationPage extends StatelessWidget {
                     child: Container(
                       width: 38,
                       height: 38,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF5F1F2),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Iconsax.arrow_left_2,
                         size: 19,
-                        color: Colors.black,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),
@@ -49,13 +50,13 @@ class NotificationPage extends StatelessWidget {
                   const SizedBox(width: 12),
 
                   // Title
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Notifications',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),
@@ -71,10 +72,10 @@ class NotificationPage extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Iconsax.search_normal_1,
                       size: 21,
-                      color: Colors.black,
+                      color: colors.onSurface,
                     ),
                   ),
 
@@ -89,10 +90,10 @@ class NotificationPage extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Iconsax.user_add,
                       size: 21,
-                      color: Colors.black,
+                      color: colors.onSurface,
                     ),
                   ),
                 ],
@@ -108,9 +109,9 @@ class NotificationPage extends StatelessWidget {
                   notifications.isEmpty
                       ? 'You have no notifications.'
                       : '${notifications.length} notification${notifications.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF999999),
+                    color: colors.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -126,7 +127,7 @@ class NotificationPage extends StatelessWidget {
                   >(
                     builder: (context, notifications) {
                       if (notifications.isEmpty) {
-                        return _emptyNotification();
+                        return _emptyNotification(context);
                       }
 
                       return ListView(
@@ -149,7 +150,9 @@ class NotificationPage extends StatelessWidget {
     );
   }
 
-  Widget _emptyNotification() {
+  Widget _emptyNotification(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(bottom: 80),
@@ -159,34 +162,34 @@ class NotificationPage extends StatelessWidget {
             Container(
               width: 76,
               height: 76,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF8EDEF),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Iconsax.notification,
                 size: 34,
-                color: Color(0xFFB98A94),
+                color: colors.primary,
               ),
             ),
 
             const SizedBox(height: 18),
 
-            const Text(
+            Text(
               'No notifications yet',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: colors.onSurface,
               ),
             ),
 
             const SizedBox(height: 6),
 
-            const Text(
+            Text(
               'We will let you know when something happens.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Color(0xFF999999)),
+              style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
             ),
           ],
         ),

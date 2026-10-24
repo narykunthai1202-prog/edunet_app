@@ -14,11 +14,15 @@ import 'package:edunest_app/features/profile/data/firebase_profile_repos.dart';
 import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:edunest_app/features/search/data/firebase_search_repo.dart';
 import 'package:edunest_app/features/search/presentation/cubits/search_cubit.dart';
+import 'package:edunest_app/core/cubits/theme_cubit.dart';
+import 'package:edunest_app/themes/dark_mode.dart';
 import 'package:edunest_app/themes/light_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class MyApp extends StatelessWidget {
+  final ThemeMode initialThemeMode;
+
   final authRepo = FirebaseAuthRepos();
   final profileRepo = FirebaseProfileRepos();
   final postRepo = FirebasePostRepo();
@@ -26,7 +30,7 @@ class MyApp extends StatelessWidget {
   final notificationRepo = FirebaseNotificationRepo();
   final reportrepo = ReportRepo();
 
-  MyApp({super.key});
+  MyApp({super.key, required this.initialThemeMode});
 
   @override
   Widget build(BuildContext context) {
@@ -73,35 +77,42 @@ class MyApp extends StatelessWidget {
         BlocProvider<ReportCubit>(
           create: (context) => ReportCubit(reportRepo: reportrepo),
         ),
+        BlocProvider<ThemeCubit>(
+          create: (context) => ThemeCubit(initialThemeMode),
+        ),
       ],
 
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: lightMode,
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, themeMode) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: lightMode,
+          darkTheme: darkMode,
+          themeMode: themeMode,
 
-        home: BlocConsumer<AuthCubit, AuthState>(
-          builder: (context, authState) {
-            print(authState);
+          home: BlocConsumer<AuthCubit, AuthState>(
+            builder: (context, authState) {
+              print(authState);
 
-            if (authState is Unauthenticated) {
-              return const AuthPage();
-            }
+              if (authState is Unauthenticated) {
+                return const AuthPage();
+              }
 
-            if (authState is Authenticated) {
-              return const HomePage();
-            }
+              if (authState is Authenticated) {
+                return const HomePage();
+              }
 
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          },
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            },
 
-          listener: (context, state) {
-            if (state is AuthError) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(state.message)));
-            }
-          },
+            listener: (context, state) {
+              if (state is AuthError) {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(state.message)));
+              }
+            },
+          ),
         ),
       ),
     );

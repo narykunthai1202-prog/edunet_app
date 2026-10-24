@@ -21,7 +21,6 @@ class CreateGroupView extends StatefulWidget {
 
 class _CreateGroupViewState extends State<CreateGroupView> {
   static const _blue = Color(0xFF2563EB);
-  static const _ink = Color(0xFF0F172A);
   static const _muted = Color(0xFF64748B);
 
   final GroupService _service = GroupService();
@@ -138,9 +137,11 @@ class _CreateGroupViewState extends State<CreateGroupView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: colors.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -218,11 +219,15 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                   child: CircleAvatar(
                     radius: 52,
                     backgroundColor: const Color(0xFFDBEAFE),
-                    backgroundImage:
-                        _photoBytes != null ? MemoryImage(_photoBytes!) : null,
+                    backgroundImage: _photoBytes != null
+                        ? MemoryImage(_photoBytes!)
+                        : null,
                     child: _photoBytes == null
-                        ? const Icon(Icons.groups_rounded,
-                            size: 48, color: _blue)
+                        ? const Icon(
+                            Icons.groups_rounded,
+                            size: 48,
+                            color: _blue,
+                          )
                         : null,
                   ),
                 ),
@@ -236,8 +241,11 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 3),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        size: 16, color: Colors.white),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
@@ -272,7 +280,8 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
-                    fontWeight: FontWeight.w600),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -285,9 +294,9 @@ class _CreateGroupViewState extends State<CreateGroupView> {
   // ------------------------------------------------------------------ cards
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-    color: Colors.white,
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
     borderRadius: BorderRadius.circular(24),
-    border: Border.all(color: const Color(0xFFE2E8F0)),
+    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     boxShadow: [
       BoxShadow(
         color: const Color(0xFF0F172A).withValues(alpha: 0.05),
@@ -317,8 +326,11 @@ class _CreateGroupViewState extends State<CreateGroupView> {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w800, color: _ink),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
         ?trailing,
@@ -344,9 +356,11 @@ class _CreateGroupViewState extends State<CreateGroupView> {
               hintText: 'e.g. Weekend plans',
               hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
               filled: true,
-              fillColor: const Color(0xFFF1F5F9),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              fillColor: Theme.of(context).colorScheme.surface,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
@@ -381,7 +395,10 @@ class _CreateGroupViewState extends State<CreateGroupView> {
               child: Text(
                 '${_members.length}',
                 style: const TextStyle(
-                    color: _blue, fontWeight: FontWeight.w800, fontSize: 12),
+                  color: _blue,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
@@ -389,7 +406,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
 
           // add members button
           Material(
-            color: const Color(0xFFEFF6FF),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -405,8 +422,11 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                         color: _blue,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person_add_alt_1_rounded,
-                          color: Colors.white, size: 21),
+                      child: const Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: Colors.white,
+                        size: 21,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
@@ -415,7 +435,8 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14.5,
-                            color: _blue),
+                          color: _blue,
+                        ),
                       ),
                     ),
                     const Icon(Icons.chevron_right_rounded, color: _blue),
@@ -465,7 +486,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.06),
@@ -489,7 +510,8 @@ class _CreateGroupViewState extends State<CreateGroupView> {
               elevation: enabled ? 4 : 0,
               shadowColor: _blue.withValues(alpha: 0.4),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18)),
+                borderRadius: BorderRadius.circular(18),
+              ),
             ),
             child: _creating
                 ? const SizedBox(

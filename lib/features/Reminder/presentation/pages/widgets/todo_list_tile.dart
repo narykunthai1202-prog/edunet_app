@@ -21,6 +21,8 @@ class TodoListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Dismissible(
       key: ValueKey(todo.id),
       direction: DismissDirection.endToStart,
@@ -32,7 +34,7 @@ class TodoListTile extends StatelessWidget {
       ),
       onDismissed: (_) => onDelete(),
       child: Material(
-        color: Colors.white,
+        color: colors.surfaceContainerHighest,
         child: InkWell(
           onTap: onTap,
           child: Padding(
@@ -60,7 +62,9 @@ class TodoListTile extends StatelessWidget {
                           decoration: todo.done
                               ? TextDecoration.lineThrough
                               : null,
-                          color: todo.done ? Colors.grey : Colors.black87,
+                          color: todo.done
+                              ? colors.onSurfaceVariant
+                              : colors.onSurface,
                         ),
                       ),
                       if (todo.time != null)

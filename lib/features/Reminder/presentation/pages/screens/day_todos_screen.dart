@@ -130,9 +130,10 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
   Widget build(BuildContext context) {
     final dateLabel =
         '${_weekdayName(widget.day.weekday)}, ${_monthName(widget.day.month)} ${widget.day.day}';
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colors.surface,
       appBar: _buildAppBar(context, dateLabel),
       body: StreamBuilder<List<TodoItem>>(
         stream: widget.todoService.watchTodosForDay(widget.day),
@@ -231,10 +232,12 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, String dateLabel) {
+    final colors = Theme.of(context).colorScheme;
+
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       elevation: 0.5,
-      foregroundColor: Colors.black87,
+      foregroundColor: colors.onSurface,
       title: _isSearchActive
           ? TextField(
               autofocus: true,
@@ -320,13 +323,14 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
 
   Widget _buildProgressHeader(int completed, int total, double progress) {
     final percentage = (progress * 100).toInt();
+    final colors = Theme.of(context).colorScheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -342,12 +346,12 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Daily Overview',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+                  color: colors.onSurfaceVariant,
                 ),
               ),
               Text(
@@ -366,7 +370,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: colors.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(
                 progress == 1.0 ? Colors.green : Colors.blueAccent,
               ),
@@ -378,6 +382,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
   }
 
   Widget _buildToolbar(List<TodoItem> allTodos) {
+    final colors = Theme.of(context).colorScheme;
     final pendingCount = allTodos.where((t) => !t.done).length;
     final completedCount = allTodos.where((t) => t.done).length;
 
@@ -410,7 +415,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
           ),
           // Sort Dropdown Button
           PopupMenuButton<TaskSort>(
-            icon: const Icon(Icons.sort, size: 22, color: Colors.black54),
+            icon: Icon(Icons.sort, size: 22, color: colors.onSurfaceVariant),
             tooltip: 'Sort tasks',
             onSelected: (sort) => setState(() => _selectedSort = sort),
             itemBuilder: (context) => const [
@@ -432,18 +437,20 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
 
   Widget _buildChoiceChip({required String label, required TaskFilter filter}) {
     final isSelected = _selectedFilter == filter;
+    final colors = Theme.of(context).colorScheme;
+
     return ChoiceChip(
       label: Text(
         label,
         style: TextStyle(
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.white : Colors.black87,
+          color: isSelected ? colors.onPrimary : colors.onSurface,
         ),
       ),
       selected: isSelected,
       selectedColor: Theme.of(context).primaryColor,
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surfaceContainerHighest,
       elevation: 0,
       pressElevation: 1,
       onSelected: (selected) {
@@ -457,6 +464,8 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
   }
 
   Widget _buildDismissibleTask(BuildContext context, TodoItem todo) {
+    final colors = Theme.of(context).colorScheme;
+
     return Dismissible(
       key: Key(todo.id),
       background: _buildSwipeBackground(
@@ -486,7 +495,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border(left: BorderSide(color: todo.color, width: 5)),
           boxShadow: [
@@ -550,9 +559,11 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
   }
 
   Widget _buildQuickAddBar() {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 80, 16),
-      color: Colors.white,
+      color: colors.surface,
       child: Row(
         children: [
           Expanded(
@@ -564,7 +575,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
                   horizontal: 16,
                   vertical: 10,
                 ),
-                fillColor: const Color(0xFFF1F3F5),
+                fillColor: colors.surfaceContainerHighest,
                 filled: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -575,7 +586,7 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.send_rounded, color: Colors.blueAccent),
+            icon: Icon(Icons.send_rounded, color: colors.primary),
             onPressed: _quickAdd,
           ),
         ],
@@ -584,6 +595,8 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -593,29 +606,29 @@ class _DayTodosScreenState extends State<DayTodosScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: colors.primaryContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.task_alt_rounded,
                 size: 64,
-                color: Colors.blue.shade400,
+                color: colors.primary,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No tasks for this day',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: colors.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Enjoy your free time or add a task using quick add below.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant),
             ),
           ],
         ),

@@ -67,6 +67,8 @@ class _RequestedSugesstedState extends State<RequestedSugessted> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -97,27 +99,27 @@ class _RequestedSugesstedState extends State<RequestedSugessted> {
                     child: Container(
                       width: 38,
                       height: 38,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF5F1F2),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Iconsax.arrow_left_2,
                         size: 19,
-                        color: Colors.black,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),
 
                   const SizedBox(width: 12),
 
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Find your Mate',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),

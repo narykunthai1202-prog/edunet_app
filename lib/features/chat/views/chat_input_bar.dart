@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:edunest_app/features/chat/services/cloudinary_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -13,7 +14,6 @@ class ChatInputBar extends StatefulWidget {
   final void Function(String url) onSendImage;
   final void Function(String url, int seconds) onSendAudio;
   final void Function(String url, String name, int size) onSendFile; // NEW
-
 
   const ChatInputBar({
     super.key,
@@ -62,13 +62,18 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 
   Future<void> _pickImage() async {
-    final picked = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
     if (picked == null) return;
     setState(() => _busy = true);
     final bytes = await picked.readAsBytes();
-    final url = await CloudinaryService.uploadBytes(bytes, picked.name,
-        folder: widget.folder);
+    final url = await CloudinaryService.uploadBytes(
+      bytes,
+      picked.name,
+      folder: widget.folder,
+    );
     if (mounted) setState(() => _busy = false);
     if (url != null) widget.onSendImage(url);
   }
@@ -82,7 +87,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
     if (size != null && size > 10 * 1024 * 1024) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('File too large (max 10 MB)')));
+          const SnackBar(content: Text('File too large (max 10 MB)')),
+        );
       }
       return;
     }
@@ -91,14 +97,18 @@ class _ChatInputBarState extends State<ChatInputBar> {
     if (bytes.length > 10 * 1024 * 1024) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('File too large (max 10 MB)')));
+          const SnackBar(content: Text('File too large (max 10 MB)')),
+        );
       }
       return;
     }
 
     setState(() => _busy = true);
-    final url = await CloudinaryService.uploadBytes(bytes, file.name,
-        folder: widget.folder);
+    final url = await CloudinaryService.uploadBytes(
+      bytes,
+      file.name,
+      folder: widget.folder,
+    );
     if (mounted) setState(() => _busy = false);
 
     if (url != null) {
@@ -113,7 +123,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
     if (!await _recorder.hasPermission()) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission denied')));
+          const SnackBar(content: Text('Microphone permission denied')),
+        );
       }
       return;
     }
@@ -132,7 +143,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
       _seconds = 0;
     });
     _timer = Timer.periodic(
-        const Duration(seconds: 1), (_) => setState(() => _seconds++));
+      const Duration(seconds: 1),
+      (_) => setState(() => _seconds++),
+    );
   }
 
   Future<void> _stopRecording({required bool send}) async {
@@ -146,8 +159,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final bytes = await XFile(path).readAsBytes();
     final ext = kIsWeb ? 'webm' : 'm4a';
     final url = await CloudinaryService.uploadBytes(
-        bytes, 'voice_${DateTime.now().millisecondsSinceEpoch}.$ext',
-        folder: widget.folder);
+      bytes,
+      'voice_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      folder: widget.folder,
+    );
     if (mounted) setState(() => _busy = false);
     if (url != null) widget.onSendAudio(url, secs);
   }
@@ -167,75 +182,92 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 
   Widget _normalRow(Color blue) {
-    return Row(children: [
-      IconButton(
-        icon: const Icon(Icons.add_photo_alternate, color: Colors.grey),
-        onPressed: _busy ? null : _pickImage,
-      ),
-      // NEW: attach file button
-      IconButton(
-        icon: const Icon(Icons.attach_file, color: Colors.grey),
-        onPressed: _busy ? null : _pickFile,
-      ),
-      Expanded(
-        child: TextField(
-          controller: _controller,
-          minLines: 1,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: 'Type a message...',
-            filled: true,
-            fillColor: const Color(0xFFF1F4F9),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            suffixIcon:
-                const Icon(Icons.emoji_emotions_outlined, color: Colors.grey),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none),
-          ),
+    final colors = Theme.of(context).colorScheme;
+
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.add_photo_alternate, color: Colors.grey),
+          onPressed: _busy ? null : _pickImage,
         ),
-      ),
-      const SizedBox(width: 8),
-      _busy
-          ? const SizedBox(
-              width: 40,
-              height: 40,
-              child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: CircularProgressIndicator(strokeWidth: 2)))
-          : CircleAvatar(
-              backgroundColor: blue,
-              child: IconButton(
-                icon: Icon(_hasText ? Icons.send : Icons.mic,
-                    color: Colors.white, size: 20),
-                onPressed: _hasText ? _sendText : _startRecording,
+        // NEW: attach file button
+        IconButton(
+          icon: const Icon(Icons.attach_file, color: Colors.grey),
+          onPressed: _busy ? null : _pickFile,
+        ),
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            minLines: 1,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: 'Type a message...',
+              filled: true,
+              fillColor: colors.surfaceContainerHighest,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              suffixIcon: const Icon(
+                Icons.emoji_emotions_outlined,
+                color: Colors.grey,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
               ),
             ),
-    ]);
+          ),
+        ),
+        const SizedBox(width: 8),
+        _busy
+            ? const SizedBox(
+                width: 40,
+                height: 40,
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : CircleAvatar(
+                backgroundColor: blue,
+                child: IconButton(
+                  icon: Icon(
+                    _hasText ? Icons.send : Icons.mic,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  onPressed: _hasText ? _sendText : _startRecording,
+                ),
+              ),
+      ],
+    );
   }
 
   Widget _recordingRow(Color blue) {
-    return Row(children: [
-      IconButton(
-        icon: const Icon(Icons.delete, color: Colors.red),
-        onPressed: () => _stopRecording(send: false),
-      ),
-      const Icon(Icons.fiber_manual_record, color: Colors.red, size: 14),
-      const SizedBox(width: 8),
-      Text(_fmt(_seconds), style: const TextStyle(fontSize: 16)),
-      const Expanded(
-          child: Padding(
-        padding: EdgeInsets.only(left: 12),
-        child: Text('Recording...', style: TextStyle(color: Colors.grey)),
-      )),
-      CircleAvatar(
-        backgroundColor: blue,
-        child: IconButton(
-          icon: const Icon(Icons.send, color: Colors.white, size: 20),
-          onPressed: () => _stopRecording(send: true),
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red),
+          onPressed: () => _stopRecording(send: false),
         ),
-      ),
-    ]);
+        const Icon(Icons.fiber_manual_record, color: Colors.red, size: 14),
+        const SizedBox(width: 8),
+        Text(_fmt(_seconds), style: const TextStyle(fontSize: 16)),
+        const Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Text('Recording...', style: TextStyle(color: Colors.grey)),
+          ),
+        ),
+        CircleAvatar(
+          backgroundColor: blue,
+          child: IconButton(
+            icon: const Icon(Icons.send, color: Colors.white, size: 20),
+            onPressed: () => _stopRecording(send: true),
+          ),
+        ),
+      ],
+    );
   }
 }

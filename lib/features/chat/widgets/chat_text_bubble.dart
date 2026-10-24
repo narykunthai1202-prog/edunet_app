@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/message_model.dart';
 
 class ChatTextBubble extends StatelessWidget {
@@ -19,13 +20,15 @@ class ChatTextBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       constraints: BoxConstraints(
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF2563EB) : Colors.white,
+        color: isMe ? const Color(0xFF2563EB) : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           if (!isMe)
@@ -42,35 +45,38 @@ class ChatTextBubble extends StatelessWidget {
           // ↩️ FORWARDED INDICATOR BADGE
           // Place this directly inside the main Column children list, before the ClipRRect image:
 
-if (message.isForwarded) ...[
-  Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.reply_rounded, size: 14, color: Colors.grey[600]),
-        const SizedBox(width: 4),
-        Text(
-          'Forwarded',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            fontStyle: FontStyle.italic,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    ),
-  ),
-],
+          if (message.isForwarded) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.reply_rounded, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Forwarded',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // 🖼️ Quoted Reply Preview
-          if (message.replyToText != null && message.replyToText!.isNotEmpty) ...[
+          if (message.replyToText != null &&
+              message.replyToText!.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.all(6),
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
-                color: isMe ? Colors.white.withValues(alpha: 0.2) : Colors.grey.shade100,
+                color: isMe
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : colors.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border(
                   left: BorderSide(
@@ -98,7 +104,7 @@ if (message.isForwarded) ...[
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: isMe ? Colors.white70 : Colors.black87,
+                            color: isMe ? Colors.white70 : colors.onSurface,
                           ),
                         ),
                       ],
@@ -109,7 +115,7 @@ if (message.isForwarded) ...[
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isMe ? Colors.white70 : Colors.black87,
+                        color: isMe ? Colors.white70 : colors.onSurface,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -121,9 +127,11 @@ if (message.isForwarded) ...[
             style: TextStyle(
               color: message.isDeleted
                   ? Colors.grey
-                  : (isMe ? Colors.white : Colors.black87),
+                  : (isMe ? Colors.white : colors.onSurface),
               fontSize: 15,
-              fontStyle: message.isDeleted ? FontStyle.italic : FontStyle.normal,
+              fontStyle: message.isDeleted
+                  ? FontStyle.italic
+                  : FontStyle.normal,
             ),
           ),
 
@@ -133,9 +141,12 @@ if (message.isForwarded) ...[
               spacing: 4,
               children: message.reactions.values.map((emoji) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: colors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
@@ -154,7 +165,7 @@ if (message.isForwarded) ...[
                 formattedTime,
                 style: TextStyle(
                   fontSize: 10,
-                  color: isMe ? Colors.white70 : Colors.grey,
+                  color: isMe ? Colors.white70 : colors.onSurfaceVariant,
                 ),
               ),
               if (isMe) ...[
@@ -162,7 +173,9 @@ if (message.isForwarded) ...[
                 Icon(
                   message.isSeen ? Icons.done_all : Icons.done,
                   size: 14,
-                  color: message.isSeen ? const Color(0xFF93C5FD) : Colors.white70,
+                  color: message.isSeen
+                      ? const Color(0xFF93C5FD)
+                      : Colors.white70,
                 ),
               ],
             ],

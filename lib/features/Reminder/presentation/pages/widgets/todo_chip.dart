@@ -18,6 +18,8 @@ class TodoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -40,7 +42,7 @@ class TodoChip extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 10.5,
-              color: Colors.black87,
+              color: textColor,
               decoration: todo.done ? TextDecoration.lineThrough : null,
             ),
           ),

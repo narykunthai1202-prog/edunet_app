@@ -22,13 +22,15 @@ class MyBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Container(
         height: 64,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color.fromARGB(214, 231, 226, 219),
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.94),
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
@@ -60,12 +62,12 @@ class MyBottomNavBar extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: currentIndex == _items.length
-                        ? const Color.fromARGB(255, 179, 223, 255)
-                        : const Color.fromARGB(255, 213, 195, 195),
+                        ? colorScheme.primary
+                        : colorScheme.outline,
                     width: 2,
                   ),
                 ),
-                child: ClipOval(child: _buildProfileAvatar()),
+                child: ClipOval(child: _buildProfileAvatar(context)),
               ),
             ),
           ],
@@ -74,11 +76,17 @@ class MyBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileAvatar() {
+  Widget _buildProfileAvatar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (profileImageUrl == null || profileImageUrl!.trim().isEmpty) {
       return Container(
-        color: Colors.grey.shade200,
-        child: const Icon(Icons.person, color: Colors.grey, size: 22),
+        color: colorScheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.person,
+          color: colorScheme.onSurfaceVariant,
+          size: 22,
+        ),
       );
     }
 
@@ -87,15 +95,19 @@ class MyBottomNavBar extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return Container(
-          color: Colors.grey.shade200,
-          child: const Icon(Icons.person, color: Colors.grey, size: 22),
+          color: colorScheme.surfaceContainerHighest,
+          child: Icon(
+            Icons.person,
+            color: colorScheme.onSurfaceVariant,
+            size: 22,
+          ),
         );
       },
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
 
         return Container(
-          color: Colors.grey.shade200,
+          color: colorScheme.surfaceContainerHighest,
           child: const Center(
             child: SizedBox(
               width: 16,
@@ -122,6 +134,8 @@ class _NavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -132,9 +146,7 @@ class _NavIcon extends StatelessWidget {
         height: isSelected ? 48 : 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isSelected
-              ? const Color.fromARGB(248, 163, 167, 171)
-              : Colors.transparent,
+          color: isSelected ? colorScheme.primary : Colors.transparent,
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
@@ -142,7 +154,9 @@ class _NavIcon extends StatelessWidget {
             icon,
             key: ValueKey(isSelected),
             size: isSelected ? 24 : 22,
-            color: isSelected ? Colors.white : Colors.black38,
+            color: isSelected
+                ? colorScheme.onPrimary
+                : colorScheme.onSurfaceVariant,
           ),
         ),
       ),

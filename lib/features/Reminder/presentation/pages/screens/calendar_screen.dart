@@ -76,13 +76,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final monthLabel =
         '${_monthName(_visibleMonth.month)} ${_visibleMonth.year}';
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: colors.onSurface,
         title: Text(
           monthLabel,
           style: const TextStyle(fontWeight: FontWeight.w600),

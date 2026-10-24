@@ -245,19 +245,23 @@ class _SubPageState extends State<SubPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: colors.surface,
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: colors.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.categoryName,
-          style: AppWidget.HeadLineTextFeildStyle(),
+          style: AppWidget.HeadLineTextFeildStyle().copyWith(
+            color: colors.onSurface,
+          ),
         ),
       ),
       body: SafeArea(
@@ -462,9 +466,12 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = selected ? Colors.cyan.shade50 : Colors.white;
-    final Color fg = selected ? Colors.cyan.shade700 : Colors.black54;
-    final Color border = selected ? Colors.cyan : Colors.grey.shade300;
+    final colors = Theme.of(context).colorScheme;
+    final Color bg = selected
+        ? colors.primaryContainer
+        : colors.surfaceContainerHighest;
+    final Color fg = selected ? colors.onPrimaryContainer : colors.onSurface;
+    final Color border = selected ? colors.primary : colors.outline;
 
     return Padding(
       padding: const EdgeInsets.only(right: 10),
@@ -529,6 +536,7 @@ class _LessonGroupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = sizeForType(title);
+    final colors = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(top: 20),
@@ -542,10 +550,10 @@ class _LessonGroupSection extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: colors.onSurface,
                   ),
                 ),
                 Row(
@@ -601,6 +609,8 @@ class _ArrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
@@ -608,11 +618,11 @@ class _ArrowButton extends StatelessWidget {
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surfaceContainerHighest,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.grey.shade300),
         ),
-        child: Icon(icon, size: 18, color: Colors.black54),
+        child: Icon(icon, size: 18, color: colors.onSurfaceVariant),
       ),
     );
   }
@@ -646,12 +656,14 @@ class _LessonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     final Widget imageBox = aspectRatio != null
         ? AspectRatio(
             aspectRatio: aspectRatio!,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: _content(),
+              child: _content(context),
             ),
           )
         : SizedBox(
@@ -659,7 +671,7 @@ class _LessonCard extends StatelessWidget {
             height: height,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: _content(),
+              child: _content(context),
             ),
           );
 
@@ -672,16 +684,16 @@ class _LessonCard extends StatelessWidget {
           categoryName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 11, color: Colors.cyan),
+          style: TextStyle(fontSize: 11, color: colors.primary),
         ),
         Text(
           lesson.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: colors.onSurface,
           ),
         ),
       ],
@@ -699,12 +711,12 @@ class _LessonCard extends StatelessWidget {
 
   // ទំហំ Box ថេររួចហើយ (width × height ពី parent) — Content គ្រាន់តែ
   // Crop ដោយ BoxFit.cover ឲ្យសមតែប៉ុណ្ណោះ គ្មាន Aspect Ratio Detect ទេ
-  Widget _content() {
+  Widget _content(BuildContext context) {
     if (lesson.lessonType == 'IMAGE' && lesson.detail.startsWith('http')) {
       return Image.network(
         lesson.detail,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _iconPlaceholder(),
+        errorBuilder: (context, _, _) => _iconPlaceholder(context),
       );
     }
 
@@ -729,17 +741,17 @@ class _LessonCard extends StatelessWidget {
           }
 
           final bytes = snapshot.data;
-          if (bytes == null) return _iconPlaceholder();
+          if (bytes == null) return _iconPlaceholder(context);
 
           return Image.memory(bytes, fit: BoxFit.cover);
         },
       );
     }
 
-    return _iconPlaceholder();
+    return _iconPlaceholder(context);
   }
 
-  Widget _iconPlaceholder() {
+  Widget _iconPlaceholder(BuildContext context) {
     return Container(
       color: style.bg,
       padding: const EdgeInsets.all(14),
@@ -755,7 +767,7 @@ class _LessonCard extends StatelessWidget {
                 height: 4,
                 width: i.isEven ? double.infinity : 50,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),

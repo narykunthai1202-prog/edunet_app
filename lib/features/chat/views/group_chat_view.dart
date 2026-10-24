@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart'; // NEW
+
 import '../services/cloudinary_service.dart';
 import '../services/group_service.dart';
 import '../widgets/group_avatar.dart';
@@ -74,11 +75,12 @@ class _GroupChatViewState extends State<GroupChatView> {
   Future<void> _loadStickers() async {
     try {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-      final list = manifest
-          .listAssets()
-          .where((p) => p.startsWith('assets/stickers/'))
-          .toList()
-        ..sort();
+      final list =
+          manifest
+              .listAssets()
+              .where((p) => p.startsWith('assets/stickers/'))
+              .toList()
+            ..sort();
       if (mounted) setState(() => _stickers = list);
     } catch (_) {}
   }
@@ -144,8 +146,9 @@ class _GroupChatViewState extends State<GroupChatView> {
     if (_sending) return;
     setState(() => _sending = true);
     try {
-      final file =
-          await CloudinaryService.pickAndUploadFile(folder: 'chat/${widget.groupId}');
+      final file = await CloudinaryService.pickAndUploadFile(
+        folder: 'chat/${widget.groupId}',
+      );
       if (file == null) return; // cancelled or upload failed
 
       await _service.sendFile(
@@ -251,6 +254,8 @@ class _GroupChatViewState extends State<GroupChatView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: _service.watchGroup(widget.groupId),
       builder: (context, groupSnap) {
@@ -258,12 +263,14 @@ class _GroupChatViewState extends State<GroupChatView> {
         if (groupSnap.connectionState == ConnectionState.waiting &&
             data == null) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         if (data == null) {
           return Scaffold(
-              appBar: AppBar(),
-              body: const Center(child: Text('Group not found')));
+            appBar: AppBar(),
+            body: const Center(child: Text('Group not found')),
+          );
         }
 
         _participants = List<String>.from(data['participants'] ?? []);
@@ -282,13 +289,15 @@ class _GroupChatViewState extends State<GroupChatView> {
             (data['unreadCount_${widget.currentUserId}'] ?? 0) as int;
         if (unread > 0) {
           WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _service.markRead(widget.groupId, widget.currentUserId));
+            (_) => _service.markRead(widget.groupId, widget.currentUserId),
+          );
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: colors.surface,
           appBar: AppBar(
-            backgroundColor: const Color(0xFFF1F5F9),
+            backgroundColor: colors.surface,
+            foregroundColor: colors.onSurface,
             elevation: 0,
             titleSpacing: 0,
             title: InkWell(
@@ -301,14 +310,23 @@ class _GroupChatViewState extends State<GroupChatView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600)),
-                        Text('${_participants.length} members',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${_participants.length} members',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -317,7 +335,7 @@ class _GroupChatViewState extends State<GroupChatView> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.info, color: _blue),
+                icon: Icon(Icons.info, color: colors.primary),
                 onPressed: _openInfo,
               ),
             ],
@@ -342,8 +360,11 @@ class _GroupChatViewState extends State<GroupChatView> {
         final docs = snap.data?.docs ?? [];
         if (docs.isEmpty) {
           return const Center(
-              child: Text('No messages yet',
-                  style: TextStyle(color: Colors.grey)));
+            child: Text(
+              'No messages yet',
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
         }
         return ListView.builder(
           reverse: true,
@@ -356,8 +377,10 @@ class _GroupChatViewState extends State<GroupChatView> {
   }
 
   Widget _buildInputBar() {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
-      color: Colors.white,
+      color: colors.surface,
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: SafeArea(
         top: false,
@@ -367,8 +390,10 @@ class _GroupChatViewState extends State<GroupChatView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.add_photo_alternate,
-                        color: Colors.grey),
+                    icon: const Icon(
+                      Icons.add_photo_alternate,
+                      color: Colors.grey,
+                    ),
                     onPressed: _sending ? null : _sendPhoto,
                   ),
                   // NEW: attach file
@@ -389,10 +414,12 @@ class _GroupChatViewState extends State<GroupChatView> {
                         hintText: 'Type a message...',
                         hintStyle: const TextStyle(color: Colors.grey),
                         filled: true,
-                        fillColor: const Color(0xFFF1F4F9),
+                        fillColor: colors.surfaceContainerHighest,
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _showPanel
@@ -414,8 +441,11 @@ class _GroupChatViewState extends State<GroupChatView> {
                     radius: 22,
                     backgroundColor: _blue,
                     child: IconButton(
-                      icon: Icon(_hasText ? Icons.send : Icons.mic,
-                          color: Colors.white, size: 20),
+                      icon: Icon(
+                        _hasText ? Icons.send : Icons.mic,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: _hasText ? _sendText : _startRecording,
                     ),
                   ),
@@ -436,8 +466,13 @@ class _GroupChatViewState extends State<GroupChatView> {
         ),
         const Icon(Icons.graphic_eq, color: _blue),
         const SizedBox(width: 8),
-        Text('Recording $t',
-            style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        Text(
+          'Recording $t',
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
         const Spacer(),
         CircleAvatar(
           radius: 22,
@@ -476,23 +511,28 @@ class _GroupChatViewState extends State<GroupChatView> {
                   ),
                   _stickers.isEmpty
                       ? const Center(
-                          child: Text('No stickers found',
-                              style: TextStyle(color: Colors.grey)))
+                          child: Text(
+                            'No stickers found',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
                       : GridView.builder(
                           padding: const EdgeInsets.all(10),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                          ),
+                                crossAxisCount: 4,
+                                mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                              ),
                           itemCount: _stickers.length,
                           itemBuilder: (context, i) => InkWell(
                             onTap: () => _sendSticker(_stickers[i]),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(6),
-                              child: Image.asset(_stickers[i],
-                                  fit: BoxFit.cover),
+                              child: Image.asset(
+                                _stickers[i],
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
@@ -522,9 +562,7 @@ class _GroupChatViewState extends State<GroupChatView> {
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
           ),
-          body: Center(
-            child: InteractiveViewer(child: Image.network(url)),
-          ),
+          body: Center(child: InteractiveViewer(child: Image.network(url))),
         ),
       ),
     );
@@ -548,6 +586,7 @@ class _GroupChatViewState extends State<GroupChatView> {
   }
 
   Widget _buildMessage(Map<String, dynamic> m) {
+    final colors = Theme.of(context).colorScheme;
     final type = (m['type'] ?? 'text') as String;
     final content = (m['text'] ?? '') as String;
     final sender = (m['senderId'] ?? '') as String;
@@ -557,9 +596,11 @@ class _GroupChatViewState extends State<GroupChatView> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Center(
-          child: Text(content,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          child: Text(
+            content,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
         ),
       );
     }
@@ -598,15 +639,18 @@ class _GroupChatViewState extends State<GroupChatView> {
                 right: 8,
                 bottom: 6,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(time,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 10)),
+                  child: Text(
+                    time,
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
                 ),
               ),
             ],
@@ -615,8 +659,9 @@ class _GroupChatViewState extends State<GroupChatView> {
       );
     } else if (type == 'sticker') {
       body = Column(
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Image.asset(
             content,
@@ -632,7 +677,7 @@ class _GroupChatViewState extends State<GroupChatView> {
         width: 230,
         padding: const EdgeInsets.fromLTRB(10, 8, 12, 6),
         decoration: BoxDecoration(
-          color: isMine ? _blue : Colors.white,
+          color: isMine ? _blue : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(18),
         ),
         child: VoiceBubble(
@@ -644,7 +689,7 @@ class _GroupChatViewState extends State<GroupChatView> {
       );
     } else if (type == 'file') {
       // NEW: file bubble
-      final textColor = isMine ? Colors.white : Colors.black87;
+      final textColor = isMine ? Colors.white : colors.onSurface;
       final url = ((m['fileUrl'] ?? content) as String);
       final fileName = ((m['fileName'] as String?)?.isNotEmpty ?? false)
           ? m['fileName'] as String
@@ -660,7 +705,7 @@ class _GroupChatViewState extends State<GroupChatView> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
           decoration: BoxDecoration(
-            color: isMine ? _blue : Colors.white,
+            color: isMine ? _blue : colors.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(18),
           ),
           child: IntrinsicWidth(
@@ -671,8 +716,7 @@ class _GroupChatViewState extends State<GroupChatView> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.insert_drive_file,
-                        color: textColor, size: 32),
+                    Icon(Icons.insert_drive_file, color: textColor, size: 32),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Column(
@@ -683,16 +727,18 @@ class _GroupChatViewState extends State<GroupChatView> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: textColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14),
+                              color: textColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           if (size.isNotEmpty)
                             Text(
                               size,
                               style: TextStyle(
-                                  color: textColor.withValues(alpha: 0.7),
-                                  fontSize: 11),
+                                color: textColor.withValues(alpha: 0.7),
+                                fontSize: 11,
+                              ),
                             ),
                         ],
                       ),
@@ -702,10 +748,13 @@ class _GroupChatViewState extends State<GroupChatView> {
                 const SizedBox(height: 2),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text(time,
-                      style: TextStyle(
-                          color: isMine ? Colors.white70 : Colors.grey,
-                          fontSize: 10)),
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      color: isMine ? Colors.white70 : colors.onSurfaceVariant,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -716,7 +765,7 @@ class _GroupChatViewState extends State<GroupChatView> {
       body = Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
         decoration: BoxDecoration(
-          color: isMine ? _blue : Colors.white,
+          color: isMine ? _blue : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(18),
         ),
         child: IntrinsicWidth(
@@ -724,17 +773,23 @@ class _GroupChatViewState extends State<GroupChatView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(content,
-                  style: TextStyle(
-                      color: isMine ? Colors.white : Colors.black87,
-                      fontSize: 15)),
+              Text(
+                content,
+                style: TextStyle(
+                  color: isMine ? Colors.white : colors.onSurface,
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(height: 2),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text(time,
-                    style: TextStyle(
-                        color: isMine ? Colors.white70 : Colors.grey,
-                        fontSize: 10)),
+                child: Text(
+                  time,
+                  style: TextStyle(
+                    color: isMine ? Colors.white70 : colors.onSurfaceVariant,
+                    fontSize: 10,
+                  ),
+                ),
               ),
             ],
           ),
@@ -748,17 +803,21 @@ class _GroupChatViewState extends State<GroupChatView> {
         margin: const EdgeInsets.symmetric(vertical: 4),
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Column(
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isMine)
               Padding(
                 padding: const EdgeInsets.only(left: 6, bottom: 2),
-                child: Text(sender,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: _blue)),
+                child: Text(
+                  sender,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: _blue,
+                  ),
+                ),
               ),
             body,
           ],

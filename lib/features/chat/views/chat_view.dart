@@ -178,6 +178,7 @@ class _ChatViewState extends State<ChatView> {
   // 📞 Call bubble (Messenger style). message.text looks like:
   //   "Voice call • 2 min"  /  "Video call • 45 sec"  /  "Missed voice call"
   Widget _buildCallBubble(MessageModel message, bool isMe, String time) {
+    final colors = Theme.of(context).colorScheme;
     final text = message.text;
     final isVideo = text.toLowerCase().contains('video');
     final missed = text.startsWith('Missed');
@@ -204,7 +205,7 @@ class _ChatViewState extends State<ChatView> {
       width: 250,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -215,12 +216,10 @@ class _ChatViewState extends State<ChatView> {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: const Color(0xFFDBEAFE),
+                backgroundColor: colors.primaryContainer,
                 child: Icon(
                   icon,
-                  color: (missed && !isMe)
-                      ? Colors.redAccent
-                      : const Color(0xFF2563EB),
+                  color: (missed && !isMe) ? Colors.redAccent : colors.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -230,10 +229,10 @@ class _ChatViewState extends State<ChatView> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colors.onSurface,
                       ),
                     ),
                     Text(
@@ -250,8 +249,8 @@ class _ChatViewState extends State<ChatView> {
             width: double.infinity,
             child: TextButton(
               style: TextButton.styleFrom(
-                backgroundColor: Colors.black12,
-                foregroundColor: Colors.black87,
+                backgroundColor: colors.surface,
+                foregroundColor: colors.onSurface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -284,7 +283,8 @@ class _ChatViewState extends State<ChatView> {
 
   // 📄 File bubble
   Widget _buildFileBubble(MessageModel message, bool isMe, String time) {
-    final textColor = isMe ? Colors.white : Colors.black87;
+    final colors = Theme.of(context).colorScheme;
+    final textColor = isMe ? Colors.white : colors.onSurface;
     final url = (message.fileUrl != null && message.fileUrl!.isNotEmpty)
         ? message.fileUrl!
         : message.text;
@@ -306,7 +306,7 @@ class _ChatViewState extends State<ChatView> {
       ),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+        color: isMe ? const Color(0xFF2563EB) : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
@@ -364,7 +364,7 @@ class _ChatViewState extends State<ChatView> {
                 Text(
                   time,
                   style: TextStyle(
-                    color: isMe ? Colors.white70 : Colors.grey[600],
+                    color: isMe ? Colors.white70 : colors.onSurfaceVariant,
                     fontSize: 10,
                   ),
                 ),
@@ -676,15 +676,16 @@ class _ChatViewState extends State<ChatView> {
       child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: _receiverProfileStream,
         builder: (context, snapshot) {
+          final colors = Theme.of(context).colorScheme;
           final profile = snapshot.data?.data();
           final receiverName = _receiverDisplayName(profile);
           final receiverPhotoUrl = _receiverPhotoUrl(profile);
 
           return AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: colors.surface,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              icon: Icon(Icons.arrow_back, color: colors.onSurface),
               onPressed: () => Navigator.pop(context),
             ),
             title: Row(
@@ -704,8 +705,8 @@ class _ChatViewState extends State<ChatView> {
                         receiverName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black,
+                        style: TextStyle(
+                          color: colors.onSurface,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -746,7 +747,7 @@ class _ChatViewState extends State<ChatView> {
                   iconSize: const Size(40, 40),
                   buttonSize: const Size(40, 40),
                   icon: ButtonIcon(
-                    icon: const Icon(Icons.call, color: Color(0xFF2563EB)),
+                    icon: Icon(Icons.call, color: colors.primary),
                   ),
                 ),
               if (isBlocked)
@@ -769,11 +770,11 @@ class _ChatViewState extends State<ChatView> {
                   iconSize: const Size(40, 40),
                   buttonSize: const Size(40, 40),
                   icon: ButtonIcon(
-                    icon: const Icon(Icons.videocam, color: Color(0xFF2563EB)),
+                    icon: Icon(Icons.videocam, color: colors.primary),
                   ),
                 ),
               IconButton(
-                icon: const Icon(Icons.info, color: Color(0xFF2563EB)),
+                icon: Icon(Icons.info, color: colors.primary),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -800,11 +801,13 @@ class _ChatViewState extends State<ChatView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     if (!_isSessionValid) {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: colors.onSurface),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -821,7 +824,7 @@ class _ChatViewState extends State<ChatView> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: colors.surface,
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -961,6 +964,7 @@ class _ChatViewState extends State<ChatView> {
 
   Widget _buildReplyBanner() {
     if (replyingToMessage == null) return const SizedBox.shrink();
+    final colors = Theme.of(context).colorScheme;
 
     final isReplyImage = replyingToMessage!.type == 'image';
     final isReplyAudio = replyingToMessage!.type == 'audio';
@@ -968,29 +972,29 @@ class _ChatViewState extends State<ChatView> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFFEFF6FF),
+      color: colors.surfaceContainerHighest,
       child: Row(
         children: [
-          const Icon(Icons.reply, color: Color(0xFF2563EB), size: 20),
+          Icon(Icons.reply, color: colors.primary, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Replying to',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
-                    color: Color(0xFF2563EB),
+                    color: colors.primary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 if (isReplyAudio)
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.mic, size: 16, color: Colors.black87),
+                      Icon(Icons.mic, size: 16, color: colors.onSurface),
                       SizedBox(width: 4),
                       Text('Voice message', style: TextStyle(fontSize: 13)),
                     ],
@@ -998,10 +1002,10 @@ class _ChatViewState extends State<ChatView> {
                 else if (isReplyFile)
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.insert_drive_file,
                         size: 16,
-                        color: Colors.black87,
+                        color: colors.onSurface,
                       ),
                       const SizedBox(width: 4),
                       Flexible(
@@ -1036,9 +1040,9 @@ class _ChatViewState extends State<ChatView> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'Photo',
-                        style: TextStyle(fontSize: 13, color: Colors.black87),
+                        style: TextStyle(fontSize: 13, color: colors.onSurface),
                       ),
                     ],
                   )
@@ -1047,7 +1051,7 @@ class _ChatViewState extends State<ChatView> {
                     replyingToMessage!.text,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    style: TextStyle(fontSize: 13, color: colors.onSurface),
                   ),
               ],
             ),

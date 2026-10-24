@@ -22,14 +22,21 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colors.surface,
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: colors.surface,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text('Departments​', style: AppWidget.HeadLineTextFeildStyle()),
+        title: Text(
+          'Departments​',
+          style: AppWidget.HeadLineTextFeildStyle().copyWith(
+            color: colors.onSurface,
+          ),
+        ),
         // actions: [
         //   Container(
         //     margin: const EdgeInsets.only(right: 20),
@@ -83,17 +90,20 @@ class _LibraryPageState extends State<LibraryPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Latest Added',
                       style: TextStyle(
-                        color: Colors.cyan,
+                        color: colors.primary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       'Total: ${docs.length}',
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -141,9 +151,11 @@ class _LibraryPageState extends State<LibraryPage> {
     required String title,
     required String imageUrl,
   }) {
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE9ECEF),
+        color: colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(15),
       ),
       child: InkWell(
@@ -168,10 +180,10 @@ class _LibraryPageState extends State<LibraryPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildSubjectImage(imageUrl),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios,
                     size: 17,
-                    color: Colors.black45,
+                    color: colors.onSurfaceVariant,
                   ),
                 ],
               ),
@@ -182,16 +194,19 @@ class _LibraryPageState extends State<LibraryPage> {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: colors.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Tap to view lessons',
-                    style: TextStyle(color: Colors.black38, fontSize: 12),
+                    style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -203,18 +218,20 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Widget _buildSubjectImage(String imageUrl) {
+    final colors = Theme.of(context).colorScheme;
+
     if (!_isValidImageUrl(imageUrl)) {
       return Container(
         height: 50,
         width: 50,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.menu_book_outlined,
           size: 30,
-          color: Colors.black54,
+          color: colors.onSurfaceVariant,
         ),
       );
     }
@@ -232,7 +249,7 @@ class _LibraryPageState extends State<LibraryPage> {
           return Container(
             height: 50,
             width: 50,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             child: const Center(
               child: SizedBox(
                 height: 20,
@@ -249,7 +266,7 @@ class _LibraryPageState extends State<LibraryPage> {
           return Container(
             height: 50,
             width: 50,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             child: const Icon(
               Icons.broken_image_outlined,
               size: 28,

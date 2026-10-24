@@ -51,9 +51,10 @@ class ChatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasUnread = unreadCount > 0;
+    final palette = ChatPalette.of(context);
 
     return Material(
-      color: hasUnread ? ChatPalette.unreadSurface : ChatPalette.surface,
+      color: hasUnread ? palette.unreadSurface : palette.surface,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -64,7 +65,7 @@ class ChatTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: hasUnread ? ChatPalette.rose : ChatPalette.border,
+              color: hasUnread ? palette.rose : palette.border,
             ),
           ),
           child: Row(
@@ -102,7 +103,7 @@ class ChatTile extends StatelessWidget {
                               fontWeight: hasUnread
                                   ? FontWeight.w800
                                   : FontWeight.w700,
-                              color: ChatPalette.ink,
+                              color: palette.ink,
                             ),
                           ),
                         ),
@@ -116,12 +117,12 @@ class ChatTile extends StatelessWidget {
                             ),
                           ),
                         if (isPinned)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(left: 4),
                             child: Icon(
                               Icons.push_pin_rounded,
                               size: 13,
-                              color: ChatPalette.mauve,
+                              color: palette.mauve,
                             ),
                           ),
                       ],
@@ -136,9 +137,7 @@ class ChatTile extends StatelessWidget {
                         fontWeight: hasUnread
                             ? FontWeight.w600
                             : FontWeight.w400,
-                        color: hasUnread
-                            ? ChatPalette.ink
-                            : ChatPalette.muted,
+                        color: hasUnread ? palette.ink : palette.muted,
                       ),
                     ),
                   ],
@@ -156,9 +155,7 @@ class ChatTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w400,
-                      color: hasUnread
-                          ? ChatPalette.plum
-                          : ChatPalette.muted,
+                      color: hasUnread ? palette.plum : palette.muted,
                     ),
                   ),
                   const SizedBox(height: 7),
@@ -170,9 +167,7 @@ class ChatTile extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: isMuted
-                            ? ChatPalette.mauve
-                            : ChatPalette.plum,
+                        color: isMuted ? palette.mauve : palette.plum,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -186,10 +181,10 @@ class ChatTile extends StatelessWidget {
                       ),
                     )
                   else if (isMuted)
-                    const Icon(
+                    Icon(
                       Icons.notifications_off_rounded,
                       size: 15,
-                      color: ChatPalette.mauve,
+                      color: palette.mauve,
                     )
                   else
                     const SizedBox(height: 16),

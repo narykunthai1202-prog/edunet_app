@@ -17,17 +17,18 @@ class GroupAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = ChatPalette.of(context);
     final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: ChatPalette.rose.withValues(alpha: 0.35),
+      backgroundColor: palette.rose.withValues(alpha: 0.35),
       backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
       child: hasPhoto
           ? null
           : Text(
               name.isNotEmpty ? name[0].toUpperCase() : '?',
               style: TextStyle(
-                color: ChatPalette.plum,
+                color: palette.plum,
                 fontWeight: FontWeight.bold,
                 fontSize: radius * 0.8,
               ),

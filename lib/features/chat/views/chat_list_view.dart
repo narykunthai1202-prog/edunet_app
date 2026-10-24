@@ -140,6 +140,8 @@ class _ChatListViewState extends State<ChatListView>
 
   @override
   Widget build(BuildContext context) {
+    final palette = ChatPalette.of(context);
+
     if (_currentUserId.isEmpty) {
       return const Scaffold(
         body: Center(child: Text('Please sign in to view chats.')),
@@ -147,7 +149,7 @@ class _ChatListViewState extends State<ChatListView>
     }
 
     return Scaffold(
-      backgroundColor: ChatPalette.canvas,
+      backgroundColor: palette.canvas,
       body: Column(
         children: [
           _header(),
@@ -269,11 +271,12 @@ class _ChatListViewState extends State<ChatListView>
 
   Widget _header() {
     final top = MediaQuery.of(context).padding.top;
+    final palette = ChatPalette.of(context);
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, top + 10, 20, 16),
-      decoration: const BoxDecoration(
-        gradient: ChatPalette.headerGradient,
+      decoration: BoxDecoration(
+        gradient: palette.headerGradient,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -383,24 +386,18 @@ class _ChatListViewState extends State<ChatListView>
               const SizedBox(height: 14),
               TextField(
                 controller: _searchController,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: ChatPalette.ink,
-                ),
+                style: TextStyle(fontSize: 15, color: palette.ink),
                 decoration: InputDecoration(
                   hintText: 'Search chats...',
-                  hintStyle: const TextStyle(color: ChatPalette.muted),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: ChatPalette.plum,
-                  ),
+                  hintStyle: TextStyle(color: palette.muted),
+                  prefixIcon: Icon(Icons.search_rounded, color: palette.plum),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
                           tooltip: 'Clear search',
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close_rounded,
                             size: 19,
-                            color: ChatPalette.muted,
+                            color: palette.muted,
                           ),
                           onPressed: () {
                             _searchController.clear();
@@ -408,7 +405,7 @@ class _ChatListViewState extends State<ChatListView>
                         )
                       : null,
                   filled: true,
-                  fillColor: ChatPalette.surface,
+                  fillColor: palette.surface,
                   contentPadding: const EdgeInsets.symmetric(vertical: 13),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
@@ -444,6 +441,7 @@ class _ChatListViewState extends State<ChatListView>
 
   Widget _chip(String label, int count) {
     final selected = _activeTab == label;
+    final palette = ChatPalette.of(context);
 
     return GestureDetector(
       onTap: () => setState(() => _activeTab = label),
@@ -451,15 +449,13 @@ class _ChatListViewState extends State<ChatListView>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? ChatPalette.plum : ChatPalette.surface,
+          color: selected ? palette.plum : palette.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? ChatPalette.plum : ChatPalette.border,
-          ),
+          border: Border.all(color: selected ? palette.plum : palette.border),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: ChatPalette.plum.withValues(alpha: 0.18),
+                    color: palette.plum.withValues(alpha: 0.18),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -474,7 +470,7 @@ class _ChatListViewState extends State<ChatListView>
               style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : ChatPalette.ink,
+                color: selected ? palette.onSelected : palette.ink,
               ),
             ),
             if (count > 0) ...[
@@ -484,7 +480,7 @@ class _ChatListViewState extends State<ChatListView>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: selected ? Colors.white : ChatPalette.plum,
+                  color: selected ? palette.onSelected : palette.plum,
                 ),
               ),
             ],
@@ -497,6 +493,8 @@ class _ChatListViewState extends State<ChatListView>
   // ---------------------------------------------------------------- content
 
   Widget _empty(IconData icon, String title, String subtitle) {
+    final palette = ChatPalette.of(context);
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -504,29 +502,26 @@ class _ChatListViewState extends State<ChatListView>
           Container(
             width: 84,
             height: 84,
-            decoration: const BoxDecoration(
-              color: ChatPalette.unreadSurface,
+            decoration: BoxDecoration(
+              color: palette.unreadSurface,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 38, color: ChatPalette.plum),
+            child: Icon(icon, size: 38, color: palette.plum),
           ),
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: ChatPalette.ink,
+              color: palette.ink,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              color: ChatPalette.muted,
-            ),
+            style: TextStyle(fontSize: 13, color: palette.muted),
           ),
         ],
       ),

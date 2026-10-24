@@ -95,6 +95,8 @@ class MonthGrid extends StatelessWidget {
 class _WeekdayHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -107,7 +109,7 @@ class _WeekdayHeaderRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isSunday ? AppColors.sunday : Colors.grey.shade600,
+                  color: isSunday ? AppColors.sunday : colors.onSurfaceVariant,
                 ),
               ),
             ),

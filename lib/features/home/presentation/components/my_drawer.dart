@@ -1,4 +1,5 @@
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
+import 'package:edunest_app/core/cubits/theme_cubit.dart';
 import 'package:edunest_app/features/home/presentation/components/my_drawer_tile.dart';
 import 'package:edunest_app/features/post/presentation/pages/post_detail_page.dart';
 import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.dart';
@@ -82,7 +83,11 @@ class MyDrawer extends StatelessWidget {
                   );
                 },
               ),
-              MyDrawerTile(icon: Iconsax.book, title: 'My Post', onTap: () {}),
+              MyDrawerTile(
+                icon: Iconsax.archive,
+                title: 'Archive',
+                onTap: () {},
+              ),
               MyDrawerTile(
                 icon: Iconsax.alarm,
                 title: 'Reminder',
@@ -92,6 +97,29 @@ class MyDrawer extends StatelessWidget {
                 icon: Iconsax.security,
                 title: 'Privacy and Security',
                 onTap: () {},
+              ),
+              BlocBuilder<ThemeCubit, ThemeMode>(
+                builder: (context, themeMode) => SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.dark_mode_outlined),
+                  title: Text(
+                    'Dark Mode',
+                    style: TextStyle(color: colorScheme.inversePrimary),
+                  ),
+                  value: themeMode == ThemeMode.dark,
+                  onChanged: (enabled) async {
+                    try {
+                      await context.read<ThemeCubit>().setDarkMode(enabled);
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not change theme: $error'),
+                        ),
+                      );
+                    }
+                  },
+                ),
               ),
               MyDrawerTile(
                 icon: Iconsax.message_question,

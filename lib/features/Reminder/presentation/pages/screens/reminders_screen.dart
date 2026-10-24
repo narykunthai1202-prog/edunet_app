@@ -15,12 +15,14 @@ class RemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        foregroundColor: colors.onSurface,
         title: const Text('Reminders'),
       ),
       body: StreamBuilder<List<TodoItem>>(
