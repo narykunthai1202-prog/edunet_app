@@ -1,21 +1,34 @@
 PODS:
-  - flutter_local_notifications (0.0.1):
-    - FlutterMacOS
   - FlutterMacOS (1.0.0)
+  - "zego_express_engine_for_uikit (3.25.0+1)":
+    - FlutterMacOS
+  - zego_zim (3.2.0):
+    - FlutterMacOS
+    - ZIM_macOS (= 3.2.0)
+  - ZIM_macOS (3.2.0)
 
 DEPENDENCIES:
-  - flutter_local_notifications (from `Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - zego_express_engine_for_uikit (from `Flutter/ephemeral/.symlinks/plugins/zego_express_engine_for_uikit/macos`)
+  - zego_zim (from `Flutter/ephemeral/.symlinks/plugins/zego_zim/macos`)
+
+SPEC REPOS:
+  trunk:
+    - ZIM_macOS
 
 EXTERNAL SOURCES:
-  flutter_local_notifications:
-    :path: Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
+  zego_express_engine_for_uikit:
+    :path: Flutter/ephemeral/.symlinks/plugins/zego_express_engine_for_uikit/macos
+  zego_zim:
+    :path: Flutter/ephemeral/.symlinks/plugins/zego_zim/macos
 
 SPEC CHECKSUMS:
-  flutter_local_notifications: 13862b132e32eb858dea558a86d45d08daeacfe7
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+  zego_express_engine_for_uikit: 44a0d7ec6f0e96d16dff6f13de2d16e3bbac118e
+  zego_zim: 62c9d833b576b7245f64de2eebfcb41983796045
+  ZIM_macOS: 2d6046356d99d154aa85081c8db9f4aa99e21484
 
 PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
 

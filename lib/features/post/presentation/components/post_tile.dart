@@ -21,6 +21,7 @@ import 'package:edunest_app/features/profile/presentation/pages/view_profile.dar
 import 'package:edunest_app/helper/helper_method.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 
@@ -503,8 +504,18 @@ class _PostTileState extends State<PostTile> {
     );
   }
 
-  void copyLink() {
-    // TODO: hook up real share/copy-link logic
+  Future<void> copyImageLink() async {
+    if (widget.post.imageUrls.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No image link available')));
+      return;
+    }
+
+    await Clipboard.setData(ClipboardData(text: widget.post.imageUrls.first));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Image link copied')));
   }
 
   // Options shown in the "more" menu — different depending on
@@ -530,16 +541,34 @@ class _PostTileState extends State<PostTile> {
           value: showDeleteDialog,
           icon: Iconsax.trash,
         ),
+        if (widget.post.imageUrls.isNotEmpty)
+          OptionItem(
+            title: 'Download image',
+            value: downloadImage,
+            icon: Iconsax.document_upload,
+          ),
+        if (widget.post.imageUrls.isNotEmpty)
+          OptionItem(
+            title: 'Copy Link',
+            value: copyImageLink,
+            icon: Iconsax.link,
+          ),
       ];
     } else {
       return [
-        OptionItem(
-          title: 'Download image',
-          value: downloadImage,
-          icon: Iconsax.document_upload,
-        ),
+        if (widget.post.imageUrls.isNotEmpty)
+          OptionItem(
+            title: 'Download image',
+            value: downloadImage,
+            icon: Iconsax.document_upload,
+          ),
+        if (widget.post.imageUrls.isNotEmpty)
+          OptionItem(
+            title: 'Copy Link',
+            value: copyImageLink,
+            icon: Iconsax.link,
+          ),
         OptionItem(title: 'Report', value: reportPost, icon: Iconsax.flag),
-        OptionItem(title: 'Copy Link', value: copyLink, icon: Iconsax.link),
       ];
     }
   }
