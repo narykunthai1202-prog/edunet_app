@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart'; // NEW
+import 'package:url_launcher/url_launcher.dart';
 import '../models/message_model.dart';
 import 'chat_extras.dart';
+
+// Theme colors (replace with your theme file colors if you have them)
+const Color _plum = Color(0xFF6B4A5E);
+const Color _cardBeige = Color(0xFFEFE8E6);
+const Color _receivedText = Color(0xFF3A2A33);
+const Color _seenPink = Color(0xFFFFD6E8);
 
 class ChatBubble extends StatelessWidget {
   final MessageModel message;
@@ -73,8 +79,7 @@ class ChatBubble extends StatelessWidget {
 
                 // Forward
                 ListTile(
-                  leading:
-                      const Icon(Icons.shortcut_rounded, color: Colors.black87),
+                  leading: const Icon(Icons.shortcut_rounded, color: _plum),
                   title: const Text('Forward'),
                   onTap: () {
                     Navigator.pop(context);
@@ -85,8 +90,7 @@ class ChatBubble extends StatelessWidget {
                 // Copy (not shown for stickers)
                 if (!_isSticker)
                   ListTile(
-                    leading:
-                        const Icon(Icons.copy_rounded, color: Colors.black87),
+                    leading: const Icon(Icons.copy_rounded, color: _plum),
                     title: Text(
                         (_isMedia || _isFile) ? 'Copy Link' : 'Copy Text'),
                     onTap: () {
@@ -124,15 +128,14 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  // NEW: file message bubble
+  // File message bubble
   Widget _fileBubble() {
     final name = message.fileName ?? 'File';
     final size = message.fileSize ?? 0;
-    final textColor = isMe ? Colors.white : Colors.black87;
-    final url =
-        (message.fileUrl != null && message.fileUrl!.isNotEmpty)
-            ? message.fileUrl!
-            : message.text;
+    final textColor = isMe ? Colors.white : _receivedText;
+    final url = (message.fileUrl != null && message.fileUrl!.isNotEmpty)
+        ? message.fileUrl!
+        : message.text;
 
     String fmt(int b) {
       if (b < 1024) return '$b B';
@@ -166,8 +169,7 @@ class ChatBubble extends StatelessWidget {
                   Text(
                     fmt(size),
                     style: TextStyle(
-                        color: textColor.withValues(alpha: 0.7),
-                        fontSize: 11),
+                        color: textColor.withValues(alpha: 0.7), fontSize: 11),
                   ),
                 ],
               ),
@@ -187,14 +189,13 @@ class ChatBubble extends StatelessWidget {
       return VideoBubble(url: message.text);
     }
 
-    // NEW: file branch
     if (_isFile) {
       return _fileBubble();
     }
 
     if (_isImage) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Image.network(
           message.text,
           width: 220,
@@ -237,8 +238,9 @@ class ChatBubble extends StatelessWidget {
       child: Text(
         message.text,
         style: TextStyle(
-          color: isMe ? Colors.white : Colors.black87,
+          color: isMe ? Colors.white : _receivedText,
           fontSize: 15,
+          height: 1.3,
         ),
       ),
     );
@@ -260,18 +262,27 @@ class ChatBubble extends StatelessWidget {
           ),
           padding: noBubble
               ? EdgeInsets.zero
-              : EdgeInsets.all(_isMedia ? 4 : 10),
+              : EdgeInsets.symmetric(
+                  horizontal: _isMedia ? 4 : 14,
+                  vertical: _isMedia ? 4 : 10,
+                ),
           decoration: noBubble
               ? null
               : BoxDecoration(
-                  color:
-                      isMe ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+                  color: isMe ? _plum : _cardBeige,
                   borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isMe ? 16 : 4),
-                    bottomRight: Radius.circular(isMe ? 4 : 16),
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(isMe ? 20 : 4),
+                    bottomRight: Radius.circular(isMe ? 4 : 20),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,7 +360,7 @@ class ChatBubble extends StatelessWidget {
                               : Icons.done_rounded,
                           size: 14,
                           color: message.isSeen
-                              ? Colors.lightBlueAccent
+                              ? _seenPink
                               : (noBubble ? Colors.grey : Colors.white70),
                         ),
                       ],
