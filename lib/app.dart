@@ -2,6 +2,7 @@ import 'package:edunest_app/features/auth/data/firebase_auth_repos.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_states.dart';
 import 'package:edunest_app/features/auth/presentation/pages/auth_page.dart';
+import 'package:edunest_app/features/auth/presentation/pages/complete_profile_page.dart';
 import 'package:edunest_app/features/home/presentation/page/home_page.dart';
 import 'package:edunest_app/features/notifications/data/repositories/firebase_notification_repo.dart';
 import 'package:edunest_app/features/notifications/presentation/cubits/notification_cubit.dart';
@@ -100,6 +101,29 @@ class MyApp extends StatelessWidget {
               if (authState is Authenticated) {
                 return const HomePage();
               }
+              if (authState is NeedsProfileCompletion) {
+  return CompleteProfilePage(user: authState.user);
+}
+
+if (authState is Authenticated) {
+  return const HomePage();
+}
+if (authState is AuthLoading) {
+  final user = context.read<AuthCubit>().currentUser;
+
+  if (user != null) {
+    return CompleteProfilePage(user: user);
+  }
+}
+if (authState is AuthError) {
+  final user = context.read<AuthCubit>().currentUser;
+
+  if (user != null) {
+    return CompleteProfilePage(user: user);
+  }
+
+  return const AuthPage();
+}
 
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),

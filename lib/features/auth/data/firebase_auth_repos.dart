@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class FirebaseAuthRepos implements AuthRepo {
-  static final Future<void> _googleSignInInitialization = GoogleSignIn.instance
-      .initialize();
+  static final Future<void> _googleSignInInitialization =
+    GoogleSignIn.instance.initialize(
+  serverClientId: '16916775507-1f86dft3upsojobbeiqn8k16psnv4b0g.apps.googleusercontent.com',
+);
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
 
@@ -225,10 +227,14 @@ class FirebaseAuthRepos implements AuthRepo {
     }
   }
 
-  @override
-  Future<AppUser?> signInWithGoogle() async {
-    final googleSignIn = GoogleSignIn.instance;
+@override
+Future<AppUser?> signInWithGoogle() async {
+  try {
+    print('GOOGLE LOGIN: Initializing');
+
     await _googleSignInInitialization;
+
+    final googleSignIn = GoogleSignIn.instance;
 
     if (!googleSignIn.supportsAuthenticate()) {
       throw UnsupportedError(
@@ -236,34 +242,48 @@ class FirebaseAuthRepos implements AuthRepo {
       );
     }
 
-    late final GoogleSignInAccount googleUser;
-    try {
-      googleUser = await googleSignIn.authenticate();
-    } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return null;
-      rethrow;
-    }
+    print('GOOGLE LOGIN: Opening account picker');
+
+    final GoogleSignInAccount googleUser =
+        await googleSignIn.authenticate();
+
+    print('GOOGLE LOGIN: Account selected: ${googleUser.email}');
 
     final idToken = googleUser.authentication.idToken;
+
     if (idToken == null) {
-      throw StateError('Google sign-in did not return an ID token.');
+      throw StateError(
+        'Google returned a null ID token. Check the Web client ID.',
+      );
     }
 
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
-    final userCredential = await firebaseAuth.signInWithCredential(credential);
+    print('GOOGLE LOGIN: ID token received');
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: idToken,
+    );
+
+    final userCredential =
+        await firebaseAuth.signInWithCredential(credential);
+
     final firebaseUser = userCredential.user;
+
     if (firebaseUser == null) {
-      throw StateError('Firebase sign-in did not return a user.');
+      throw StateError('Firebase returned a null user.');
     }
 
-    final userRef = firebaseFirestore.collection('users').doc(firebaseUser.uid);
+    print('GOOGLE LOGIN: Firebase authentication succeeded');
+
+    final userRef =
+        firebaseFirestore.collection('users').doc(firebaseUser.uid);
+
     final userDoc = await userRef.get();
     final userData = userDoc.data();
+
     final user = AppUser(
       uid: firebaseUser.uid,
       email: firebaseUser.email ?? googleUser.email,
-      name:
-          userData?['name']?.toString() ??
+      name: userData?['name']?.toString() ??
           firebaseUser.displayName ??
           googleUser.displayName ??
           'User',
@@ -273,6 +293,44 @@ class FirebaseAuthRepos implements AuthRepo {
       await userRef.set(user.toJson());
     }
 
+    print('GOOGLE LOGIN: Completed successfully');
+
     return user;
+  } catch (e, stackTrace) {
+    print('GOOGLE LOGIN ERROR TYPE: ${e.runtimeType}');
+    print('GOOGLE LOGIN ERROR DETAILS: $e');
+    print('GOOGLE LOGIN STACK TRACE: $stackTrace');
+    rethrow;
+  }
+}
+
+
+  @override
+  Future<void> completeGoogleProfile({required String uid, required String email, required String name, required String major, required String university}) async {
+    await firebaseFirestore.collection('users').doc(uid).set({
+      'email': email,
+      'name': name,
+      'major': major,
+      'university': university,
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<bool> needsGoogleProfileCompletion(String uid) async{
+    final firebaseUser = firebaseAuth.currentUser;
+    if(firebaseUser == null || firebaseUser.uid != uid) {
+       return false; // User is not logged in or UID does not match
+    }
+    final isGoogleUser = firebaseUser.providerData.any((provider) => provider.providerId == 'google.com');
+    if(!isGoogleUser) {
+      return false; // User is not a Google user
+    }
+    final doc = await firebaseFirestore.collection('users').doc(uid).get();
+    final data  = doc.data() ?? {};
+    final name = (data['name'] ?? '').toString().trim();
+    final major = (data['major'] ?? '').toString().trim();  
+    final university = (data['university'] ?? '').toString().trim();
+    return name.isEmpty || major.isEmpty || university.isEmpty;
+
   }
 }
