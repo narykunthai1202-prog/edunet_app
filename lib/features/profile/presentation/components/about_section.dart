@@ -10,15 +10,16 @@ class AboutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: colorScheme.outlineVariant),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -34,7 +35,7 @@ class AboutSection extends StatelessWidget {
             Row(
               children: [
                 const SizedBox(width: 12),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -42,14 +43,18 @@ class AboutSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
 
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
 
                     Text(
                       'Information about this user',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -57,52 +62,66 @@ class AboutSection extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             // Divider
-            Divider(color: Colors.grey.shade200, height: 1),
+            Divider(color: colorScheme.outlineVariant, height: 1),
             const SizedBox(height: 12),
             // Details
             UserDetail(user: user.address, icon: Iconsax.location),
             UserDetail(user: user.dateofbirth, icon: Iconsax.cake),
             UserDetail(user: user.relationshipStatus, icon: Iconsax.heart),
             const SizedBox(height: 12),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Education',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
 
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Information about this user',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 18),
             // Divider
-            Divider(color: Colors.grey.shade200, height: 1),
+            Divider(color: colorScheme.outlineVariant, height: 1),
             const SizedBox(height: 12),
             // Details
             UserDetail(user: user.university, icon: Iconsax.building),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Hobbies',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
 
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Information about this user',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 18),
             // Divider
-            Divider(color: Colors.grey.shade200, height: 1),
+            Divider(color: colorScheme.outlineVariant, height: 1),
             const SizedBox(height: 12),
             // Details
             UserDetail(user: user.hobbies, icon: Iconsax.activity),

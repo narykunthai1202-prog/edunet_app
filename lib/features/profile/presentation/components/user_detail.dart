@@ -12,6 +12,7 @@ class UserDetail extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -21,19 +22,10 @@ class UserDetail extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                115,
-                116,
-                117,
-              ).withValues(alpha: 0.1),
+              color: colorScheme.onSurface.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: const Color.fromARGB(255, 219, 180, 177),
-            ),
+            child: Icon(icon, size: 20, color: colorScheme.primary),
           ),
 
           const SizedBox(width: 10),
@@ -43,9 +35,9 @@ class UserDetail extends StatelessWidget {
               user,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: Colors.black87,
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ),

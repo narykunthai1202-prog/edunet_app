@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class LoginPage extends StatefulWidget {
   final void Function()? ontap;
@@ -81,120 +82,288 @@ class _LoginPageState extends State<LoginPage> {
   // PHONE LOGIN
   // ============================================================
 
-  void showPhoneLoginDialog() {
-    final TextEditingController phoneController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
 
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text("Login with Phone Number"),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: "+855 12 345 678",
-                border: OutlineInputBorder(),
+void showPhoneLoginDialog() {
+  final formKey = GlobalKey<FormState>();
+  String phone = '';
+
+  showDialog<void>(
+    context: context,
+    barrierDismissible: !phoneLoading,
+    builder: (dialogContext) {
+      return Dialog(
+        backgroundColor: Colors.white,
+        elevation: 12,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header icon
+                  Center(
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F7EF),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: const Icon(
+                        Icons.phone_iphone_rounded,
+                        size: 34,
+                        color: Color(0xFF219653),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  const Center(
+                    child: Text(
+                      'Login with phone',
+                      style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF202124),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  const Text(
+                    'Choose your country and enter your phone number. '
+                    'We will send you a verification code by SMS.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: Color(0xFF737780),
+                    ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  const Text(
+                    'Phone number',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF30343B),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  IntlPhoneField(
+                    initialCountryCode: 'KH',
+                    languageCode: 'en',
+                    disableLengthCheck: false,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    decoration: InputDecoration(
+                      hintText: '12 345 678',
+                      filled: true,
+                      fillColor: const Color(0xFFF7F8FA),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 18,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE2E5EA),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE2E5EA),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF219653),
+                          width: 1.8,
+                        ),
+                      ),
+                    ),
+                    onChanged: (number) {
+                      phone = number.completeNumber;
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 17,
+                        color: Color(0xFF737780),
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Your number is used to verify your account.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF737780),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  // Send OTP
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF219653),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (!(formKey.currentState?.validate() ?? false)) {
+                          return;
+                        }
+
+                        if (phone.isEmpty) return;
+
+                        Navigator.pop(dialogContext);
+                        verifyPhoneNumber(phone);
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.sms_outlined, size: 20),
+                          SizedBox(width: 10),
+                          Text(
+                            'Send verification code',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Cancel
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF626873),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                ],
               ),
-              validator: (value) {
-                final phone = _normalizePhoneNumber(value ?? '');
-                if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
-                  return "Enter a valid number with country code";
-                }
-                return null;
-              },
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (!(formKey.currentState?.validate() ?? false)) return;
+        ),
+      );
+    },
+  );
+}
 
-                Navigator.pop(dialogContext);
-                verifyPhoneNumber(_normalizePhoneNumber(phoneController.text));
-              },
-              child: const Text("Send OTP"),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(phoneController.dispose);
-  }
 
   String _normalizePhoneNumber(String phone) {
     return phone.replaceAll(RegExp(r'[\s()-]'), '');
   }
 
-  Future<void> verifyPhoneNumber(String phone) async {
-    if (phoneLoading) return;
+ 
+Future<void> verifyPhoneNumber(String phone) async {
+  if (phoneLoading) return;
 
-    try {
-      setState(() {
-        phoneLoading = true;
-      });
+  setState(() => phoneLoading = true);
 
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phone,
+  try {
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phone,
 
-        // Automatic verification
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          try {
-            final userCredential = await FirebaseAuth.instance
-                .signInWithCredential(credential);
-            final user = userCredential.user;
-            if (user == null) {
-              throw StateError('Phone sign-in did not return a user.');
-            }
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        try {
+          final userCredential = await FirebaseAuth.instance
+              .signInWithCredential(credential);
 
-            await _ensureUserDocument(user);
-
-            if (!mounted) return;
-            context.read<AuthCubit>().checkAuth();
-          } catch (e) {
-            if (!mounted) return;
-
-            _showSnackBar("Phone Login Error: $e", Colors.redAccent);
+          final user = userCredential.user;
+          if (user == null) {
+            throw StateError('Phone sign-in did not return a user.');
           }
-        },
 
-        // Verification failed
-        verificationFailed: (FirebaseAuthException e) {
+          await _ensureUserDocument(user);
+
           if (!mounted) return;
-
-          _showSnackBar("Phone Auth Failed: ${e.message}", Colors.redAccent);
-        },
-
-        // OTP sent
-        codeSent: (String verificationId, int? resendToken) {
+          context.read<AuthCubit>().checkAuth();
+        } on FirebaseAuthException catch (e) {
           if (!mounted) return;
+          _showSnackBar(
+            'Phone login failed: ${e.message ?? e.code}',
+            Colors.redAccent,
+          );
+        } catch (e) {
+          if (!mounted) return;
+          _showSnackBar('Phone login failed: $e', Colors.redAccent);
+        }
+      },
 
-          showOtpDialog(verificationId);
-        },
+      verificationFailed: (FirebaseAuthException e) {
+        if (!mounted) return;
+        _showSnackBar(
+          'Phone verification failed: ${e.message ?? e.code}',
+          Colors.redAccent,
+        );
+      },
 
-        // Timeout
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
-    } catch (e) {
-      if (!mounted) return;
+      codeSent: (String verificationId, int? resendToken) {
+        if (!mounted) return;
+        showOtpDialog(verificationId);
+      },
 
-      _showSnackBar("Phone Login Error: $e", Colors.redAccent);
-    } finally {
-      if (mounted) {
-        setState(() {
-          phoneLoading = false;
-        });
-      }
+      codeAutoRetrievalTimeout: (String verificationId) {
+        debugPrint('Phone OTP auto-retrieval timed out.');
+      },
+    );
+  } on FirebaseAuthException catch (e) {
+    if (!mounted) return;
+    _showSnackBar(
+      'Phone login failed: ${e.message ?? e.code}',
+      Colors.redAccent,
+    );
+  } catch (e) {
+    if (!mounted) return;
+    _showSnackBar('Phone login failed: $e', Colors.redAccent);
+  } finally {
+    if (mounted) {
+      setState(() => phoneLoading = false);
     }
   }
+}
+
 
   // ============================================================
   // OTP DIALOG

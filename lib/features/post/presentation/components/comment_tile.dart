@@ -78,10 +78,7 @@ class _CommentTileState extends State<CommentTile> {
         children: [
           GestureDetector(
             onTap: () => widget.onProfileTap(comment.userId),
-            child: CircleProfile(
-              imageurl: comment.userimgurl ?? '',
-              size: 20,
-            ),
+            child: CircleProfile(imageurl: comment.userimgurl ?? '', size: 20),
           ),
           const SizedBox(width: 9),
           Expanded(
@@ -321,18 +318,19 @@ class _CommentTileState extends State<CommentTile> {
           height: 180,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
+            final colorScheme = Theme.of(context).colorScheme;
             return Container(
               width: 220,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(13),
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.broken_image_outlined,
                   size: 30,
-                  color: Colors.grey,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             );
