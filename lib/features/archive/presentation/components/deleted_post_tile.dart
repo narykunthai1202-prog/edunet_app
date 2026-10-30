@@ -222,13 +222,13 @@ class DeletedPostTile extends StatelessWidget {
                       child: CachedNetworkImage(
                         imageUrl: post.imageUrls.first,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
+                        placeholder: (_, _) => Container(
                           color: colorScheme.surface,
                           child: const Center(
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
-                        errorWidget: (_, __, ___) => Container(
+                        errorWidget: (_, _, _) => Container(
                           color: colorScheme.surface,
                           child: Icon(Iconsax.image, color: colorScheme.secondary),
                         ),

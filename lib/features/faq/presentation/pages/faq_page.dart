@@ -200,7 +200,7 @@ class _FaqPageState extends State<FaqPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
                 itemCount: FaqCategories.list.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final cat = FaqCategories.list[index];
                   final isSelected = _selectedCategory == cat;

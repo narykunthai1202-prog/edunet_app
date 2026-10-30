@@ -176,7 +176,7 @@ class _BlockedUsersSheetState extends State<BlockedUsersSheet> {
                           )
                         : ListView.separated(
                             itemCount: _blockedUsers.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const Divider(height: 16),
                             itemBuilder: (context, index) {
                               final user = _blockedUsers[index];
