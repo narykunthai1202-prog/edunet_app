@@ -28,9 +28,6 @@ class _LoginPageState extends State<LoginPage> {
   bool googleLoading = false;
   bool phoneLoading = false;
 
-  // ============================================================
-  // EMAIL / PASSWORD LOGIN
-  // ============================================================
 
   void userLogin() {
     if (!_formKey.currentState!.validate()) {
@@ -77,10 +74,6 @@ class _LoginPageState extends State<LoginPage> {
       });
     }
   }
-
-  // ============================================================
-  // PHONE LOGIN
-  // ============================================================
 
 
 void showPhoneLoginDialog() {

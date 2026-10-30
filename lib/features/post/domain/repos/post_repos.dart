@@ -4,8 +4,17 @@ import 'package:edunest_app/features/post/domain/entities/post.dart';
 abstract class PostRepo {
   Future<List<Post>> fetchAllPosts();
   Future<void> createPost(Post post);
-  Future<void> deletePost(String postId);
+  Future<void> deletePost(String postId, {String? userId});
   Future<List<Post>> fetchPostsByUserId(String userId);
+
+  // Soft deletion, restore, and permanent delete
+  Future<void> softDeletePost(String postId, String userId);
+  Future<void> restorePost(String postId, String userId);
+  Future<void> permanentlyDeletePost(String postId, String userId);
+  Future<List<Post>> fetchRecentlyDeletedPosts(String userId);
+
+  // Liked posts
+  Future<List<Post>> fetchLikedPosts(String userId);
 
   // Post like
   Future<void> toggleLikePost(String postId, String userId);

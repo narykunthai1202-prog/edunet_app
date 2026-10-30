@@ -2,28 +2,42 @@ import 'package:edunest_app/features/auth/domain/entities/app_user.dart';
 
 abstract class AuthState {}
 
-//initiall
+// Initial
 class AuthIntial extends AuthState {}
 
-//authenticating
+// Authenticating
 class AuthLoading extends AuthState {}
 
-//authenticated
+// Authenticated
 class Authenticated extends AuthState {
   final AppUser user;
   Authenticated({required this.user});
 }
 
-//unauthenticated
+// Unauthenticated
 class Unauthenticated extends AuthState {}
 
-//errors
+// Errors
 class AuthError extends AuthState {
   final String message;
   AuthError({required this.message});
 }
+
 class NeedsProfileCompletion extends AuthState {
   final AppUser user;
 
   NeedsProfileCompletion({required this.user});
+}
+
+// Account Suspended State
+class AccountSuspended extends AuthState {
+  final AppUser user;
+  final String? reason;
+  final DateTime? suspendedUntil;
+
+  AccountSuspended({
+    required this.user,
+    this.reason,
+    this.suspendedUntil,
+  });
 }
