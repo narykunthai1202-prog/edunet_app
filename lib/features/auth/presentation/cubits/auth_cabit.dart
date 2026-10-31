@@ -26,6 +26,21 @@ class AuthCubit extends Cubit<AuthState> {
   // Get current user
   AppUser? get currentUser => _currentUser;
 
+  bool _handleSuspendedUser(AppUser user) {
+    if (user.isSuspended) {
+      if (user.suspendedUntil == null ||
+          user.suspendedUntil!.isAfter(DateTime.now())) {
+        emit(AccountSuspended(
+          user: user,
+          reason: user.suspensionReason,
+          suspendedUntil: user.suspendedUntil,
+        ));
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Login
   Future<void> login(String email, String pw) async {
     try {
@@ -38,6 +53,10 @@ class AuthCubit extends Cubit<AuthState> {
 
       if (user != null) {
         _currentUser = user;
+
+        if (_handleSuspendedUser(user)) {
+          return;
+        }
 
         // Load notifications for the new account
         notificationCubit.fetchNotifications(user.uid);
@@ -55,34 +74,38 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> signInWithGoogle() async {
-  try {
-    emit(AuthLoading());
+    try {
+      emit(AuthLoading());
 
-    final user = await authRepo.signInWithGoogle();
+      final user = await authRepo.signInWithGoogle();
 
-    if (user == null) {
-      emit(Unauthenticated());
-      return;
+      if (user == null) {
+        emit(Unauthenticated());
+        return;
+      }
+
+      _currentUser = user;
+
+      if (_handleSuspendedUser(user)) {
+        return;
+      }
+
+      if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
+        emit(NeedsProfileCompletion(user: user));
+        return;
+      }
+
+      notificationCubit.fetchNotifications(user.uid);
+      emit(Authenticated(user: user));
+    } catch (e, stackTrace) {
+      debugPrint('========== GOOGLE SIGN-IN FAILED ==========');
+      debugPrint('Error type: ${e.runtimeType}');
+      debugPrint('Error details: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      emit(AuthError(message: e.toString()));
     }
-
-    _currentUser = user;
-
-    if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
-      emit(NeedsProfileCompletion(user: user));
-      return;
-    }
-
-    notificationCubit.fetchNotifications(user.uid);
-    emit(Authenticated(user: user));
-  } catch (e, stackTrace) {
-  debugPrint('========== GOOGLE SIGN-IN FAILED ==========');
-  debugPrint('Error type: ${e.runtimeType}');
-  debugPrint('Error details: $e');
-  debugPrintStack(stackTrace: stackTrace);
-
-  emit(AuthError(message: e.toString()));
-}
-}
+  }
 
   // Register
   Future<void> register(String name, String email, String pw) async {
@@ -125,25 +148,29 @@ class AuthCubit extends Cubit<AuthState> {
     emit(Unauthenticated());
   }
   void checkAuth() async {
-  final AppUser? user = await authRepo.getCurrentUser();
+    final AppUser? user = await authRepo.getCurrentUser();
 
-  if (user != null) {
-    _currentUser = user;
+    if (user != null) {
+      _currentUser = user;
 
-    if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
-      emit(NeedsProfileCompletion(user: user));
-      return;
+      if (_handleSuspendedUser(user)) {
+        return;
+      }
+
+      if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
+        emit(NeedsProfileCompletion(user: user));
+        return;
+      }
+
+      notificationCubit.fetchNotifications(user.uid);
+      emit(Authenticated(user: user));
+    } else {
+      _currentUser = null;
+      notificationCubit.clearNotifications();
+      postCubit.fetchAllPostsbypublic();
+      emit(Unauthenticated());
     }
-
-    notificationCubit.fetchNotifications(user.uid);
-    emit(Authenticated(user: user));
-  } else {
-    _currentUser = null;
-    notificationCubit.clearNotifications();
-    postCubit.fetchAllPostsbypublic();
-    emit(Unauthenticated());
   }
-}
 Future<void> completeGoogleProfile({
   required String name,
   required String major,

@@ -13,6 +13,9 @@ class Post {
   final String privacy;
   final List<String> savedBy;
   final List<String>? taggedUserIds;
+  final bool isDeleted;
+  final DateTime? deletedAt;
+  final String? deletedBy;
 
   Post({
     required this.id,
@@ -26,6 +29,9 @@ class Post {
     required this.privacy,
     required this.savedBy,
     this.taggedUserIds = const [],
+    this.isDeleted = false,
+    this.deletedAt,
+    this.deletedBy,
   });
 
   Post copyWith({
@@ -33,6 +39,9 @@ class Post {
     String? text,
     String? privacy,
     List<String>? taggedUserIds,
+    bool? isDeleted,
+    DateTime? deletedAt,
+    String? deletedBy,
   }) {
     return Post(
       id: id,
@@ -46,6 +55,9 @@ class Post {
       privacy: privacy ?? this.privacy,
       savedBy: savedBy,
       taggedUserIds: taggedUserIds ?? this.taggedUserIds,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
+      deletedBy: deletedBy ?? this.deletedBy,
     );
   }
 
@@ -62,6 +74,9 @@ class Post {
       'privacy': privacy,
       'savedBy': savedBy,
       'taggedUserIds': taggedUserIds,
+      'isDeleted': isDeleted,
+      'deletedAt': deletedAt != null ? Timestamp.fromDate(deletedAt!) : null,
+      'deletedBy': deletedBy,
     };
   }
 
@@ -92,6 +107,16 @@ class Post {
       timestamp = DateTime.now();
     }
 
+    final bool isDeleted =
+        json['isDeleted'] is bool ? json['isDeleted'] as bool : false;
+    DateTime? deletedAt;
+    if (json['deletedAt'] is Timestamp) {
+      deletedAt = (json['deletedAt'] as Timestamp).toDate();
+    } else if (json['deletedAt'] is String) {
+      deletedAt = DateTime.tryParse(json['deletedAt']);
+    }
+    final String? deletedBy = json['deletedBy'] as String?;
+
     return Post(
       id: json['id'] ?? '',
       userId: json['userId'] ?? '',
@@ -110,6 +135,9 @@ class Post {
       // IMPORTANT: must be a List, not ""
       savedBy: List<String>.from(json['savedBy'] ?? []),
       taggedUserIds: List<String>.from(json['taggedUserIds'] ?? []),
+      isDeleted: isDeleted,
+      deletedAt: deletedAt,
+      deletedBy: deletedBy,
     );
   }
 }

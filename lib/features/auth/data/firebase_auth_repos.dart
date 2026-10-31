@@ -11,10 +11,6 @@ class FirebaseAuthRepos implements AuthRepo {
 );
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
-
-  // ============================================================
-  // GET CURRENT USER
-  // ============================================================
   @override
   Future<AppUser?> getCurrentUser() async {
     final firebaseUser = firebaseAuth.currentUser;
@@ -29,6 +25,15 @@ class FirebaseAuthRepos implements AuthRepo {
           .doc(firebaseUser.uid)
           .get();
 
+      DateTime? parseDate(dynamic value) {
+        if (value is Timestamp) {
+          return value.toDate();
+        } else if (value is String) {
+          return DateTime.tryParse(value);
+        }
+        return null;
+      }
+
       // If Firestore profile does not exist,
       // still return the Firebase Auth user.
       if (!doc.exists) {
@@ -36,6 +41,7 @@ class FirebaseAuthRepos implements AuthRepo {
           uid: firebaseUser.uid,
           email: firebaseUser.email ?? "",
           name: firebaseUser.displayName ?? "User",
+          createdAt: firebaseUser.metadata.creationTime,
         );
       }
 
@@ -45,6 +51,13 @@ class FirebaseAuthRepos implements AuthRepo {
         uid: firebaseUser.uid,
         email: firebaseUser.email ?? "",
         name: data?['name']?.toString() ?? firebaseUser.displayName ?? "User",
+        isSuspended: data?['isSuspended'] == true,
+        suspensionReason: data?['suspensionReason']?.toString(),
+        suspendedAt: parseDate(data?['suspendedAt']),
+        suspendedUntil: parseDate(data?['suspendedUntil']),
+        role: data?['role']?.toString() ?? 'user',
+        createdAt:
+            parseDate(data?['createdAt']) ?? firebaseUser.metadata.creationTime,
       );
     } catch (e) {
       print("GET CURRENT USER ERROR: $e");
@@ -56,23 +69,14 @@ class FirebaseAuthRepos implements AuthRepo {
         uid: firebaseUser.uid,
         email: firebaseUser.email ?? "",
         name: firebaseUser.displayName ?? "User",
+        createdAt: firebaseUser.metadata.creationTime,
       );
     }
   }
-
-  // ============================================================
-  // LOGOUT
-  // ============================================================
-
   @override
   Future<void> logout() async {
     await firebaseAuth.signOut();
   }
-
-  // ============================================================
-  // REGISTER
-  // ============================================================
-
   @override
   Future<AppUser?> registerWithEmailPassword({
     required String email,
@@ -149,18 +153,10 @@ class FirebaseAuthRepos implements AuthRepo {
       print("UID: ${firebaseUser.uid}");
       print("Email: ${firebaseUser.email}");
 
-      // --------------------------------------------------------
-      // 2. Get Firestore profile
-      // --------------------------------------------------------
-
       final DocumentSnapshot userDoc = await firebaseFirestore
           .collection("users")
           .doc(firebaseUser.uid)
           .get();
-
-      // --------------------------------------------------------
-      // 3. If profile does not exist, create one
-      // --------------------------------------------------------
 
       if (!userDoc.exists) {
         print("Firestore user document does not exist. Creating it...");
@@ -187,6 +183,15 @@ class FirebaseAuthRepos implements AuthRepo {
 
       final data = userDoc.data() as Map<String, dynamic>?;
 
+      DateTime? parseDate(dynamic value) {
+        if (value is Timestamp) {
+          return value.toDate();
+        } else if (value is String) {
+          return DateTime.tryParse(value);
+        }
+        return null;
+      }
+
       final String name =
           data?['name']?.toString() ?? firebaseUser.displayName ?? "User";
 
@@ -194,6 +199,13 @@ class FirebaseAuthRepos implements AuthRepo {
         uid: firebaseUser.uid,
         email: firebaseUser.email ?? email.trim(),
         name: name,
+        isSuspended: data?['isSuspended'] == true,
+        suspensionReason: data?['suspensionReason']?.toString(),
+        suspendedAt: parseDate(data?['suspendedAt']),
+        suspendedUntil: parseDate(data?['suspendedUntil']),
+        role: data?['role']?.toString() ?? 'user',
+        createdAt:
+            parseDate(data?['createdAt']) ?? firebaseUser.metadata.creationTime,
       );
 
       print("LOGIN COMPLETED SUCCESSFULLY");
@@ -202,9 +214,6 @@ class FirebaseAuthRepos implements AuthRepo {
 
       return user;
     }
-    // ==========================================================
-    // FIREBASE AUTH ERROR
-    // ==========================================================
     on FirebaseAuthException catch (e) {
       print("========================================");
       print("FIREBASE LOGIN ERROR");
@@ -214,9 +223,6 @@ class FirebaseAuthRepos implements AuthRepo {
 
       throw Exception("Firebase login error: ${e.code} - ${e.message}");
     }
-    // ==========================================================
-    // OTHER ERROR
-    // ==========================================================
     catch (e) {
       print("========================================");
       print("LOGIN ERROR");
@@ -280,6 +286,15 @@ Future<AppUser?> signInWithGoogle() async {
     final userDoc = await userRef.get();
     final userData = userDoc.data();
 
+    DateTime? parseDate(dynamic value) {
+      if (value is Timestamp) {
+        return value.toDate();
+      } else if (value is String) {
+        return DateTime.tryParse(value);
+      }
+      return null;
+    }
+
     final user = AppUser(
       uid: firebaseUser.uid,
       email: firebaseUser.email ?? googleUser.email,
@@ -287,6 +302,14 @@ Future<AppUser?> signInWithGoogle() async {
           firebaseUser.displayName ??
           googleUser.displayName ??
           'User',
+      isSuspended: userData?['isSuspended'] == true,
+      suspensionReason: userData?['suspensionReason']?.toString(),
+      suspendedAt: parseDate(userData?['suspendedAt']),
+      suspendedUntil: parseDate(userData?['suspendedUntil']),
+      role: userData?['role']?.toString() ?? 'user',
+      createdAt:
+          parseDate(userData?['createdAt']) ??
+          firebaseUser.metadata.creationTime,
     );
 
     if (!userDoc.exists) {

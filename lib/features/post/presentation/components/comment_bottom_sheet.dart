@@ -283,7 +283,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
@@ -310,14 +310,15 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
     return SafeArea(
       child: AnimatedPadding(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.only(bottom: bottomInset),
         child: Container(
           height: MediaQuery.of(context).size.height * .78,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
@@ -327,7 +328,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                 width: 42,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -349,7 +350,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -357,14 +358,14 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, color: Colors.grey.shade200),
+              Divider(height: 1, color: colorScheme.outlineVariant),
               Expanded(
                 child: _comments.isEmpty
                     ? Center(
@@ -374,14 +375,16 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                             Icon(
                               Iconsax.message,
                               size: 45,
-                              color: Colors.grey.shade300,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.45,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Text(
                               'No comments yet',
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.grey.shade500,
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -389,7 +392,9 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                               'Be the first to comment',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey.shade400,
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                             ),
                           ],
@@ -463,11 +468,12 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
 
   Widget _buildInput() {
     final isReplying = _replyingTo != null;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 10, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        color: colorScheme.surface,
+        border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -512,11 +518,11 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                         ? 'Write a reply...'
                         : 'Add a comment...',
                     hintStyle: TextStyle(
-                      color: Colors.grey.shade500,
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 14,
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade100,
+                    fillColor: colorScheme.surfaceContainerLow,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(22),
                       borderSide: BorderSide.none,
@@ -533,7 +539,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                 tooltip: 'Add image',
                 icon: Icon(
                   Iconsax.image,
-                  color: Colors.grey.shade700,
+                  color: colorScheme.onSurfaceVariant,
                   size: 22,
                 ),
               ),
@@ -545,8 +551,8 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                   height: 42,
                   decoration: BoxDecoration(
                     color: _isSending
-                        ? Colors.grey.shade300
-                        : Theme.of(context).colorScheme.primary,
+                        ? colorScheme.surfaceContainerHighest
+                        : colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -556,9 +562,9 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                             height: 19,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
+                        : Icon(
                             Iconsax.send_1,
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                             size: 19,
                           ),
                   ),

@@ -19,11 +19,141 @@ class FirebasePostRepo implements PostRepo {
   }
 
   @override
-  Future<void> deletePost(String postId) async {
+  Future<void> deletePost(String postId, {String? userId}) async {
     try {
-      await postscollection.doc(postId).delete();
+      final postDoc = await postscollection.doc(postId).get();
+      if (!postDoc.exists) return;
+      final data = postDoc.data() as Map<String, dynamic>;
+      final postOwnerId = data['userId']?.toString() ?? '';
+
+      // Ensure only the owner can delete
+      if (userId != null &&
+          userId.isNotEmpty &&
+          postOwnerId.isNotEmpty &&
+          userId != postOwnerId) {
+        throw Exception('You can only delete your own posts');
+      }
+
+      await postscollection.doc(postId).update({
+        'isDeleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+        'deletedBy': userId ?? postOwnerId,
+      });
     } catch (e) {
       throw Exception('Failed to delete post: $e');
+    }
+  }
+
+  @override
+  Future<void> softDeletePost(String postId, String userId) async {
+    await deletePost(postId, userId: userId);
+  }
+
+  @override
+  Future<void> restorePost(String postId, String userId) async {
+    try {
+      final postDoc = await postscollection.doc(postId).get();
+      if (!postDoc.exists) throw Exception('Post not found');
+      final data = postDoc.data() as Map<String, dynamic>;
+      final postOwnerId = data['userId']?.toString() ?? '';
+
+      if (userId != postOwnerId) {
+        throw Exception('Only the post owner can restore this post');
+      }
+
+      await postscollection.doc(postId).update({
+        'isDeleted': false,
+        'deletedAt': FieldValue.delete(),
+        'deletedBy': FieldValue.delete(),
+      });
+    } catch (e) {
+      throw Exception('Failed to restore post: $e');
+    }
+  }
+
+  @override
+  Future<void> permanentlyDeletePost(String postId, String userId) async {
+    try {
+      final postDoc = await postscollection.doc(postId).get();
+      if (!postDoc.exists) return;
+      final data = postDoc.data() as Map<String, dynamic>;
+      final postOwnerId = data['userId']?.toString() ?? '';
+
+      if (userId != postOwnerId) {
+        throw Exception('Only the post owner can permanently delete this post');
+      }
+
+      await postscollection.doc(postId).delete();
+    } catch (e) {
+      throw Exception('Failed to permanently delete post: $e');
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchRecentlyDeletedPosts(String userId) async {
+    try {
+      final snapshot = await postscollection
+          .where('userId', isEqualTo: userId)
+          .where('isDeleted', isEqualTo: true)
+          .get();
+
+      final now = DateTime.now();
+      final List<Post> activeDeletedPosts = [];
+
+      for (final doc in snapshot.docs) {
+        final data = Map<String, dynamic>.from(
+          doc.data() as Map<String, dynamic>,
+        );
+        data['id'] ??= doc.id;
+        final post = Post.fromJson(data);
+
+        // Check 30-day retention limit
+        if (post.deletedAt != null) {
+          final diff = now.difference(post.deletedAt!);
+          if (diff.inDays >= 30) {
+            // Expired -> permanently delete
+            await postscollection.doc(doc.id).delete();
+            continue;
+          }
+        }
+        activeDeletedPosts.add(post);
+      }
+
+      activeDeletedPosts.sort((a, b) {
+        final aTime = a.deletedAt ?? a.timestamp;
+        final bTime = b.deletedAt ?? b.timestamp;
+        return bTime.compareTo(aTime);
+      });
+
+      return activeDeletedPosts;
+    } catch (e) {
+      throw Exception('Failed to fetch recently deleted posts: $e');
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchLikedPosts(String userId) async {
+    try {
+      final snapshot = await postscollection
+          .where('likes', arrayContains: userId)
+          .get();
+
+      final List<Post> likedPosts = [];
+      for (final doc in snapshot.docs) {
+        final data = Map<String, dynamic>.from(
+          doc.data() as Map<String, dynamic>,
+        );
+        data['id'] ??= doc.id;
+        final post = Post.fromJson(data);
+        if (!post.isDeleted) {
+          likedPosts.add(post);
+        }
+      }
+
+      likedPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return likedPosts;
+    } catch (e) {
+      throw Exception('Failed to fetch liked posts: $e');
     }
   }
 
@@ -36,6 +166,7 @@ class FirebasePostRepo implements PostRepo {
 
       final List<Post> allPosts = postsSnapshot.docs
           .map((doc) => Post.fromJson(doc.data() as Map<String, dynamic>))
+          .where((post) => !post.isDeleted)
           .toList();
 
       return allPosts;
@@ -59,7 +190,7 @@ class FirebasePostRepo implements PostRepo {
         return Post.fromJson(data);
       }).toList();
       userPosts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      return userPosts;
+      return userPosts.where((post) => !post.isDeleted).toList();
     } catch (e) {
       throw Exception('Failed to fetch posts by userId: $e');
     }
@@ -188,15 +319,18 @@ class FirebasePostRepo implements PostRepo {
             .where('privacy', isEqualTo: 'Friend')
             .get();
 
-        final posts = postSnapshot.docs.map((doc) {
-          final data = Map<String, dynamic>.from(
-            doc.data() as Map<String, dynamic>,
-          );
+        final posts = postSnapshot.docs
+            .map((doc) {
+              final data = Map<String, dynamic>.from(
+                doc.data() as Map<String, dynamic>,
+              );
 
-          data['id'] ??= doc.id;
+              data['id'] ??= doc.id;
 
-          return Post.fromJson(data);
-        }).toList();
+              return Post.fromJson(data);
+            })
+            .where((post) => !post.isDeleted)
+            .toList();
 
         followingPosts.addAll(posts);
       }
@@ -217,16 +351,19 @@ class FirebasePostRepo implements PostRepo {
           .where('privacy', isEqualTo: 'Public')
           .get();
 
-      final posts = postSnapshot.docs.map((doc) {
-        final data = Map<String, dynamic>.from(
-          doc.data() as Map<String, dynamic>,
-        );
+      final posts = postSnapshot.docs
+          .map((doc) {
+            final data = Map<String, dynamic>.from(
+              doc.data() as Map<String, dynamic>,
+            );
 
-        // Make sure ID exists
-        data['id'] ??= doc.id;
+            // Make sure ID exists
+            data['id'] ??= doc.id;
 
-        return Post.fromJson(data);
-      }).toList();
+            return Post.fromJson(data);
+          })
+          .where((post) => !post.isDeleted)
+          .toList();
 
       return posts;
     } catch (e) {
@@ -331,6 +468,7 @@ class FirebasePostRepo implements PostRepo {
 
         final posts = snapshot.docs
             .map((doc) => Post.fromJson(doc.data() as Map<String, dynamic>))
+            .where((post) => !post.isDeleted)
             .toList();
 
         savedPosts.addAll(posts);
@@ -355,15 +493,18 @@ class FirebasePostRepo implements PostRepo {
           .where('userId', isEqualTo: profileUserId)
           .get();
 
-      final posts = postSnapshot.docs.map((doc) {
-        final data = Map<String, dynamic>.from(
-          doc.data() as Map<String, dynamic>,
-        );
+      final posts = postSnapshot.docs
+          .map((doc) {
+            final data = Map<String, dynamic>.from(
+              doc.data() as Map<String, dynamic>,
+            );
 
-        data['id'] ??= doc.id;
+            data['id'] ??= doc.id;
 
-        return Post.fromJson(data);
-      }).toList();
+            return Post.fromJson(data);
+          })
+          .where((post) => !post.isDeleted)
+          .toList();
 
       // Get the profile owner's user document
       final profileUserDoc = await usercollection.doc(profileUserId).get();

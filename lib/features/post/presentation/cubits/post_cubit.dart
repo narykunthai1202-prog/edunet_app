@@ -111,10 +111,31 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 
-  //delete post
-  Future<void> deletePost(String postId) async {
+  //delete post (soft delete)
+  Future<void> deletePost(String postId, {String? userId}) async {
     try {
-      await postRepo.deletePost(postId);
+      await postRepo.deletePost(postId, userId: userId);
+      await fetchAllPostsbypublic();
+    } catch (e) {
+      emit(PostErrorState(message: e.toString()));
+    }
+  }
+
+  //restore post
+  Future<void> restorePost(String postId, String userId) async {
+    try {
+      await postRepo.restorePost(postId, userId);
+      await fetchAllPostsbypublic();
+    } catch (e) {
+      emit(PostErrorState(message: e.toString()));
+    }
+  }
+
+  //permanently delete post
+  Future<void> permanentlyDeletePost(String postId, String userId) async {
+    try {
+      await postRepo.permanentlyDeletePost(postId, userId);
+      await fetchAllPostsbypublic();
     } catch (e) {
       emit(PostErrorState(message: e.toString()));
     }
