@@ -33,6 +33,10 @@ class _ChatListViewState extends State<ChatListView>
   String _activeTab = 'All'; // 'All', 'Unread', 'Favorites'
   String get _currentUserId => _activeUserId ?? '';
 
+  // NEW: cached name lookups for group previews
+  final Map<String, Future<String>> _nameFutures = {};
+  final Map<String, Future<String>> _previewFutures = {};
+
   @override
   void initState() {
     super.initState();
@@ -115,6 +119,44 @@ class _ChatListViewState extends State<ChatListView>
 
   int _unreadOf(Map<String, dynamic> d) =>
       ((d['unreadCount_$_currentUserId'] ?? 0) as num).toInt();
+
+  /// NEW: looks up a user's display name (cached, each user is read once).
+  Future<String> _nameOf(String uid) {
+    return _nameFutures.putIfAbsent(uid, () async {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
+        final n = doc.data()?['name']?.toString().trim();
+        if (n != null && n.isNotEmpty) return n;
+      } catch (_) {}
+      return 'User';
+    });
+  }
+
+  /// NEW: preview text for a group, with real names instead of user ids.
+  ///  - normal message  -> "You: hi" / "Luin Niun: hi"
+  ///  - system message  -> ids inside the text are replaced by names
+  Future<String> _groupPreviewFor(String raw, String senderId) {
+    final key = '$senderId|$raw';
+    return _previewFutures.putIfAbsent(key, () async {
+      if (senderId.isEmpty) {
+        // system message ("A removed B"): swap user ids for names
+        var text = raw;
+        final ids = RegExp(r'[A-Za-z0-9]{20,}')
+            .allMatches(raw)
+            .map((m) => m.group(0)!)
+            .toSet();
+        for (final id in ids) {
+          text = text.replaceAll(id, await _nameOf(id));
+        }
+        return text;
+      }
+      final who = senderId == _currentUserId ? 'You' : await _nameOf(senderId);
+      return '$who: $raw';
+    });
+  }
 
   /// Builds the text shown under each chat in the list.
   /// Sticker/photo previews depend on who sent the last message.
@@ -580,12 +622,22 @@ class _ChatListViewState extends State<ChatListView>
     final DateTime? lastTime = (chatData['lastMessageTime'] as Timestamp?)
         ?.toDate();
 
-    Widget buildTile({required String realName, required String? photoUrl}) {
+    Widget buildTile({
+      required String realName,
+      required String? photoUrl,
+      String? groupPreview, // NEW: resolved preview for groups
+    }) {
       final displayName = nick.isNotEmpty ? nick : realName;
+
+      // While the name is still loading, never show a raw user id.
+      final String groupFallback = lastSenderId.isEmpty
+          ? ''
+          : (lastSenderId == _currentUserId
+                ? 'You: $rawLastMessage'
+                : rawLastMessage);
+
       final lastMessage = isGroup
-          ? (lastSenderId.isEmpty
-                ? rawLastMessage
-                : '${lastSenderId == _currentUserId ? 'You' : lastSenderId}: $rawLastMessage')
+          ? (groupPreview ?? groupFallback)
           : _previewText(
               lastMessage: rawLastMessage,
               lastSenderId: lastSenderId,
@@ -641,9 +693,14 @@ class _ChatListViewState extends State<ChatListView>
     }
 
     if (isGroup) {
-      return buildTile(
-        realName: storedName,
-        photoUrl: chatData['groupPhotoUrl'] as String?,
+      // NEW: look up the sender's real name for the preview
+      return FutureBuilder<String>(
+        future: _groupPreviewFor(rawLastMessage, lastSenderId),
+        builder: (context, snap) => buildTile(
+          realName: storedName,
+          photoUrl: chatData['groupPhotoUrl'] as String?,
+          groupPreview: snap.data,
+        ),
       );
     }
 

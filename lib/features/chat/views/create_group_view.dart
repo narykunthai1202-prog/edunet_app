@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/group_service.dart';
@@ -20,8 +21,17 @@ class CreateGroupView extends StatefulWidget {
 }
 
 class _CreateGroupViewState extends State<CreateGroupView> {
-  static const _blue = Color(0xFF2563EB);
-  static const _muted = Color(0xFF64748B);
+  // 🎨 Screen colors (edit here to restyle the whole screen)
+  static const _plum = Color(0xFF6B4A5B); // main accent
+  static const _rose = Color(0xFFE0BCC4); // dusty rose badges
+  static const _card = Color(0xFFEEE8E7); // card surface
+  static const _border = Color(0xFFDDD2CF); // card border
+  static const _field = Color(0xFFE5DFDC); // input / row background
+  static const _ring = Color(0xFFF3EDEB); // avatar ring
+  static const _textDark = Color(0xFF3A2A32); // dark plum-brown text
+  static const _muted = Color(0xFF7A6670); // muted text
+  static const _disabled = Color(0xFFCBBFC3); // disabled button
+  static const _danger = Color(0xFFC2674B); // remove member
 
   final GroupService _service = GroupService();
   final TextEditingController _nameController = TextEditingController();
@@ -140,37 +150,33 @@ class _CreateGroupViewState extends State<CreateGroupView> {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        foregroundColor: Colors.white,
+        foregroundColor: _textDark,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'New group',
-          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+          style: GoogleFonts.nunito(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            color: _textDark,
+          ),
         ),
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
-                _header(),
-                const SizedBox(height: 18),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _nameCard(),
-                ),
-                const SizedBox(height: 18),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _membersCard(),
-                ),
-                const SizedBox(height: 24),
+                _avatarSection(),
+                const SizedBox(height: 22),
+                _nameCard(),
+                const SizedBox(height: 16),
+                _membersCard(),
               ],
             ),
           ),
@@ -180,126 +186,109 @@ class _CreateGroupViewState extends State<CreateGroupView> {
     );
   }
 
-  // ----------------------------------------------------------------- header
+  // ---------------------------------------------------------- avatar section
 
-  Widget _header() {
-    final top = MediaQuery.of(context).padding.top + kToolbarHeight;
+  Widget _avatarSection() {
     final name = _nameController.text.trim();
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, top + 6, 20, 28),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6), Color(0xFF60A5FA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
-      ),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: _pickPhoto,
-            child: Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickPhoto,
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: _ring,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _border, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _plum.withValues(alpha: 0.15),
+                      blurRadius: 22,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 52,
+                  backgroundColor: _rose,
+                  backgroundImage:
+                      _photoBytes != null ? MemoryImage(_photoBytes!) : null,
+                  child: _photoBytes == null
+                      ? const Icon(Icons.groups_rounded, size: 48, color: _plum)
+                      : null,
+                ),
+              ),
+              Positioned(
+                right: 2,
+                bottom: 2,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _plum,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.18),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                    border: Border.all(color: _ring, width: 3),
                   ),
-                  child: CircleAvatar(
-                    radius: 52,
-                    backgroundColor: const Color(0xFFDBEAFE),
-                    backgroundImage: _photoBytes != null
-                        ? MemoryImage(_photoBytes!)
-                        : null,
-                    child: _photoBytes == null
-                        ? const Icon(
-                            Icons.groups_rounded,
-                            size: 48,
-                            color: _blue,
-                          )
-                        : null,
-                  ),
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _blue,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            name.isEmpty ? 'Group name' : name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: name.isEmpty ? Colors.white60 : Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.group_rounded, size: 16, color: Colors.white),
-                const SizedBox(width: 6),
-                Text(
-                  // +1 because you are in the group too
-                  '${_members.length + 1} members',
-                  style: const TextStyle(
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    size: 16,
                     color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          name.isEmpty ? 'Group name' : name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.nunito(
+            color: name.isEmpty ? _muted.withValues(alpha: 0.6) : _textDark,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: _rose.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.group_rounded, size: 16, color: _plum),
+              const SizedBox(width: 6),
+              Text(
+                // +1 because you are in the group too
+                '${_members.length + 1} members',
+                style: GoogleFonts.nunito(
+                  color: _plum,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   // ------------------------------------------------------------------ cards
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-    borderRadius: BorderRadius.circular(24),
-    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+    color: _card,
+    borderRadius: BorderRadius.circular(26),
+    border: Border.all(color: _border),
     boxShadow: [
       BoxShadow(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+        color: _plum.withValues(alpha: 0.08),
         blurRadius: 24,
         offset: const Offset(0, 8),
       ),
@@ -310,26 +299,22 @@ class _CreateGroupViewState extends State<CreateGroupView> {
     return Row(
       children: [
         Container(
-          width: 36,
-          height: 36,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
+            color: _rose.withValues(alpha: 0.7),
+            shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: _plum, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             title,
-            style: TextStyle(
+            style: GoogleFonts.nunito(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: _textDark,
             ),
           ),
         ),
@@ -350,24 +335,30 @@ class _CreateGroupViewState extends State<CreateGroupView> {
           TextField(
             controller: _nameController,
             maxLength: 40,
+            cursorColor: _plum,
             textCapitalization: TextCapitalization.words,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: GoogleFonts.nunito(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _textDark,
+            ),
             decoration: InputDecoration(
               hintText: 'e.g. Weekend plans',
-              hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+              hintStyle: GoogleFonts.nunito(color: _muted.withValues(alpha: 0.7)),
+              counterStyle: const TextStyle(color: _muted),
               filled: true,
-              fillColor: Theme.of(context).colorScheme.surface,
+              fillColor: _field,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: _blue, width: 1.5),
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: _plum, width: 1.5),
               ),
             ),
           ),
@@ -389,13 +380,13 @@ class _CreateGroupViewState extends State<CreateGroupView> {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFDBEAFE),
+                color: _rose.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 '${_members.length}',
                 style: const TextStyle(
-                  color: _blue,
+                  color: _plum,
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
                 ),
@@ -406,10 +397,10 @@ class _CreateGroupViewState extends State<CreateGroupView> {
 
           // add members button
           Material(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            color: _field,
+            borderRadius: BorderRadius.circular(18),
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               onTap: _addMembers,
               child: Padding(
                 padding: const EdgeInsets.all(10),
@@ -419,7 +410,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                       width: 42,
                       height: 42,
                       decoration: const BoxDecoration(
-                        color: _blue,
+                        color: _plum,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -429,17 +420,17 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Add members',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.5,
-                          color: _blue,
+                        style: GoogleFonts.nunito(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: _plum,
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, color: _blue),
+                    const Icon(Icons.chevron_right_rounded, color: _plum),
                   ],
                 ),
               ),
@@ -447,11 +438,11 @@ class _CreateGroupViewState extends State<CreateGroupView> {
           ),
 
           if (_members.isEmpty)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(4, 16, 4, 4),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
               child: Text(
                 'No members yet. Add at least one person to create the group.',
-                style: TextStyle(fontSize: 12.5, color: _muted),
+                style: GoogleFonts.nunito(fontSize: 13, color: _muted),
               ),
             )
           else
@@ -464,10 +455,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                   trailing: IconButton(
                     visualDensity: VisualDensity.compact,
                     tooltip: 'Remove',
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFFEF4444),
-                    ),
+                    icon: const Icon(Icons.close_rounded, color: _danger),
                     onPressed: () => _removeMember(id),
                   ),
                 ),
@@ -489,7 +477,7 @@ class _CreateGroupViewState extends State<CreateGroupView> {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+            color: _plum.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -503,14 +491,14 @@ class _CreateGroupViewState extends State<CreateGroupView> {
           child: ElevatedButton(
             onPressed: enabled ? _create : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _blue,
-              disabledBackgroundColor: const Color(0xFFCBD5E1),
+              backgroundColor: _plum,
+              disabledBackgroundColor: _disabled,
               foregroundColor: Colors.white,
               disabledForegroundColor: Colors.white,
               elevation: enabled ? 4 : 0,
-              shadowColor: _blue.withValues(alpha: 0.4),
+              shadowColor: _plum.withValues(alpha: 0.4),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(28),
               ),
             ),
             child: _creating
@@ -522,14 +510,14 @@ class _CreateGroupViewState extends State<CreateGroupView> {
                       color: Colors.white,
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle_rounded, size: 20),
-                      SizedBox(width: 8),
+                      const Icon(Icons.check_circle_rounded, size: 20),
+                      const SizedBox(width: 8),
                       Text(
                         'Create group',
-                        style: TextStyle(
+                        style: GoogleFonts.nunito(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                         ),

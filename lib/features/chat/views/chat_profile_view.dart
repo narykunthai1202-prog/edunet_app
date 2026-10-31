@@ -5,6 +5,7 @@ import 'package:edunest_app/features/chat/widgets/chat_options_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../services/chat_block_ext.dart';
 import '../services/chat_service.dart';
 import '../widgets/shared_media_tabs.dart';
 
@@ -29,8 +30,16 @@ class ChatProfileView extends StatefulWidget {
 }
 
 class _ChatProfileViewState extends State<ChatProfileView> {
-  static const _blue = Color(0xFF2563EB);
-  static const _muted = Color(0xFF64748B);
+  // 🎨 Profile colors (edit here to restyle the whole screen)
+  static const _plum = Color(0xFF6B4A5B); // main accent
+  static const _plumLight = Color(0xFFA58A92); // gradient end
+  static const _rose = Color(0xFFE0BCC4); // dusty rose badges
+  static const _card = Color(0xFFEEE8E7); // dialog / card surface
+  static const _field = Color(0xFFE5DFDC); // inputs, cancel buttons
+  static const _textDark = Color(0xFF3A2A32); // dark plum-brown text
+  static const _muted = Color(0xFF7A6670); // muted text
+  static const _danger = Color(0xFFC2674B); // terracotta (block / purge)
+  static const _warn = Color(0xFFD08A4E); // dusty orange (report)
 
   final ChatService _chatService = ChatService();
   bool isMuted = false;
@@ -39,7 +48,6 @@ class _ChatProfileViewState extends State<ChatProfileView> {
 
   String? _nickname;
   StreamSubscription<String?>? _nickSub;
-
   bool get _hasNickname => _nickname != null && _nickname!.isNotEmpty;
   String get _displayName => _hasNickname ? _nickname! : widget.receiverName;
 
@@ -60,6 +68,8 @@ class _ChatProfileViewState extends State<ChatProfileView> {
         .map(
           (snap) => snap.docs
               .map((d) => MessageModel.fromMap(d.data(), d.id))
+              // don't count media the user deleted
+              .where((m) => !m.isHiddenFor(widget.currentUserId))
               .toList(),
         );
 
@@ -149,14 +159,21 @@ class _ChatProfileViewState extends State<ChatProfileView> {
     }
   }
 
+  // Shared look for the Cancel button in all dialogs
+  ButtonStyle get _cancelStyle => TextButton.styleFrom(
+    backgroundColor: _field,
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  );
+
   Future<void> _handleBlockUser() async {
     final confirm = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black54,
       builder: (context) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: _card,
         insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           child: Column(
@@ -165,15 +182,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFEE2E2),
+                decoration: BoxDecoration(
+                  color: _danger.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.block,
-                  color: Color(0xFFEF4444),
-                  size: 32,
-                ),
+                child: const Icon(Icons.block, color: _danger, size: 32),
               ),
               const SizedBox(height: 18),
               Text(
@@ -182,31 +195,26 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: _textDark,
                 ),
               ),
               const SizedBox(height: 10),
               const Text(
                 "They won't be able to message or call you, and you won't be able to message or call them unless you unblock.",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
+                style: TextStyle(fontSize: 14, color: _muted, height: 1.4),
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFF1F4F9),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                      style: _cancelStyle,
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: _textDark,
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
                         ),
@@ -217,10 +225,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   Expanded(
                     child: TextButton(
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
+                        backgroundColor: _danger,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       onPressed: () => Navigator.pop(context, true),
@@ -245,7 +253,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
     if (confirm != true) return;
 
     try {
-      await _chatService.blockUser(widget.currentUserId, widget.receiverId);
+           await _chatService.blockUserBothWays(widget.currentUserId, widget.receiverId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -280,10 +288,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       barrierColor: Colors.black54,
       builder: (context) => StatefulBuilder(
         builder: (context, setLocal) => Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: _card,
           insetPadding: const EdgeInsets.symmetric(horizontal: 32),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
@@ -296,15 +304,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                     child: Container(
                       width: 64,
                       height: 64,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFEF3C7),
+                      decoration: BoxDecoration(
+                        color: _warn.withValues(alpha: 0.18),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.flag,
-                        color: Color(0xFFF59E0B),
-                        size: 32,
-                      ),
+                      child: const Icon(Icons.flag, color: _warn, size: 32),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -314,6 +318,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: _textDark,
                       ),
                     ),
                   ),
@@ -322,7 +327,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                     (r) => RadioListTile<String>(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      title: Text(r),
+                      activeColor: _plum,
+                      title: Text(
+                        r,
+                        style: const TextStyle(color: _textDark),
+                      ),
                       value: r,
                       groupValue: selected,
                       onChanged: (v) => setLocal(() => selected = v),
@@ -332,12 +341,14 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   TextField(
                     controller: detailsController,
                     maxLines: 3,
+                    cursorColor: _plum,
                     decoration: InputDecoration(
                       hintText: 'Add details (optional)',
+                      hintStyle: const TextStyle(color: _muted),
                       filled: true,
-                      fillColor: const Color(0xFFF1F4F9),
+                      fillColor: _field,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -347,18 +358,12 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                     children: [
                       Expanded(
                         child: TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFFF1F4F9),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
+                          style: _cancelStyle,
                           onPressed: () => Navigator.pop(context, false),
                           child: const Text(
                             'Cancel',
                             style: TextStyle(
-                              color: Colors.black87,
+                              color: _textDark,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -370,10 +375,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                           style: TextButton.styleFrom(
                             backgroundColor: selected == null
                                 ? Colors.grey.shade300
-                                : const Color(0xFFF59E0B),
+                                : _warn,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           onPressed: selected == null
@@ -428,20 +433,20 @@ class _ChatProfileViewState extends State<ChatProfileView> {
     Widget pill(IconData icon, String text) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: _field,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: const Color(0xFF64748B)),
+          Icon(icon, size: 15, color: _muted),
           const SizedBox(width: 6),
           Text(
             text,
             style: const TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF475569),
+              color: _textDark,
             ),
           ),
         ],
@@ -452,9 +457,9 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       context: context,
       barrierColor: Colors.black54,
       builder: (context) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: _card,
         insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           child: Column(
@@ -463,13 +468,13 @@ class _ChatProfileViewState extends State<ChatProfileView> {
               Container(
                 width: 68,
                 height: 68,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFEE2E2),
+                decoration: BoxDecoration(
+                  color: _danger.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.delete_forever_rounded,
-                  color: Color(0xFFEF4444),
+                  color: _danger,
                   size: 36,
                 ),
               ),
@@ -480,18 +485,14 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
+                  color: _textDark,
                 ),
               ),
               const SizedBox(height: 10),
               const Text(
                 'Everything in this conversation will be deleted for good:',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF64748B),
-                  height: 1.4,
-                ),
+                style: TextStyle(fontSize: 14, color: _muted, height: 1.4),
               ),
               const SizedBox(height: 14),
               Wrap(
@@ -513,9 +514,9 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFFECACA)),
+                  color: _danger.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _danger.withValues(alpha: 0.25)),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -523,13 +524,13 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                     Icon(
                       Icons.warning_amber_rounded,
                       size: 18,
-                      color: Color(0xFFEF4444),
+                      color: _danger,
                     ),
                     SizedBox(width: 8),
                     Text(
                       'This action cannot be undone.',
                       style: TextStyle(
-                        color: Color(0xFFDC2626),
+                        color: _danger,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -542,18 +543,12 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFF1F4F9),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                      style: _cancelStyle,
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: _textDark,
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
                         ),
@@ -564,10 +559,10 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   Expanded(
                     child: TextButton(
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
+                        backgroundColor: _danger,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       onPressed: () => Navigator.pop(context, true),
@@ -633,7 +628,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
+            color: _textDark,
             size: 18,
           ),
           onPressed: () => Navigator.pop(context),
@@ -641,7 +636,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
         title: const Text(
           'PROFILE',
           style: TextStyle(
-            color: Colors.white,
+            color: _textDark,
             fontSize: 13,
             fontWeight: FontWeight.w900,
             letterSpacing: 2.0,
@@ -688,7 +683,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       padding: EdgeInsets.fromLTRB(20, top + 6, 20, 26),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6), Color(0xFF60A5FA)],
+          colors: [Color(0xFFF2E2E6), _rose, Color(0xFFD3A9B4)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -696,11 +691,11 @@ class _ChatProfileViewState extends State<ChatProfileView> {
       ),
       child: Column(
         children: [
-          // avatar with white ring
+          // avatar with soft cream ring
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFF3EDEB),
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -712,7 +707,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
             ),
             child: CircleAvatar(
               radius: 52,
-              backgroundColor: const Color(0xFFDBEAFE),
+              backgroundColor: _rose,
               backgroundImage: profileImage,
               child: profileImage != null
                   ? null
@@ -722,7 +717,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                           : 'U',
                       style: const TextStyle(
                         fontSize: 42,
-                        color: _blue,
+                        color: _plum,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -737,7 +732,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
+              color: _textDark,
               fontSize: 24,
               fontWeight: FontWeight.w800,
             ),
@@ -747,7 +742,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 widget.receiverName,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                style: const TextStyle(color: _muted, fontSize: 13),
               ),
             ),
           const SizedBox(height: 10),
@@ -756,7 +751,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Row(
@@ -767,7 +762,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 Text(
                   'Active now',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: _textDark,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -818,21 +813,21 @@ class _ChatProfileViewState extends State<ChatProfileView> {
             height: 54,
             decoration: BoxDecoration(
               color: active
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.2),
+                  ? _plum
+                  : Colors.white.withValues(alpha: 0.65),
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: _plum.withValues(alpha: 0.18),
                 width: 1,
               ),
             ),
-            child: Icon(icon, color: active ? _blue : Colors.white, size: 24),
+            child: Icon(icon, color: active ? Colors.white : _plum, size: 24),
           ),
           const SizedBox(height: 8),
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white,
+              color: _textDark,
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
             ),
@@ -855,7 +850,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
         border: Border.all(color: colors.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+            color: _plum.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -871,7 +866,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                 height: 36,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                    colors: [_plumLight, _plum],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -897,14 +892,14 @@ class _ChatProfileViewState extends State<ChatProfileView> {
           const SizedBox(height: 12),
           _safetyRow(
             icon: Icons.block_rounded,
-            color: const Color(0xFFEF4444),
+            color: _danger,
             title: 'Block user',
             subtitle: 'Stop messages and calls',
             onTap: _handleBlockUser,
           ),
           _safetyRow(
             icon: Icons.delete_outline_rounded,
-            color: const Color(0xFFEF4444),
+            color: _danger,
             title: 'Purge messages',
             subtitle: 'Delete the whole conversation',
             onTap: _handlePurgeMessages,
@@ -924,7 +919,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Material(
-        color: color.withValues(alpha: 0.07),
+        color: color.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -937,7 +932,7 @@ class _ChatProfileViewState extends State<ChatProfileView> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.14),
+                    color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: color, size: 22),

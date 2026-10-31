@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/message_model.dart';
 
+// 🎨 Sheet colors (edit here to restyle the whole sheet)
+const Color _kSheetBg = Color(0xFFE3DDDA); // warm beige-gray (like your feed)
+const Color _kCard = Color(0xFFEEE8E7); // soft cream-pink (like your post cards)
+const Color _kBadge = Color(0xFFE0BCC4); // dusty rose icon badge
+const Color _kPlum = Color(0xFF6B4A5B); // icons + selected emoji
+const Color _kTextDark = Color(0xFF3A2A32); // dark plum-brown text
+const Color _kMuted = Color(0xFF9A8890); // chevrons / handle
+const Color _kDelete = Color(0xFFC2674B); // terracotta (destructive)
+
 class MessageOptionsSheet extends StatefulWidget {
   final MessageModel message;
   final String currentUserId;
@@ -12,6 +21,12 @@ class MessageOptionsSheet extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onCopy;
   final VoidCallback onUnsend;
+
+  // NEW (optional, used by the group chat only).
+  // If null, the tile is simply not shown, so the 1-to-1 chat is unchanged.
+  final VoidCallback? onPin;
+  final String pinTitle;
+  final VoidCallback? onSeenBy;
 
   const MessageOptionsSheet({
     super.key,
@@ -23,6 +38,9 @@ class MessageOptionsSheet extends StatefulWidget {
     required this.onDelete,
     required this.onCopy,
     required this.onUnsend,
+    this.onPin,
+    this.pinTitle = 'Pin message',
+    this.onSeenBy,
   });
 
   @override
@@ -42,14 +60,12 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMe = widget.message.senderId == widget.currentUserId;
-
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
+          color: _kSheetBg.withValues(alpha: 0.96),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           boxShadow: [
             BoxShadow(
@@ -67,22 +83,22 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
               width: 40,
               height: 4.5,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: _kMuted.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
             const SizedBox(height: 20),
 
-            // 2️⃣ Floating Animated Emoji Reaction Capsule
+            // 2️⃣ Emoji Reaction Capsule
             Container(
               height: 58,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _kCard,
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 15,
                     spreadRadius: 1,
                     offset: const Offset(0, 4),
@@ -107,40 +123,46 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
             ),
             const SizedBox(height: 24),
 
-            // 3️⃣ Modern Grouped Actions Menu
+            // 3️⃣ Grouped Actions Menu
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: Container(
-                color: Colors.grey.shade100.withValues(alpha: 0.8),
+                color: _kCard,
                 child: Column(
                   children: [
                     _buildOptionTile(
                       icon: Icons.reply_rounded,
-                      color: const Color(0xFF2563EB),
                       title: 'Reply',
                       onTap: () {
                         Navigator.pop(context);
                         widget.onReply();
                       },
                     ),
-                    if (widget.message.type != 'image' && !widget.message.isDeleted) ...[
+                    if (widget.message.type != 'image' &&
+                        !widget.message.isDeleted) ...[
                       _buildDivider(),
                       _buildOptionTile(
                         icon: Icons.copy_rounded,
-                        color: const Color(0xFF6366F1),
                         title: 'Copy Text',
                         onTap: () {
-                          Clipboard.setData(ClipboardData(text: widget.message.text));
+                          Clipboard.setData(
+                            ClipboardData(text: widget.message.text),
+                          );
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Row(
                                 children: [
-                                  Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 8),
                                   Text('Copied to clipboard'),
                                 ],
                               ),
+                              backgroundColor: _kPlum,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -155,18 +177,46 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
                     _buildDivider(),
                     _buildOptionTile(
                       icon: Icons.shortcut_rounded,
-                      color: const Color(0xFFF59E0B),
                       title: 'Forward',
                       onTap: () {
                         Navigator.pop(context);
                         widget.onForward();
                       },
                     ),
-                    if (isMe && !widget.message.isDeleted) ...[
+
+                    // NEW: group only - who has seen this message
+                    if (widget.onSeenBy != null) ...[
+                      _buildDivider(),
+                      _buildOptionTile(
+                        icon: Icons.done_all_rounded,
+                        title: 'Seen by',
+                        onTap: () {
+                          Navigator.pop(context);
+                          widget.onSeenBy!();
+                        },
+                      ),
+                    ],
+
+                    // NEW: group only - pin / unpin (admins)
+                    if (widget.onPin != null) ...[
+                      _buildDivider(),
+                      _buildOptionTile(
+                        icon: Icons.push_pin_rounded,
+                        title: widget.pinTitle,
+                        onTap: () {
+                          Navigator.pop(context);
+                          widget.onPin!();
+                        },
+                      ),
+                    ],
+
+                    // Delete is available on every message now:
+                    // your own = "for me" or "for everyone",
+                    // other person's = "for me" only (handled in chat_view).
+                    if (!widget.message.isDeleted) ...[
                       _buildDivider(),
                       _buildOptionTile(
                         icon: Icons.delete_outline_rounded,
-                        color: const Color(0xFFEF4444),
                         title: 'Delete Message',
                         isDestructive: true,
                         onTap: () {
@@ -191,17 +241,21 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
       thickness: 1,
       indent: 52,
       endIndent: 16,
-      color: Colors.grey.shade300.withValues(alpha: 0.5),
+      color: _kMuted.withValues(alpha: 0.25),
     );
   }
 
   Widget _buildOptionTile({
     required IconData icon,
-    required Color color,
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
+    final iconColor = isDestructive ? _kDelete : _kPlum;
+    final badgeColor = isDestructive
+        ? _kDelete.withValues(alpha: 0.15)
+        : _kBadge.withValues(alpha: 0.7);
+
     return Material(
       color: Colors.transparent,
       child: ListTile(
@@ -210,24 +264,21 @@ class _MessageOptionsSheetState extends State<MessageOptionsSheet> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 18),
+          decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+          child: Icon(icon, color: iconColor, size: 18),
         ),
         title: Text(
           title,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: isDestructive ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+            color: isDestructive ? _kDelete : _kTextDark,
           ),
         ),
         trailing: const Icon(
           Icons.arrow_forward_ios_rounded,
           size: 14,
-          color: Colors.grey,
+          color: _kMuted,
         ),
       ),
     );
@@ -268,7 +319,7 @@ class _EmojiButtonState extends State<_EmojiButton> {
           padding: const EdgeInsets.all(6),
           decoration: widget.isSelected
               ? BoxDecoration(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                  color: _kBadge.withValues(alpha: 0.8),
                   shape: BoxShape.circle,
                 )
               : null,

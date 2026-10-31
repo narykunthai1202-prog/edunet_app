@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/message_model.dart';
 
+// Color of YOUR sent messages (plum, matches the mic button)
+const Color _kSentColor = Color(0xFF6B4A5B);
+// Color of the double-check when the message was seen
+const Color _kSeenTick = Color(0xFFF2C6D6);
+
 class ChatTextBubble extends StatelessWidget {
   final MessageModel message;
   final bool isMe;
@@ -28,7 +33,7 @@ class ChatTextBubble extends StatelessWidget {
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF2563EB) : colors.surfaceContainerHighest,
+        color: isMe ? const Color.fromARGB(255, 43, 92, 238) : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           if (!isMe)
@@ -43,8 +48,6 @@ class ChatTextBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ↩️ FORWARDED INDICATOR BADGE
-          // Place this directly inside the main Column children list, before the ClipRRect image:
-
           if (message.isForwarded) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -80,7 +83,7 @@ class ChatTextBubble extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border(
                   left: BorderSide(
-                    color: isMe ? Colors.white : const Color(0xFF2563EB),
+                    color: isMe ? Colors.white : const Color.fromARGB(255, 192, 187, 190),
                     width: 3,
                   ),
                 ),
@@ -122,16 +125,13 @@ class ChatTextBubble extends StatelessWidget {
             ),
           ],
 
+          // Deleted messages are removed from the list before they get here,
+          // so the bubble only ever shows the real message text.
           Text(
-            message.isDeleted ? '🚫 This message was deleted' : message.text,
+            message.text,
             style: TextStyle(
-              color: message.isDeleted
-                  ? Colors.grey
-                  : (isMe ? Colors.white : colors.onSurface),
+              color: isMe ? Colors.white : colors.onSurface,
               fontSize: 15,
-              fontStyle: message.isDeleted
-                  ? FontStyle.italic
-                  : FontStyle.normal,
             ),
           ),
 
@@ -174,7 +174,7 @@ class ChatTextBubble extends StatelessWidget {
                   message.isSeen ? Icons.done_all : Icons.done,
                   size: 14,
                   color: message.isSeen
-                      ? const Color(0xFF93C5FD)
+                      ? _kSeenTick
                       : Colors.white70,
                 ),
               ],

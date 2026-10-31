@@ -13,4 +13,14 @@ abstract class AuthRepo {
   Future<void> logout();
   Future<AppUser?> getCurrentUser();
   Future<AppUser?> signInWithGoogle();
+  Future<bool> needsGoogleProfileCompletion(String uid);
+
+Future<void> completeGoogleProfile({
+  required String uid,
+  required String email,
+  required String name,
+  required String major,
+  required String university,
+});
+
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'cloudinary_service.dart';
+
 class GroupService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -56,7 +57,6 @@ class GroupService {
     });
     return ref.id;
   }
-
 
   Future<void> _logSystem(String groupId, String text) async {
     await _chat(groupId).collection('messages').add({
@@ -114,13 +114,16 @@ class GroupService {
       admins.add(participants.first);
     }
 
-    await _chat(groupId).update({
-      'participants': participants,
-      'adminIds': admins,
-    });
+    // Log first: after the update the user is no longer a participant
+    // and may not be allowed to write to the group any more.
     if (participants.isNotEmpty) {
       await _logSystem(groupId, '$userId left the group');
     }
+    await _chat(groupId).update({
+      'participants': participants,
+      'adminIds': admins,
+      'typing_$userId': FieldValue.delete(),
+    });
   }
 
   Future<void> sendMessage({
@@ -152,6 +155,42 @@ class GroupService {
     await batch.commit();
   }
 
+  /// Text message with optional @mentions and an optional reply quote.
+  Future<void> sendTextWithMentions({
+    required String groupId,
+    required String senderId,
+    required String text,
+    required List<String> mentions,
+    required List<String> participants,
+    String? replyToText,
+    String? replyToSender,
+  }) async {
+    final batch = _db.batch();
+    final msgRef = _chat(groupId).collection('messages').doc();
+    batch.set(msgRef, {
+      'senderId': senderId,
+      'type': 'text',
+      'text': text,
+      if (mentions.isNotEmpty) 'mentions': mentions,
+      if (replyToText != null) 'replyToText': replyToText,
+      if (replyToSender != null) 'replyToSender': replyToSender,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    final updates = <String, dynamic>{
+      'lastMessage': text,
+      'lastMessageSenderId': senderId,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    };
+    for (final id in participants) {
+      if (id != senderId) {
+        updates['unreadCount_$id'] = FieldValue.increment(1);
+      }
+    }
+    batch.update(_chat(groupId), updates);
+    await batch.commit();
+  }
+
   /// Generic sender for non-text messages (image, audio, sticker, file...).
   /// [content] is stored in `text` (image/audio/file URL or sticker asset path),
   /// [preview] is what the chat list shows (e.g. '📷 Photo').
@@ -165,8 +204,8 @@ class GroupService {
     required String preview,
     required List<String> participants,
     int? duration,
-    String? fileName, // NEW
-    int? fileSize, // NEW
+    String? fileName,
+    int? fileSize,
   }) async {
     final batch = _db.batch();
     final msgRef = _chat(groupId).collection('messages').doc();
@@ -219,9 +258,7 @@ class GroupService {
     );
   }
 
-  /// NEW: sends an already-uploaded file (url from Cloudinary) to the group.
-  /// Goes through sendMedia, so the chat list "last message" and the unread
-  /// counters are updated like every other message type.
+  /// Sends an already-uploaded file (url from Cloudinary) to the group.
   Future<void> sendFile({
     required String groupId,
     required String senderId,
@@ -258,4 +295,171 @@ class GroupService {
 
   Future<void> markRead(String groupId, String userId) =>
       _chat(groupId).update({'unreadCount_$userId': 0});
+
+  // ------------------------------------------------------------------ block
+
+  /// Personal block list, stored on the user's own doc as `blockedUsers`.
+  Future<void> blockUser(String myId, String targetId) =>
+      _db.collection('users').doc(myId).set({
+        'blockedUsers': FieldValue.arrayUnion([targetId]),
+      }, SetOptions(merge: true));
+
+  Future<void> unblockUser(String myId, String targetId) =>
+      _db.collection('users').doc(myId).set({
+        'blockedUsers': FieldValue.arrayRemove([targetId]),
+      }, SetOptions(merge: true));
+
+  Stream<List<String>> watchBlocked(String myId) =>
+      _db.collection('users').doc(myId).snapshots().map((d) {
+        final raw = d.data()?['blockedUsers'];
+        return raw is List ? raw.map((e) => e.toString()).toList() : <String>[];
+      });
+
+  // ------------------------------------------------------------------ typing
+
+  /// Stored on the group doc as `typing_<uid>: true/false`.
+  Future<void> setGroupTyping(
+      String groupId, String userId, bool typing) async {
+    try {
+      await _chat(groupId).update({'typing_$userId': typing});
+    } catch (_) {}
+  }
+
+  // -------------------------------------------------------------------- pins
+
+  Future<void> pinGroupMessage(
+    String groupId, {
+    required String id,
+    required String text,
+    required String senderName,
+  }) =>
+      _chat(groupId).update({
+        'pinnedMessage': {
+          'id': id,
+          'text': text,
+          'senderName': senderName,
+          'pinnedAt': FieldValue.serverTimestamp(),
+        },
+      });
+
+  Future<void> unpinGroupMessage(String groupId) =>
+      _chat(groupId).update({'pinnedMessage': FieldValue.delete()});
+
+  // -------------------------------------------------------------------- seen
+
+  /// Adds [userId] to `seenBy` on each of the given messages.
+  Future<void> markGroupSeen(
+    String groupId,
+    String userId,
+    List<String> messageIds,
+  ) async {
+    if (messageIds.isEmpty) return;
+    try {
+      final batch = _db.batch();
+      for (final id in messageIds) {
+        batch.update(_chat(groupId).collection('messages').doc(id), {
+          'seenBy': FieldValue.arrayUnion([userId]),
+        });
+      }
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  // --------------------------------------------------------------- reactions
+
+  /// One reaction per user. Tapping the same emoji again removes it.
+  Future<void> toggleReaction(
+    String groupId,
+    String messageId,
+    String userId,
+    String emoji,
+  ) async {
+    final ref = _chat(groupId).collection('messages').doc(messageId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) return;
+      final reactions = snap.data()?['reactions'];
+      final current = reactions is Map ? reactions[userId] : null;
+      if (current == emoji) {
+        tx.update(ref, {'reactions.$userId': FieldValue.delete()});
+      } else {
+        tx.update(ref, {'reactions.$userId': emoji});
+      }
+    });
+  }
+
+  // ---------------------------------------------------------- unsend / delete
+
+  /// "Delete for everyone". The chat screen hides messages with isUnsent == true.
+  Future<void> unsendGroupMessage(String groupId, String messageId) =>
+      _chat(groupId).collection('messages').doc(messageId).update({
+        'isUnsent': true,
+        'text': '',
+      });
+
+  /// "Delete for me". The chat screen filters out messages whose
+  /// `deletedFor` list contains the current user.
+  Future<void> deleteMessageForMe(
+    String groupId,
+    String messageId,
+    String userId,
+  ) =>
+      _chat(groupId).collection('messages').doc(messageId).update({
+        'deletedFor': FieldValue.arrayUnion([userId]),
+      });
+
+  // ------------------------------------------------------------------- polls
+
+  Future<void> sendPoll({
+    required String groupId,
+    required String senderId,
+    required String question,
+    required List<String> options,
+    required List<String> participants,
+  }) async {
+    final batch = _db.batch();
+    final msgRef = _chat(groupId).collection('messages').doc();
+    batch.set(msgRef, {
+      'senderId': senderId,
+      'type': 'poll',
+      'text': question,
+      'pollOptions': options,
+      'votes': <String, dynamic>{}, // uid -> option index
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    final updates = <String, dynamic>{
+      'lastMessage': '📊 $question',
+      'lastMessageSenderId': senderId,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    };
+    for (final id in participants) {
+      if (id != senderId) {
+        updates['unreadCount_$id'] = FieldValue.increment(1);
+      }
+    }
+    batch.update(_chat(groupId), updates);
+    await batch.commit();
+  }
+
+  /// Cast or change a vote. Tapping your current choice removes the vote.
+  Future<void> votePoll(
+    String groupId,
+    String messageId,
+    String userId,
+    int optionIndex,
+  ) async {
+    final ref = _chat(groupId).collection('messages').doc(messageId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) return;
+      final votes = snap.data()?['votes'];
+      final current = votes is Map ? votes[userId] : null;
+      if (current is num && current.toInt() == optionIndex) {
+        tx.update(ref, {'votes.$userId': FieldValue.delete()});
+      } else {
+        tx.update(ref, {'votes.$userId': optionIndex});
+      }
+    });
+  }
 }

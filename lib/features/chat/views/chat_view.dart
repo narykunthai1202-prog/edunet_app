@@ -6,12 +6,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/presence.dart';
 import '../models/message_model.dart';
 import '../services/chat_service.dart';
+import '../services/chat_block_ext.dart'; // NEW
 import '../widgets/blocked_bar.dart';
 import '../widgets/chat_input_field.dart';
 import '../widgets/group_avatar.dart';
@@ -24,6 +26,16 @@ import '../widgets/forward_contact_sheet.dart';
 
 import 'package:zego_uikit_prebuilt_call/zego_uikit_prebuilt_call.dart';
 import 'package:zego_uikit/zego_uikit.dart';
+
+// Color of the delete dialog (change this one line to recolor it).
+const Color _kDeleteColor = Color(0xFFC2674B); // warm terracotta
+
+// App-bar icon color (your own 140,90,90 rose-brown, kept from your old file)
+const Color _kIconColor = Color.fromARGB(255, 140, 90, 90);
+// Plum used for your sent file bubble / picker icons (was blue)
+const Color _kPlum = Color(0xFF6B4A5B);
+// Color of YOUR file bubble (change this one line to recolor it)
+const Color _kFileColor = Color(0xFF2563EB); // same blue as your text bubbles
 
 class ChatView extends StatefulWidget {
   final String currentUserId;
@@ -49,8 +61,14 @@ class _ChatViewState extends State<ChatView> {
   final ChatService _chatService = ChatService();
   final ImagePicker _picker = ImagePicker();
   final ScrollController _scrollController = ScrollController();
+
+  // I blocked them
   bool isBlocked = false;
+  // NEW: they blocked me
+  bool theyBlockedMe = false;
+
   StreamSubscription<bool>? _blockSub;
+  StreamSubscription<bool>? _blockedBySub; // NEW
   StreamSubscription<User?>? _authSub;
   late final Stream<DocumentSnapshot<Map<String, dynamic>>>
   _receiverProfileStream;
@@ -58,6 +76,9 @@ class _ChatViewState extends State<ChatView> {
   MessageModel? replyingToMessage;
   bool _isTyping = false;
   Timer? _debounceTimer;
+
+  // NEW: true if a block exists in EITHER direction
+  bool get _chatLocked => isBlocked || theyBlockedMe;
 
   // Available everywhere in this class (not only inside build)
   String get _conversationId {
@@ -88,6 +109,8 @@ class _ChatViewState extends State<ChatView> {
       if (_isSessionValid && !isValid) {
         _blockSub?.cancel();
         _blockSub = null;
+        _blockedBySub?.cancel();
+        _blockedBySub = null;
         _chatService.updateUserPresence(widget.currentUserId, false);
         _chatService.setTypingStatus(
           widget.currentUserId,
@@ -95,9 +118,7 @@ class _ChatViewState extends State<ChatView> {
           false,
         );
       } else if (!_isSessionValid && isValid) {
-        _blockSub = _watchBlocked().listen((blocked) {
-          if (mounted) setState(() => isBlocked = blocked);
-        });
+        _startBlockListeners();
         _chatService.updateUserPresence(widget.currentUserId, true);
         _chatService.markMessagesAsSeen(
           widget.currentUserId,
@@ -107,9 +128,7 @@ class _ChatViewState extends State<ChatView> {
       if (mounted) setState(() => _isSessionValid = isValid);
     });
     if (_isSessionValid) {
-      _blockSub = _watchBlocked().listen((blocked) {
-        if (mounted) setState(() => isBlocked = blocked);
-      });
+      _startBlockListeners();
       _chatService.updateUserPresence(widget.currentUserId, true);
       _chatService.markMessagesAsSeen(widget.currentUserId, widget.receiverId);
     }
@@ -117,6 +136,25 @@ class _ChatViewState extends State<ChatView> {
 
   // ------------------------------------------------------------- blocking
 
+  // NEW: starts both listeners (I blocked them / they blocked me)
+  void _startBlockListeners() {
+    _blockSub?.cancel();
+    _blockedBySub?.cancel();
+
+    _blockSub = _watchBlocked().listen((blocked) {
+      if (mounted) setState(() => isBlocked = blocked);
+      // keep the marker the other user reads in sync (also fixes old blocks)
+      _chatService
+          .syncBlockMarker(widget.currentUserId, widget.receiverId, blocked)
+          .catchError((e) => debugPrint('sync block marker failed: $e'));
+    });
+
+    _blockedBySub = _watchBlockedBy().listen((blocked) {
+      if (mounted) setState(() => theyBlockedMe = blocked);
+    });
+  }
+
+  // I blocked them:  users/{me}/blocked/{them}
   Stream<bool> _watchBlocked() => FirebaseFirestore.instance
       .collection('users')
       .doc(widget.currentUserId)
@@ -125,12 +163,14 @@ class _ChatViewState extends State<ChatView> {
       .snapshots()
       .map((s) => s.exists);
 
-  Future<void> _unblock() => FirebaseFirestore.instance
-      .collection('users')
-      .doc(widget.currentUserId)
-      .collection('blocked')
-      .doc(widget.receiverId)
-      .delete();
+  // NEW - They blocked me: read the marker on the shared chat document
+  Stream<bool> _watchBlockedBy() => _chatService.watchBlockedByPeer(
+        widget.currentUserId,
+        widget.receiverId,
+      );
+
+  Future<void> _unblock() =>
+      _chatService.unblockUserBothWays(widget.currentUserId, widget.receiverId);
 
   // --------------------------------------------------------------- helpers
 
@@ -255,7 +295,8 @@ class _ChatViewState extends State<ChatView> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: isBlocked
+              // CHANGED: disabled if blocked in either direction
+              onPressed: _chatLocked
                   ? null
                   : () {
                       ZegoUIKitPrebuiltCallInvitationService().send(
@@ -306,7 +347,7 @@ class _ChatViewState extends State<ChatView> {
       ),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF2563EB) : colors.surfaceContainerHighest,
+        color: isMe ? _kFileColor : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
@@ -376,7 +417,7 @@ class _ChatViewState extends State<ChatView> {
                         : Icons.done_rounded,
                     size: 14,
                     color: message.isSeen
-                        ? Colors.lightBlueAccent
+                        ? const Color(0xFFF2C6D6)
                         : Colors.white70,
                   ),
                 ],
@@ -390,6 +431,7 @@ class _ChatViewState extends State<ChatView> {
 
   // 📸 Pick Image with Full Preview Dialog before uploading
   Future<void> _pickAndSendImage(ImageSource source) async {
+    if (_chatLocked) return; // NEW
     final XFile? pickedFile = await _picker.pickImage(
       source: source,
       imageQuality: 70,
@@ -402,6 +444,7 @@ class _ChatViewState extends State<ChatView> {
           builder: (_) => ImagePreviewDialog(
             imageFile: pickedFile,
             onSend: () async {
+              if (_chatLocked) return; // NEW
               try {
                 await _chatService.sendImageMessage(
                   senderId: widget.currentUserId,
@@ -435,7 +478,7 @@ class _ChatViewState extends State<ChatView> {
             ListTile(
               leading: const Icon(
                 Icons.camera_alt_rounded,
-                color: Color(0xFF2563EB),
+                color: _kPlum,
               ),
               title: const Text('Take a Photo'),
               onTap: () {
@@ -446,7 +489,7 @@ class _ChatViewState extends State<ChatView> {
             ListTile(
               leading: const Icon(
                 Icons.photo_library_rounded,
-                color: Color(0xFF2563EB),
+                color: _kPlum,
               ),
               title: const Text('Choose from Gallery'),
               onTap: () {
@@ -463,13 +506,14 @@ class _ChatViewState extends State<ChatView> {
   // 📎 File: uploaded by ChatInputField, saved here with the same
   // sendMessage() that your other message types use.
   Future<void> _sendFile(String url, String name, int size) async {
-    if (isBlocked) return;
+    if (_chatLocked) return;
     try {
-      await _chatService.sendMessage(
-        widget.currentUserId,
-        widget.receiverId,
-        url,
-        type: 'file',
+      await _chatService.sendFileWithName(
+        senderId: widget.currentUserId,
+        receiverId: widget.receiverId,
+        fileUrl: url,
+        fileName: name,
+        fileSize: size,
       );
       _scrollToBottom();
     } catch (e) {
@@ -536,12 +580,174 @@ class _ChatViewState extends State<ChatView> {
     );
   }
 
-  void _handleDelete(MessageModel message) async {
-    await _chatService.deleteMessage(
-      widget.currentUserId,
-      widget.receiverId,
-      message.id,
+  // 🗑️ DELETE
+  // Shows the confirm dialog. Result:
+  //   null  -> cancelled
+  //   false -> delete for me only
+  //   true  -> delete for everyone (sender only)
+  Future<bool?> _confirmDeleteMessage({required bool canDeleteForEveryone}) {
+    bool alsoForOther = false;
+    const surface = Colors.white;
+    const textDark = Color(0xFF1F2937);
+
+    return showDialog<bool?>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => Dialog(
+          backgroundColor: surface,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _kDeleteColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: _kDeleteColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Delete message',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: textDark,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Are you sure you want to delete this message?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
+                ),
+                if (canDeleteForEveryone) ...[
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () => setLocal(() => alsoForOther = !alsoForOther),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: alsoForOther
+                            ? _kDeleteColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: alsoForOther
+                              ? _kDeleteColor
+                              : Colors.black.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            alsoForOther
+                                ? Icons.check_circle_rounded
+                                : Icons.circle_outlined,
+                            size: 20,
+                            color: alsoForOther ? Colors.white : _kDeleteColor,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Also delete for ${widget.receiverName}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: alsoForOther ? Colors.white : textDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textDark,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          side: BorderSide(
+                            color: Colors.black.withValues(alpha: 0.12),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.pop(ctx, alsoForOther),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _kDeleteColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Delete'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+  }
+
+  Future<void> _handleDelete(MessageModel message) async {
+    if (!mounted) return;
+    final isMine = message.senderId == widget.currentUserId;
+
+    final forEveryone = await _confirmDeleteMessage(
+      canDeleteForEveryone: isMine,
+    );
+    if (forEveryone == null) return; // cancelled
+
+    try {
+      await _chatService.deleteMessage(
+        widget.currentUserId,
+        widget.receiverId,
+        message.id,
+        forEveryone: forEveryone,
+      );
+    } catch (e) {
+      _showError('Failed to delete message: $e');
+    }
   }
 
   void _handleUnsend(MessageModel message) async {
@@ -578,6 +784,7 @@ class _ChatViewState extends State<ChatView> {
   }
 
   void _handleTyping() {
+    if (_chatLocked) return; // NEW
     if (!_isTyping) {
       _isTyping = true;
       _chatService.setTypingStatus(
@@ -601,7 +808,7 @@ class _ChatViewState extends State<ChatView> {
   }
 
   void _sendMessage(String text) {
-    if (isBlocked) return;
+    if (_chatLocked) return; // CHANGED
     final trimmedText = text.trim();
     if (trimmedText.isNotEmpty) {
       if (replyingToMessage != null) {
@@ -635,6 +842,7 @@ class _ChatViewState extends State<ChatView> {
   @override
   void dispose() {
     _blockSub?.cancel();
+    _blockedBySub?.cancel(); // NEW
     _authSub?.cancel();
     _debounceTimer?.cancel();
     _scrollController.dispose();
@@ -705,10 +913,12 @@ class _ChatViewState extends State<ChatView> {
                         receiverName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        // Warmer, rounder font + dark plum instead of cold black
+                        style: GoogleFonts.nunito(
+                          color: const Color(0xFF3A2A32),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
                         ),
                       ),
                       if (snapshot.hasError)
@@ -727,9 +937,10 @@ class _ChatViewState extends State<ChatView> {
               ],
             ),
             actions: [
-              if (isBlocked)
+              // CHANGED: disabled if blocked in either direction
+              if (_chatLocked)
                 const IconButton(
-                  icon: Icon(Icons.call, color: Colors.grey),
+                  icon: Icon(Icons.call, color: _kIconColor),
                   onPressed: null,
                 )
               else
@@ -747,12 +958,12 @@ class _ChatViewState extends State<ChatView> {
                   iconSize: const Size(40, 40),
                   buttonSize: const Size(40, 40),
                   icon: ButtonIcon(
-                    icon: Icon(Icons.call, color: colors.primary),
+                    icon: Icon(Icons.call, color: _kIconColor),
                   ),
                 ),
-              if (isBlocked)
+              if (_chatLocked)
                 const IconButton(
-                  icon: Icon(Icons.videocam, color: Colors.grey),
+                  icon: Icon(Icons.videocam, color: _kIconColor),
                   onPressed: null,
                 )
               else
@@ -770,11 +981,11 @@ class _ChatViewState extends State<ChatView> {
                   iconSize: const Size(40, 40),
                   buttonSize: const Size(40, 40),
                   icon: ButtonIcon(
-                    icon: Icon(Icons.videocam, color: colors.primary),
+                    icon: Icon(Icons.videocam, color: _kIconColor),
                   ),
                 ),
               IconButton(
-                icon: Icon(Icons.info, color: colors.primary),
+                icon: Icon(Icons.info, color: _kIconColor),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -840,14 +1051,22 @@ class _ChatViewState extends State<ChatView> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final messages = snapshot.data ?? [];
+                final allMessages = snapshot.data ?? [];
 
-                if (messages.isNotEmpty) {
+                if (allMessages.isNotEmpty) {
                   _chatService.markMessagesAsSeen(
                     widget.currentUserId,
                     widget.receiverId,
                   );
-                } else {
+                }
+
+                // 🗑️ Hide messages I deleted "for me", and old messages that
+                // were soft-deleted (isDeleted: true). No placeholder bubble.
+                final messages = allMessages
+                    .where((m) => !m.isHiddenFor(widget.currentUserId))
+                    .toList();
+
+                if (messages.isEmpty) {
                   return const Center(
                     child: Text(
                       'No messages yet. Say hi! 👋',
@@ -933,15 +1152,19 @@ class _ChatViewState extends State<ChatView> {
           ),
 
           // 💬 REPLY BANNER
-          if (!isBlocked) _buildReplyBanner(),
+          if (!_chatLocked) _buildReplyBanner(),
 
-          // 📥 MESSAGE INPUT BAR, or the blocked bar
+          // 📥 MESSAGE INPUT BAR, or a blocked bar
           if (isBlocked)
+            // I blocked them -> Unblock / Delete
             BlockedBar(
               name: widget.receiverName,
               onUnblock: _unblock,
               onDelete: () => Navigator.pop(context),
             )
+          else if (theyBlockedMe)
+            // NEW: they blocked me -> can't reply
+            const BlockedByBar()
           else
             NotificationListener<KeepAliveNotification>(
               onNotification: (_) {

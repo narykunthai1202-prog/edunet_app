@@ -1,6 +1,7 @@
 // lib/chat/views/member_picker_view.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../widgets/member_profile_tile.dart';
 
@@ -24,6 +25,13 @@ class MemberPickerView extends StatefulWidget {
 }
 
 class _MemberPickerViewState extends State<MemberPickerView> {
+  // 🎨 Screen colors (edit here to restyle the whole screen)
+  static const _plum = Color(0xFF6B4A5B); // main accent
+  static const _rose = Color(0xFFE0BCC4); // dusty rose
+  static const _field = Color(0xFFE5DFDC); // input background
+  static const _textDark = Color(0xFF3A2A32); // dark plum-brown text
+  static const _muted = Color(0xFF7A6670); // muted text
+
   final TextEditingController _idController = TextEditingController();
   final Set<String> _selected = {};
   List<String> _contacts = [];
@@ -126,47 +134,116 @@ class _MemberPickerViewState extends State<MemberPickerView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('Select members'),
+        backgroundColor: colors.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: _textDark,
+        title: Text(
+          'Select members',
+          style: GoogleFonts.nunito(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            color: _textDark,
+          ),
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, _selected.toList()),
-            child: Text('Done (${_selected.length})'),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: Material(
+                color: _plum,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => Navigator.pop(context, _selected.toList()),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Done (${_selected.length})',
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _idController,
+                    cursorColor: _plum,
                     onSubmitted: (_) => _addById(),
+                    style: GoogleFonts.nunito(
+                      color: _textDark,
+                      fontWeight: FontWeight.w600,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Add by user ID (e.g. user3)',
+                      hintStyle: GoogleFonts.nunito(
+                        color: _muted.withValues(alpha: 0.7),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: _plum,
+                      ),
                       filled: true,
-                      fillColor: const Color(0xFFF1F5F9),
+                      fillColor: _field,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(26),
                         borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(26),
+                        borderSide: const BorderSide(color: _plum, width: 1.5),
                       ),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.person_add, color: Color(0xFF2563EB)),
-                  onPressed: _addById,
+                const SizedBox(width: 8),
+                Material(
+                  color: _rose.withValues(alpha: 0.8),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _addById,
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: _plum,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(color: _plum),
+                  )
                 : _loadError != null
                 ? Center(
                     child: Padding(
@@ -174,9 +251,14 @@ class _MemberPickerViewState extends State<MemberPickerView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Could not load members: $_loadError'),
+                          Text(
+                            'Could not load members: $_loadError',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.nunito(color: _muted),
+                          ),
                           const SizedBox(height: 12),
                           TextButton(
+                            style: TextButton.styleFrom(foregroundColor: _plum),
                             onPressed: _loadContacts,
                             child: const Text('Try again'),
                           ),
@@ -185,13 +267,36 @@ class _MemberPickerViewState extends State<MemberPickerView> {
                     ),
                   )
                 : _contacts.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No contacts yet. Add a user ID above.',
-                      style: TextStyle(color: Colors.grey),
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: _rose.withValues(alpha: 0.45),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.people_outline_rounded,
+                            size: 32,
+                            color: _plum.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'No contacts yet. Add a user ID above.',
+                          style: GoogleFonts.nunito(
+                            color: _muted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 24),
                     itemCount: _contacts.length,
                     itemBuilder: (context, i) {
                       final id = _contacts[i];

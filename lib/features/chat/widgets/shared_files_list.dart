@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/message_model.dart';
@@ -20,13 +22,38 @@ class SharedFilesList extends StatefulWidget {
 }
 
 class _SharedFilesListState extends State<SharedFilesList> {
-  late final Stream<List<MessageModel>> _stream;
+  late Stream<List<MessageModel>> _stream;
+  Timer? _timeoutTimer;
+  bool _timedOut = false;
+
+  /// How long we wait for the first data before showing a retry message.
+  static const Duration _firstDataTimeout = Duration(seconds: 8);
 
   @override
   void initState() {
     super.initState();
+    _startListening();
+  }
+
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startListening() {
+    _timedOut = false;
     _stream = ChatService()
         .getMessagesStream(widget.currentUserId, widget.receiverId);
+
+    _timeoutTimer?.cancel();
+    _timeoutTimer = Timer(_firstDataTimeout, () {
+      if (mounted) setState(() => _timedOut = true);
+    });
+  }
+
+  void _retry() {
+    setState(_startListening);
   }
 
   String _nameOf(MessageModel m) {
@@ -75,34 +102,72 @@ class _SharedFilesListState extends State<SharedFilesList> {
     }
   }
 
+  Widget _message(String text, {bool showRetry = false}) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+            ),
+            if (showRetry) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _retry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<MessageModel>>(
       stream: _stream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        // 1. Show errors instead of spinning forever
+        if (snapshot.hasError) {
+          debugPrint('SharedFilesList stream error: ${snapshot.error}');
+          return _message('Could not load files.\n${snapshot.error}',
+              showRetry: true);
+        }
+
+        // 2. Still waiting for the first data
+        if (!snapshot.hasData) {
+          if (_timedOut) {
+            return _message(
+              'Loading is taking too long.\nCheck your connection and try again.',
+              showRetry: true,
+            );
+          }
           return const Center(child: CircularProgressIndicator(strokeWidth: 2));
         }
 
-        final files = (snapshot.data ?? [])
+        // Data arrived, no need for the timeout anymore
+        _timeoutTimer?.cancel();
+
+        final files = snapshot.data!
             .where((m) => m.type == 'file' && !m.isDeleted)
             .toList()
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // newest first
 
         if (files.isEmpty) {
-          return const Center(
-            child: Text(
-              'No files shared yet',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-            ),
-          );
+          return _message('No files shared yet');
         }
 
         return ListView.separated(
           shrinkWrap: true,
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: files.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
+          separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, i) {
             final m = files[i];
             final name = _nameOf(m);
@@ -110,8 +175,9 @@ class _SharedFilesListState extends State<SharedFilesList> {
                 ? m.fileUrl!
                 : m.text;
             final size = _sizeOf(m.fileSize);
-            final subtitle =
-                size.isEmpty ? _dateOf(m.timestamp) : '$size • ${_dateOf(m.timestamp)}';
+            final subtitle = size.isEmpty
+                ? _dateOf(m.timestamp)
+                : '$size • ${_dateOf(m.timestamp)}';
 
             return ListTile(
               dense: true,
@@ -139,10 +205,17 @@ class _SharedFilesListState extends State<SharedFilesList> {
               ),
               trailing: const Icon(Icons.open_in_new_rounded,
                   size: 18, color: Colors.grey),
-              onTap: () {
+              onTap: () async {
                 if (url.isEmpty) return;
-                launchUrl(Uri.parse(url),
-                    mode: LaunchMode.externalApplication);
+                final ok = await launchUrl(
+                  Uri.parse(url),
+                  mode: LaunchMode.externalApplication,
+                );
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open file')),
+                  );
+                }
               },
             );
           },

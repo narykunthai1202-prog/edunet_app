@@ -12,7 +12,20 @@
           "package_name": "com.example.edunest_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "16916775507-bspgifj8d20ese5g133h6nledsh2139l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.edunest_app",
+            "certificate_hash": "033fd3bf78eb69e8fbb90f9e1d64d22ca6e9ff92"
+          }
+        },
+        {
+          "client_id": "16916775507-1f86dft3upsojobbeiqn8k16psnv4b0g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBJa0foDno0RO0Gych2hh8dOaV1noAtTC0"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "16916775507-1f86dft3upsojobbeiqn8k16psnv4b0g.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "16916775507-ti1icilqsmar955gngrge02fp5go8va3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.edunestApp"
+              }
+            }
+          ]
         }
       }
     }

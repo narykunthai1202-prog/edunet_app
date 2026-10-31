@@ -647,23 +647,49 @@ Stream<String?> watchNickname(String uid, String chatId) {
 
   /// Soft delete a message ("Delete for Everyone")
   Future<void> deleteMessage(
-    String currentUserId,
-    String receiverId,
-    String messageId,
-  ) async {
-    final String chatRoomId = getChatRoomId(currentUserId, receiverId);
+  String currentUserId,
+  String receiverId,
+  String messageId, {
+  bool forEveryone = false,
+}) async {
+  final String chatRoomId = getChatRoomId(currentUserId, receiverId);
 
-    await _firestore
-        .collection('chats')
-        .doc(chatRoomId)
-        .collection('messages')
-        .doc(messageId)
-        .update({
-      'isDeleted': true,
-      'text': 'This message was deleted',
+  final ref = _firestore
+      .collection('chats')
+      .doc(chatRoomId)
+      .collection('messages')
+      .doc(messageId);
+
+  if (!forEveryone) {
+    // Hide for me only
+    await ref.update({
+      'deletedFor': FieldValue.arrayUnion([currentUserId]),
     });
+    return;
   }
 
+  // Delete for everyone
+  final snap = await ref.get();
+  final data = snap.data();
+  if (data == null) return;
+
+  // Only the sender may delete for everyone
+  if (data['senderId'] != currentUserId) return;
+
+  // Remove the voice / image file from Storage, if there is one
+  for (final key in ['imageUrl', 'audioUrl', 'voiceUrl', 'fileUrl']) {
+    final url = data[key];
+    if (url is String && url.isNotEmpty) {
+      try {
+        await FirebaseStorage.instance.refFromURL(url).delete();
+      } catch (_) {
+        // File already gone or not a Storage URL, keep going
+      }
+    }
+  }
+
+  await ref.delete();
+}
   /// Delete all messages in a specific chat room
   Future<void> deleteAllMessagesInRoom(
       String currentUserId, String receiverId) async {
