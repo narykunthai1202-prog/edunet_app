@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import '../controllers/voice_message_sender.dart';
 import '../controllers/voice_recorder_controller.dart';
 import '../services/cloudinary_service.dart';
+import 'video_preview_screen.dart';
 
 // Theme colors (replace with your theme file colors if you have them)
 const Color _plum = Color(0xFF6B4A5E);
@@ -121,28 +122,43 @@ class _ChatInputFieldState extends State<ChatInputField> {
   }
 
   Future<void> _pickAndSendVideo() async {
-    try {
-      final video = await ImagePicker().pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(minutes: 2),
-      );
-      if (video == null) return;
+  try {
+    // 1. Pick (no upload yet)
+    final video = await CloudinaryService.pickVideo();
+    if (video == null) return;
+    if (!mounted) return;
 
-      setState(() => _isUploadingVideo = true);
+    // 2. Preview, with Cancel and Send buttons
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => VideoPreviewScreen(file: video)),
+    );
+    if (ok != true) return;
 
-      await _chatService.sendVideoMessage(
-        chatId: widget.conversationId,
-        senderId: widget.currentUserId,
-        receiverId: widget.receiverId,
-        video: video,
-      );
-    } catch (e) {
-      _showError('Video was not sent: $e');
-    } finally {
-      if (mounted) setState(() => _isUploadingVideo = false);
+    setState(() => _isUploadingVideo = true);
+
+    // 3. Upload to Cloudinary
+    final uploaded = await CloudinaryService.uploadVideo(video);
+    if (uploaded == null) {
+      _showError('Video upload failed. Please try again.');
+      return;
     }
-  }
 
+    // 4. Save the message in Firestore
+    await _chatService.sendVideoMessage(
+      chatId: widget.conversationId,
+      senderId: widget.currentUserId,
+      receiverId: widget.receiverId,
+      videoUrl: uploaded.url,
+      fileName: uploaded.name,
+      fileSize: uploaded.size,
+    );
+  } catch (e) {
+    _showError('Video was not sent: $e');
+  } finally {
+    if (mounted) setState(() => _isUploadingVideo = false);
+  }
+}
   void _showAttachMenu() {
     showModalBottomSheet(
       context: context,

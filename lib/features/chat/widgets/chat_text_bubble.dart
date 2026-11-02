@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/message_model.dart';
 
@@ -23,9 +25,32 @@ class ChatTextBubble extends StatelessWidget {
     return text.startsWith('http://') || text.startsWith('https://');
   }
 
+  /// Opens a tapped link in the browser (or a new tab on web).
+  Future<void> _openLink(BuildContext context, LinkableElement link) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final uri = Uri.parse(link.url);
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Could not open this link')),
+        );
+      }
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not open this link')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
+    final textColor = isMe ? Colors.white : colors.onSurface;
+    // Light blue on my blue bubble, normal blue on the other person's bubble.
+    final linkColor =
+        isMe ? const Color(0xFFBFDBFE) : const Color(0xFF2563EB);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -33,7 +58,9 @@ class ChatTextBubble extends StatelessWidget {
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
       decoration: BoxDecoration(
-        color: isMe ? const Color.fromARGB(255, 43, 92, 238) : colors.surfaceContainerHighest,
+        color: isMe
+            ? const Color.fromARGB(255, 43, 92, 238)
+            : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           if (!isMe)
@@ -83,7 +110,9 @@ class ChatTextBubble extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border(
                   left: BorderSide(
-                    color: isMe ? Colors.white : const Color.fromARGB(255, 192, 187, 190),
+                    color: isMe
+                        ? Colors.white
+                        : const Color.fromARGB(255, 192, 187, 190),
                     width: 3,
                   ),
                 ),
@@ -125,15 +154,34 @@ class ChatTextBubble extends StatelessWidget {
             ),
           ],
 
-          // Deleted messages are removed from the list before they get here,
-          // so the bubble only ever shows the real message text.
-          Text(
-            message.text,
-            style: TextStyle(
-              color: isMe ? Colors.white : colors.onSurface,
-              fontSize: 15,
+          // Message text. Deleted messages show a plain placeholder,
+          // everything else is linkified so links can be tapped.
+          if (message.isDeleted)
+            const Text(
+              '🚫 This message was deleted',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 15,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            Linkify(
+              text: message.text,
+              onOpen: (link) => _openLink(context, link),
+              options: const LinkifyOptions(
+                humanize: false, // keep the full link visible
+                looseUrl: true, // also detect "google.com" without http
+                defaultToHttps: true,
+              ),
+              style: TextStyle(color: textColor, fontSize: 15),
+              linkStyle: TextStyle(
+                color: linkColor,
+                fontSize: 15,
+                decoration: TextDecoration.underline,
+                decorationColor: linkColor,
+              ),
             ),
-          ),
 
           if (message.reactions.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -173,9 +221,7 @@ class ChatTextBubble extends StatelessWidget {
                 Icon(
                   message.isSeen ? Icons.done_all : Icons.done,
                   size: 14,
-                  color: message.isSeen
-                      ? _kSeenTick
-                      : Colors.white70,
+                  color: message.isSeen ? _kSeenTick : Colors.white70,
                 ),
               ],
             ],

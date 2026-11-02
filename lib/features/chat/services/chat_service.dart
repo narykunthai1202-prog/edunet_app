@@ -77,27 +77,22 @@ Future<void> sendVideoMessage({
   required String chatId,
   required String senderId,
   required String receiverId,
-  required XFile video,
+  required String videoUrl,
+  String? fileName,
+  int? fileSize,
 }) async {
-  final bytes = await video.readAsBytes(); // works on web and mobile
-  if (bytes.length > 50 * 1024 * 1024) {
-    throw Exception('Video is larger than 50 MB');
-  }
-
-  final ref = FirebaseStorage.instance
-      .ref('chat_videos/$chatId/${DateTime.now().millisecondsSinceEpoch}.mp4');
-  await ref.putData(bytes, SettableMetadata(contentType: 'video/mp4'));
-  final url = await ref.getDownloadURL();
-
   await _sendMedia(
     chatId: chatId,
     senderId: senderId,
     receiverId: receiverId,
     content: {
-  'type': 'video',
-  'text': url,        // the bubble reads this
-  'videoUrl': url,
-},
+      'type': 'video',
+      'text': videoUrl, // the bubble reads this
+      'videoUrl': videoUrl,
+      'fileUrl': videoUrl, // MessageModel.fileUrl
+      'fileName': fileName,
+      'fileSize': fileSize,
+    },
     preview: '🎥 Video',
   );
 }
@@ -152,6 +147,58 @@ void listenForIncomingMessages({
     }
   });
 }
+/// Rewrites the chat's "last message" from the newest message that is
+/// not deleted. Call it after deleting a message for everyone.
+Future<void> _refreshLastMessage(String chatId) async {
+  final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+
+  final snap = await chatRef
+      .collection('messages')
+      .orderBy('timestamp', descending: true)
+      .limit(20)
+      .get();
+
+  MessageModel? latest;
+  for (final doc in snap.docs) {
+    final m = MessageModel.fromMap(doc.data(), doc.id);
+    if (!m.isDeleted) {
+      latest = m;
+      break;
+    }
+  }
+
+  if (latest == null) {
+    await chatRef.update({
+      'lastMessage': '',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+
+  String preview;
+  switch (latest.type) {
+    case 'image':
+      preview = '📷 Photo';
+      break;
+    case 'video':
+      preview = '🎥 Video';
+      break;
+    case 'audio':
+      preview = '🎤 Voice message';
+      break;
+    case 'file':
+      preview = '📎 ${latest.fileName ?? 'File'}';
+      break;
+    default:
+      preview = latest.text;
+  }
+
+  await chatRef.update({
+    'lastMessage': preview,
+    'lastMessageTime': Timestamp.fromDate(latest.timestamp),
+  });
+}
+
   Future<void> sendTextMessage({
   required String senderId,
   required String receiverId,
