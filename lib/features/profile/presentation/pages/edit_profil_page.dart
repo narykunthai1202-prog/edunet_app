@@ -741,7 +741,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             const SizedBox(height: 30),
             // SAVE BUTTON
-            // =================================================
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -751,7 +750,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
-                  backgroundColor: const Color.fromARGB(255, 224, 247, 250),
+                  backgroundColor: const Color.fromARGB(255, 67, 83, 85),
 
                   foregroundColor: const Color.fromARGB(255, 88, 84, 71),
 
@@ -773,10 +772,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
-
-  // =========================================================
-  // SECTION TITLE
-  // =========================================================
 
   Widget _sectionTitle(String title, IconData icon) {
     return Row(
@@ -807,10 +802,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
-
-  // =========================================================
-  // SETTING TILE
-  // =========================================================
 
   Widget _settingTile({
     required IconData icon,

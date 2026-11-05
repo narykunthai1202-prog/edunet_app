@@ -284,11 +284,6 @@ void showPhoneLoginDialog() {
 }
 
 
-  String _normalizePhoneNumber(String phone) {
-    return phone.replaceAll(RegExp(r'[\s()-]'), '');
-  }
-
- 
 Future<void> verifyPhoneNumber(String phone) async {
   if (phoneLoading) return;
 
@@ -889,36 +884,7 @@ Future<void> verifyPhoneNumber(String phone) async {
 
                                   const SizedBox(height: 10),
 
-                                  // ==================================================
-                                  // PHONE
-                                  // ==================================================
-                                  SizedBox(
-                                    width: double.infinity,
-
-                                    height: 45,
-
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                      ),
-
-                                      icon: const Icon(
-                                        Icons.phone,
-                                        size: 20,
-                                        color: Colors.green,
-                                      ),
-
-                                      label: const Text("Continue with Phone"),
-
-                                      onPressed: phoneLoading
-                                          ? null
-                                          : showPhoneLoginDialog,
-                                    ),
-                                  ),
+                                
                                 ],
                               ),
                             ),

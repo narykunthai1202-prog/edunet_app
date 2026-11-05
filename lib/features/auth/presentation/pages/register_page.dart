@@ -20,17 +20,31 @@ class _RegisterPageState extends State<RegisterPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool obscurePassword = true;
+  bool loading = false;
 
-  void registration() {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> registration() async {
+    if (loading || !_formKey.currentState!.validate()) {
       return;
     }
 
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final authCubit = context.read<AuthCubit>();
 
-    context.read<AuthCubit>().register(name, email, password);
+    setState(() => loading = true);
+    try {
+      await authCubit.register(name, email, password);
+    } catch (error) {
+      if (mounted) {
+        _showSnackBar(
+          error.toString().replaceFirst('Exception: ', ''),
+          Colors.redAccent,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   // ================= SNACKBAR =================
@@ -257,10 +271,11 @@ class _RegisterPageState extends State<RegisterPage> {
                               // ================= SIGN UP BUTTON =================
                               BlocBuilder<AuthCubit, AuthState>(
                                 builder: (context, state) {
-                                  final bool loading = state is AuthLoading;
+                                  final bool isLoading =
+                                      loading || state is AuthLoading;
 
                                   return GestureDetector(
-                                    onTap: loading ? null : registration,
+                                    onTap: isLoading ? null : registration,
                                     child: Material(
                                       elevation: 5,
                                       borderRadius: BorderRadius.circular(20),
@@ -270,7 +285,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                         ),
                                         width: 200,
                                         decoration: BoxDecoration(
-                                          color: loading
+                                          color: isLoading
                                               ? Colors.grey
                                               : const Color.fromARGB(
                                                   255,
@@ -283,7 +298,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                           ),
                                         ),
                                         child: Center(
-                                          child: loading
+                                          child: isLoading
                                               ? const SizedBox(
                                                   width: 22,
                                                   height: 22,
@@ -293,8 +308,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                                         color: Colors.white,
                                                       ),
                                                 )
-                                              : const Text(
-                                                  "SIGN UP",
+                                              : Text(
+                                                  "CREATE ACCOUNT",
                                                   style: TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 18,
@@ -353,28 +368,6 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
 
                               const SizedBox(height: 10),
-
-                              // ================= PHONE =================
-                              OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 45),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.phone,
-                                  size: 20,
-                                  color: Colors.green,
-                                ),
-                                label: const Text("Sign Up with Phone"),
-                                onPressed: () {
-                                  _showSnackBar(
-                                    "Phone signup is not connected to your AuthRepo yet.",
-                                    Colors.orange,
-                                  );
-                                },
-                              ),
                             ],
                           ),
                         ),

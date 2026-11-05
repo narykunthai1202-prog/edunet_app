@@ -235,8 +235,8 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
                       const Divider(height: 1),
                       _settingsTile(
                         icon: Iconsax.shield_tick,
-                        title: 'OTP Security Verification',
-                        subtitle: 'Test 2-step verification code',
+                        title: 'Email Security Verification',
+                        subtitle: 'Test verification Email',
                         onTap: _openOtpVerification,
                       ),
                     ],

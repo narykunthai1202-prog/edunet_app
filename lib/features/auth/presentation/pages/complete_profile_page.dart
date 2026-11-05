@@ -7,18 +7,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class CompleteProfilePage extends StatefulWidget {
   final AppUser user;
 
-  const CompleteProfilePage({
-    super.key,
-    required this.user,
-  });
+  const CompleteProfilePage({super.key, required this.user});
 
   @override
-  State<CompleteProfilePage> createState() =>
-      _CompleteProfilePageState();
+  State<CompleteProfilePage> createState() => _CompleteProfilePageState();
 }
 
-class _CompleteProfilePageState
-    extends State<CompleteProfilePage> {
+class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
@@ -49,7 +44,7 @@ class _CompleteProfilePageState
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    context.read<AuthCubit>().completeGoogleProfile(
+    context.read<AuthCubit>().completeProfile(
       name: _nameController.text,
       major: _majorController.text,
       university: _universityController.text,
@@ -58,6 +53,11 @@ class _CompleteProfilePageState
 
   @override
   Widget build(BuildContext context) {
+    final message = context.select<AuthCubit, String?>((cubit) {
+      final state = cubit.state;
+      return state is NeedsProfileCompletion ? state.message : null;
+    });
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -74,10 +74,7 @@ class _CompleteProfilePageState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(
-                      Icons.school_outlined,
-                      size: 64,
-                    ),
+                    const Icon(Icons.school_outlined, size: 64),
                     const SizedBox(height: 16),
                     const Text(
                       'Welcome to EduNest!',
@@ -92,6 +89,14 @@ class _CompleteProfilePageState
                       'Please complete your profile before continuing.',
                       textAlign: TextAlign.center,
                     ),
+                    if (message != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.deepOrange),
+                      ),
+                    ],
                     const SizedBox(height: 28),
 
                     TextFormField(
@@ -129,27 +134,27 @@ class _CompleteProfilePageState
                     ),
                     const SizedBox(height: 24),
 
-                   
-BlocBuilder<AuthCubit, AuthState>(
-  builder: (context, state) {
-    final isLoading = state is AuthLoading;
+                    BlocBuilder<AuthCubit, AuthState>(
+                      builder: (context, state) {
+                        final isLoading = state is AuthLoading;
 
-    return ElevatedButton(
-      onPressed: isLoading ? null : _submit,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-      ),
-      child: isLoading
-          ? const SizedBox(
-              height: 22,
-              width: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Text('Save and continue'),
-    );
-  },
-),
-
+                        return ElevatedButton(
+                          onPressed: isLoading ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Save and continue'),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

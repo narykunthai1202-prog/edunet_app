@@ -156,11 +156,6 @@ class MyDrawer extends StatelessWidget {
                       onTap: () => _openPage(context, const ArchivePage()),
                     ),
                     MyDrawerTile(
-                      icon: Iconsax.alarm,
-                      title: 'Reminder',
-                      onTap: () {},
-                    ),
-                    MyDrawerTile(
                       icon: Iconsax.security,
                       title: 'Privacy and Security',
                       onTap: () =>

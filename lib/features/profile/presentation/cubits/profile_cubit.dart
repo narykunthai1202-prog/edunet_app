@@ -27,6 +27,10 @@ class ProfileCubit extends Cubit<ProfileStates> {
     return null;
   }
 
+  void clearProfile() {
+    emit(ProfileInitial());
+  }
+
   //fetch user profile using repo
   Future<void> fetchUserProfile(String uid) async {
     if (uid.isEmpty) {
