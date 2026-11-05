@@ -365,6 +365,7 @@ class FirebasePostRepo implements PostRepo {
           .where((post) => !post.isDeleted)
           .toList();
 
+      posts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return posts;
     } catch (e) {
       print('🔥 FETCH PUBLIC POSTS ERROR: $e');
