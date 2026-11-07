@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/todo_item.dart';
-import '../theme/app_colors.dart';
 import 'day_cell.dart';
 
 const List<String> weekdayLabels = [
@@ -14,34 +13,65 @@ const List<String> weekdayLabels = [
   'Sat',
 ];
 
-/// Renders the weekday header row plus the 6-week grid of days for one
-/// month. Purely presentational — all data and navigation come from the
-/// parent (CalendarScreen) through callbacks.
+/// Renders the calendar grid showing ONLY the days of [visibleMonth].
+/// Days outside the month are left blank and non-interactive.
+/// When days have todos, they show as a list of chips inside the cell.
+/// The grid can scroll down smoothly to accommodate days with multiple tasks.
 class MonthGrid extends StatelessWidget {
   final DateTime visibleMonth;
   final DateTime today;
+  final DateTime? selectedDay;
   final Map<String, List<TodoItem>> todosByDay;
   final void Function(DateTime day) onOpenDay;
-  final void Function(TodoItem todo) onEditTodo;
-  final void Function(TodoItem todo) onDeleteTodo;
+  final void Function(DateTime day)? onSelectDay;
+  final void Function(TodoItem todo)? onEditTodo;
+  final void Function(TodoItem todo)? onDeleteTodo;
 
   const MonthGrid({
     super.key,
     required this.visibleMonth,
     required this.today,
+    this.selectedDay,
     required this.todosByDay,
     required this.onOpenDay,
-    required this.onEditTodo,
-    required this.onDeleteTodo,
+    this.onSelectDay,
+    this.onEditTodo,
+    this.onDeleteTodo,
   });
 
-  /// 42 cells (6 weeks x 7 days), including the trailing/leading days of
-  /// neighboring months, so every week row is always full.
-  List<DateTime> _buildGridDays() {
+  int _daysInMonth(DateTime date) {
+    return DateTime(date.year, date.month + 1, 0).day;
+  }
+
+  /// Builds a list of weeks, where each week has 7 slots.
+  /// Slots outside [visibleMonth] are null.
+  /// Only returns weeks that contain at least one day in [visibleMonth].
+  List<List<DateTime?>> _buildGridWeeks() {
     final firstOfMonth = DateTime(visibleMonth.year, visibleMonth.month, 1);
-    final firstWeekday = firstOfMonth.weekday % 7; // Sunday = 0
-    final gridStart = firstOfMonth.subtract(Duration(days: firstWeekday));
-    return List.generate(42, (i) => gridStart.add(Duration(days: i)));
+    final firstWeekday = firstOfMonth.weekday % 7; // Sunday = 0, Monday = 1, ...
+    final totalDays = _daysInMonth(visibleMonth);
+
+    final totalSlots = firstWeekday + totalDays;
+    final totalWeeks = (totalSlots / 7).ceil();
+
+    final weeks = <List<DateTime?>>[];
+    int currentDay = 1;
+
+    for (int w = 0; w < totalWeeks; w++) {
+      final week = <DateTime?>[];
+      for (int d = 0; d < 7; d++) {
+        final slotIndex = w * 7 + d;
+        if (slotIndex < firstWeekday || currentDay > totalDays) {
+          week.add(null);
+        } else {
+          week.add(DateTime(visibleMonth.year, visibleMonth.month, currentDay));
+          currentDay++;
+        }
+      }
+      weeks.add(week);
+    }
+
+    return weeks;
   }
 
   String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
@@ -51,67 +81,70 @@ class MonthGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gridDays = _buildGridDays();
+    final weeks = _buildGridWeeks();
+    const gridLineColor = Color(0xFFEFF0F4);
 
-    return Column(
-      children: [
-        _WeekdayHeaderRow(),
-        const Divider(height: 1),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: List.generate(6, (week) {
-                final weekDays = gridDays.sublist(week * 7, week * 7 + 7);
-                return IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: weekDays.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final day = entry.value;
-                      return Expanded(
-                        child: DayCell(
-                          day: day,
-                          inCurrentMonth: day.month == visibleMonth.month,
-                          isToday: _isSameDay(day, today),
-                          isSunday: index == 0,
-                          todos: todosByDay[_dayKey(day)] ?? [],
-                          onOpenDay: () => onOpenDay(day),
-                          onEditTodo: onEditTodo,
-                          onDeleteTodo: onDeleteTodo,
-                        ),
-                      );
-                    }).toList(),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        children: List.generate(weeks.length, (rowIndex) {
+          final week = weeks[rowIndex];
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: List.generate(7, (colIndex) {
+                final day = week[colIndex];
+
+                if (day == null) {
+                  return Expanded(
+                    child: DayCell(
+                      day: null,
+                      onOpenDay: () {},
+                      border: Border(
+                        right: colIndex < 6
+                            ? const BorderSide(color: gridLineColor, width: 1.0)
+                            : BorderSide.none,
+                        bottom: rowIndex < weeks.length - 1
+                            ? const BorderSide(color: gridLineColor, width: 1.0)
+                            : BorderSide.none,
+                      ),
+                    ),
+                  );
+                }
+
+                final isTodayDay = _isSameDay(day, today);
+                final isSelectedDay = selectedDay != null
+                    ? _isSameDay(day, selectedDay!)
+                    : isTodayDay;
+                final isSunday = colIndex == 0;
+                final dayTodos = todosByDay[_dayKey(day)] ?? [];
+
+                return Expanded(
+                  child: DayCell(
+                    day: day,
+                    isSelected: isSelectedDay,
+                    isToday: isTodayDay,
+                    isSunday: isSunday,
+                    todos: dayTodos,
+                    border: Border(
+                      right: colIndex < 6
+                          ? const BorderSide(color: gridLineColor, width: 1.0)
+                          : BorderSide.none,
+                      bottom: rowIndex < weeks.length - 1
+                          ? const BorderSide(color: gridLineColor, width: 1.0)
+                          : BorderSide.none,
+                    ),
+                    onOpenDay: () {
+                      if (onSelectDay != null) {
+                        onSelectDay!(day);
+                      }
+                      onOpenDay(day);
+                    },
+                    onEditTodo: onEditTodo,
+                    onDeleteTodo: onDeleteTodo,
                   ),
                 );
               }),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _WeekdayHeaderRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: List.generate(7, (i) {
-          final isSunday = i == 0;
-          return Expanded(
-            child: Center(
-              child: Text(
-                weekdayLabels[i],
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isSunday ? AppColors.sunday : colors.onSurfaceVariant,
-                ),
-              ),
             ),
           );
         }),

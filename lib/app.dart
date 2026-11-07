@@ -18,6 +18,7 @@ import 'package:edunest_app/features/search/presentation/cubits/search_cubit.dar
 import 'package:edunest_app/core/cubits/theme_cubit.dart';
 import 'package:edunest_app/themes/dark_mode.dart';
 import 'package:edunest_app/themes/light_mode.dart';
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -85,6 +86,9 @@ class MyApp extends StatelessWidget {
 
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) => MaterialApp(
+          useInheritedMediaQuery: true,
+          locale: DevicePreview.locale(context),
+          builder: DevicePreview.appBuilder,
           debugShowCheckedModeBanner: false,
           theme: lightMode,
           darkTheme: darkMode,
