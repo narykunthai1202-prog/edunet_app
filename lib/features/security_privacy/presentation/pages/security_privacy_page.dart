@@ -8,7 +8,6 @@ import '../../data/firebase_security_privacy_repo.dart';
 import '../components/blocked_users_sheet.dart';
 import '../components/change_email_dialog.dart';
 import '../components/change_password_dialog.dart';
-import '../components/otp_verification_sheet.dart';
 import '../components/privacy_policy_sheet.dart';
 
 class SecurityPrivacyPage extends StatefulWidget {
@@ -18,7 +17,7 @@ class SecurityPrivacyPage extends StatefulWidget {
   State<SecurityPrivacyPage> createState() => _SecurityPrivacyPageState();
 }
 
-class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
+class _SecurityPrivacyPageState extends State<SecurityPrivacyPage>  with WidgetsBindingObserver {
   final FirebaseSecurityPrivacyRepo _repo = FirebaseSecurityPrivacyRepo();
   Map<String, dynamic> _privacySettings = {
     'profileVisibility': 'Public',
@@ -31,12 +30,45 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
   bool get _isGoogleUser =>
       _firebaseUser?.providerData.any((p) => p.providerId == 'google.com') ??
       false;
+      
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadPrivacySettings();
+    _syncEmailChange();
   }
+ @override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  if (state == AppLifecycleState.resumed) {
+    _refreshEmailStatus();
+    _syncEmailChange();
+  }
+}
+
+Future<void> _syncEmailChange() async {
+  final updated = await _repo.syncVerifiedEmailChange();
+
+  if (!mounted) return;
+
+  if (updated) {
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Your email address has been successfully updated!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+}
+
+@override
+void dispose() {
+  WidgetsBinding.instance.removeObserver(this);
+  super.dispose();
+}
 
   Future<void> _loadPrivacySettings() async {
     final uid = _firebaseUser?.uid;
@@ -54,31 +86,65 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
       setState(() => _isLoading = false);
     }
   }
+Future<void> _updateSetting(String key, dynamic val) async {
+  final uid = _firebaseUser?.uid;
+  if (uid == null) return;
 
-  Future<void> _updateSetting(String key, dynamic val) async {
-    final uid = _firebaseUser?.uid;
-    if (uid == null) return;
+  // Create a new map instead of modifying the existing map.
+  final updatedSettings = Map<String, dynamic>.from(_privacySettings);
+  updatedSettings[key] = val;
 
-    setState(() {
-      _privacySettings[key] = val;
-    });
+  setState(() {
+    _privacySettings = updatedSettings;
+  });
 
+  try {
+    await _repo.updatePrivacySettings(uid, updatedSettings);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Privacy setting updated.'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to update: $e')),
+    );
+  }
+}
+  Future<void> _sendEmailVerification() async {
     try {
-      await _repo.updatePrivacySettings(uid, _privacySettings);
+      await _repo.sendEmailVerificationLink();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Privacy setting updated.'),
-          duration: Duration(seconds: 1),
+          content: Text('Verification email sent. Please check your inbox.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update: $e')),
+        SnackBar( content: Text(
+          e.toString().replaceAll('Exception: ', ''),),
+        backgroundColor: Colors.red,),
       );
     }
   }
+  Future<void> _refreshEmailStatus() async {
+  await FirebaseAuth.instance.currentUser?.reload();
+
+  if (!mounted) return;
+
+  setState(() {});
+}
+
 
   void _openChangePassword() {
     if (_isGoogleUser) {
@@ -114,28 +180,6 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
     );
   }
 
-  void _openOtpVerification() {
-    final email = _firebaseUser?.email ?? '';
-    if (email.isEmpty) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => OtpVerificationSheet(
-        email: email,
-        purpose: 'security_check',
-        onVerified: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('OTP Security Verification confirmed!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   void _openBlockedUsers() {
     final uid = _firebaseUser?.uid ?? '';
@@ -229,16 +273,20 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
                       _settingsTile(
                         icon: Iconsax.sms,
                         title: 'Change Email Address',
-                        subtitle: currentUser?.email ?? 'Unknown',
+                        subtitle: _firebaseUser?.email ??
+    currentUser?.email ??
+    'Unknown',
                         onTap: _openChangeEmail,
                       ),
                       const Divider(height: 1),
-                      _settingsTile(
-                        icon: Iconsax.shield_tick,
-                        title: 'Email Security Verification',
-                        subtitle: 'Test verification Email',
-                        onTap: _openOtpVerification,
-                      ),
+                    _settingsTile(
+  icon: Iconsax.shield_tick,
+  title: 'Email Security Verification',
+  subtitle: _firebaseUser?.emailVerified == true
+      ? 'Your email is verified'
+      : 'Send a verification link to your email',
+  onTap: _sendEmailVerification,
+),
                     ],
                   ),
 
@@ -267,7 +315,7 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Profile Visibility',
+                                    'Infomation Visibility',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -275,7 +323,7 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
                                     ),
                                   ),
                                   Text(
-                                    'Controls who can view your academic profile',
+                                    'Controls who can view your academic information and profile details',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: colorScheme.secondary,
@@ -284,33 +332,36 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
                                 ],
                               ),
                             ),
-                            DropdownButton<String>(
-                              value: _privacySettings['profileVisibility'] ??
-                                  'Public',
-                              underline: const SizedBox(),
-                              dropdownColor: isDark
-                                  ? const Color(0xFF242227)
-                                  : Colors.white,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'Public',
-                                  child: Text('Public'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Friends Only',
-                                  child: Text('Friends Only'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Private',
-                                  child: Text('Private'),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  _updateSetting('profileVisibility', val);
-                                }
-                              },
-                            ),
+                           DropdownButton<String>(
+  value: ['Public', 'Friend', 'private'].contains(
+    _privacySettings['profileVisibility'],
+  )
+      ? _privacySettings['profileVisibility'] as String
+      : 'Public',
+  underline: const SizedBox(),
+  dropdownColor: isDark
+      ? const Color(0xFF242227)
+      : Colors.white,
+  items: const [
+    DropdownMenuItem(
+      value: 'Public',
+      child: Text('Public'),
+    ),
+    DropdownMenuItem(
+      value: 'Friend',
+      child: Text('Friends'),
+    ),
+    DropdownMenuItem(
+      value: 'private',
+      child: Text('Only Me'),
+    ),
+  ],
+  onChanged: (val) {
+    if (val != null) {
+      _updateSetting('profileVisibility', val);
+    }
+  },
+),
                           ],
                         ),
                       ),
@@ -383,7 +434,7 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
                       const Divider(height: 1),
                       _settingsTile(
                         icon: Iconsax.user_minus,
-                        title: 'Blocked Users',
+                        title: 'Reported Content',
                         subtitle: 'Review and manage unblocking peers',
                         onTap: _openBlockedUsers,
                       ),
@@ -438,6 +489,7 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
       ),
     );
   }
+  
 
   Widget _cardContainer({required List<Widget> children}) {
     final theme = Theme.of(context);
@@ -464,6 +516,7 @@ class _SecurityPrivacyPageState extends State<SecurityPrivacyPage> {
       child: Column(children: children),
     );
   }
+  
 
   Widget _settingsTile({
     required IconData icon,

@@ -91,23 +91,23 @@ class _ImagePostCardState extends State<ImagePostCard> {
                     },
 
                     itemBuilder: (context, index) {
-                      return CachedNetworkImage(
-                        imageUrl: widget.imageUrls[index],
-                        fit: BoxFit.cover,
-
-                        // Loading
-                        placeholder: (context, url) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
-
-                        // Error
-                        errorWidget: (context, url, error) {
-                          return const Center(
-                            child: Icon(Icons.broken_image, size: 40),
-                          );
-                        },
+                      return GestureDetector(
+                        onTap: () => _showImageViewer(index),
+                        onDoubleTap: widget.ondoubletap,
+                        child: CachedNetworkImage(
+                          imageUrl: widget.imageUrls[index],
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                          errorWidget: (context, url, error) {
+                            return const Center(
+                              child: Icon(Icons.broken_image, size: 40),
+                            );
+                          },
+                        ),
                       );
                     },
                   ),
@@ -221,28 +221,25 @@ class _ImagePostCardState extends State<ImagePostCard> {
               ),
 
               if (widget.imageUrls.length > 1)
-                GestureDetector(
-                  onDoubleTap: widget.ondoubletap,
-                  child: Positioned(
-                    bottom: 15,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(widget.imageUrls.length, (index) {
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          width: index == currentImageIndex ? 8 : 6,
-                          height: index == currentImageIndex ? 8 : 6,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withValues(
-                              alpha: index == currentImageIndex ? 1 : 0.5,
-                            ),
+                Positioned(
+                  bottom: 15,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(widget.imageUrls.length, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        width: index == currentImageIndex ? 8 : 6,
+                        height: index == currentImageIndex ? 8 : 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(
+                            alpha: index == currentImageIndex ? 1 : 0.5,
                           ),
-                        );
-                      }),
-                    ),
+                        ),
+                      );
+                    }),
                   ),
                 ),
 
@@ -355,6 +352,88 @@ class _ImagePostCardState extends State<ImagePostCard> {
             ),
           ),
       ],
+    );
+  }
+
+  void _showImageViewer(int initialIndex) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: _PostImageViewer(
+          imageUrls: widget.imageUrls,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+}
+
+class _PostImageViewer extends StatefulWidget {
+  final List<String> imageUrls;
+  final int initialIndex;
+
+  const _PostImageViewer({
+    required this.imageUrls,
+    required this.initialIndex,
+  });
+
+  @override
+  State<_PostImageViewer> createState() => _PostImageViewerState();
+}
+
+class _PostImageViewerState extends State<_PostImageViewer> {
+  late final PageController _pageController = PageController(
+    initialPage: widget.initialIndex,
+  );
+  late int _currentIndex = widget.initialIndex;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: widget.imageUrls.length > 1
+            ? Text('${_currentIndex + 1}/${widget.imageUrls.length}')
+            : null,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.imageUrls.length,
+        onPageChanged: (index) => setState(() {
+          _currentIndex = index;
+        }),
+        itemBuilder: (context, index) => InteractiveViewer(
+          minScale: 1,
+          maxScale: 4,
+          child: SizedBox.expand(
+            child: CachedNetworkImage(
+              imageUrl: widget.imageUrls[index],
+              fit: BoxFit.contain,
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+              errorWidget: (context, url, error) => const Center(
+                child: Icon(Icons.broken_image, color: Colors.white, size: 40),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
