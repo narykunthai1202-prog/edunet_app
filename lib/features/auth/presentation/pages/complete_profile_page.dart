@@ -1,3 +1,8 @@
+import 'package:edunest_app/core/theme/app_colors.dart';
+import 'package:edunest_app/core/theme/app_text_styles.dart';
+import 'package:edunest_app/core/widgets/custom_rounded_button.dart';
+import 'package:edunest_app/core/widgets/gradient_background.dart';
+import 'package:edunest_app/core/widgets/rounded_card.dart';
 import 'package:edunest_app/features/auth/domain/entities/app_user.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_states.dart';
@@ -45,117 +50,231 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<AuthCubit>().completeProfile(
-      name: _nameController.text,
-      major: _majorController.text,
-      university: _universityController.text,
+      name: _nameController.text.trim(),
+      major: _majorController.text.trim(),
+      university: _universityController.text.trim(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final message = context.select<AuthCubit, String?>((cubit) {
       final state = cubit.state;
       return state is NeedsProfileCompletion ? state.message : null;
     });
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Complete your profile'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'Complete Profile',
+          style: AppTextStyles.titleMedium.copyWith(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+          ),
+        ),
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 450),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Icon(Icons.school_outlined, size: 64),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Welcome to EduNest!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Please complete your profile before continuing.',
-                      textAlign: TextAlign.center,
-                    ),
-                    if (message != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.deepOrange),
-                      ),
-                    ],
-                    const SizedBox(height: 28),
-
-                    TextFormField(
-                      controller: _nameController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Full name',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validate,
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _majorController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Major',
-                        hintText: 'e.g. Information Technology',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validate,
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _universityController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'University',
-                        hintText: 'Enter your university name',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: _validate,
-                    ),
-                    const SizedBox(height: 24),
-
-                    BlocBuilder<AuthCubit, AuthState>(
-                      builder: (context, state) {
-                        final isLoading = state is AuthLoading;
-
-                        return ElevatedButton(
-                          onPressed: isLoading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+      body: GradientBackground(
+        showFloatingOrbs: true,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: RoundedCard(
+                  borderRadius: 28,
+                  padding: const EdgeInsets.all(28),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.25),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.school_rounded,
+                              size: 40,
+                              color: Colors.white,
+                            ),
                           ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Save and continue'),
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Welcome to EduNest!',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.titleLarge.copyWith(
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tell us a bit about your studies to personalize your experience.',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                        if (message != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurface : const Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppColors.warning),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+
+                        // Full name
+                        TextFormField(
+                          controller: _nameController,
+                          textCapitalization: TextCapitalization.words,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Full name',
+                            prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                            filled: true,
+                            fillColor: isDark ? AppColors.darkSurface : AppColors.background,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.darkDivider : AppColors.border,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.darkDivider : AppColors.border,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: _validate,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Major
+                        TextFormField(
+                          controller: _majorController,
+                          textCapitalization: TextCapitalization.words,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Major (e.g. Computer Science, Law)',
+                            prefixIcon: const Icon(Icons.auto_stories_outlined, size: 20),
+                            filled: true,
+                            fillColor: isDark ? AppColors.darkSurface : AppColors.background,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.darkDivider : AppColors.border,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.darkDivider : AppColors.border,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: _validate,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // University
+                        TextFormField(
+                          controller: _universityController,
+                          textCapitalization: TextCapitalization.words,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'University / Institution',
+                            prefixIcon: const Icon(Icons.account_balance_outlined, size: 20),
+                            filled: true,
+                            fillColor: isDark ? AppColors.darkSurface : AppColors.background,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.darkDivider : AppColors.border,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColors.darkDivider : AppColors.border,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: _validate,
+                        ),
+                        const SizedBox(height: 26),
+
+                        BlocBuilder<AuthCubit, AuthState>(
+                          builder: (context, state) {
+                            final isLoading = state is AuthLoading;
+
+                            return CustomRoundedButton(
+                              text: 'Save and Continue',
+                              onPressed: isLoading ? null : _submit,
+                              isLoading: isLoading,
+                              height: 52,
+                              borderRadius: 26,
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

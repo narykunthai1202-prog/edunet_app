@@ -64,8 +64,6 @@ class _PostPageState extends State<PostPage> {
   }
 
   void fetchforyou() {
-    final user = context.read<ProfileCubit>().currentUser;
-    if (user == null) return;
     postCubit.fetchAllPostsbypublic();
   }
 

@@ -1,3 +1,8 @@
+import 'package:edunest_app/core/theme/app_colors.dart';
+import 'package:edunest_app/core/theme/app_text_styles.dart';
+import 'package:edunest_app/core/widgets/custom_rounded_button.dart';
+import 'package:edunest_app/core/widgets/gradient_background.dart';
+import 'package:edunest_app/core/widgets/rounded_card.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_states.dart';
 import 'package:flutter/material.dart';
@@ -8,89 +13,97 @@ class EmailVerificationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: BlocBuilder<AuthCubit, AuthState>(
-                builder: (context, state) {
-                  final pending = state is EmailVerificationPending
-                      ? state
-                      : null;
-                  final email = pending?.email ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                  return Card(
-                    elevation: 2,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26),
-                    ),
-                    child: Padding(
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: GradientBackground(
+        showFloatingOrbs: true,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    final pending = state is EmailVerificationPending
+                        ? state
+                        : null;
+                    final email = pending?.email ?? '';
+
+                    return RoundedCard(
+                      borderRadius: 28,
                       padding: const EdgeInsets.all(30),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 92,
-                            height: 92,
+                            width: 84,
+                            height: 84,
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF219653,
-                              ).withValues(alpha: .1),
+                              gradient: AppColors.primaryGradient,
                               shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.25),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                             ),
                             child: const Icon(
                               Icons.mark_email_read_outlined,
-                              size: 48,
-                              color: Color(0xFF219653),
+                              size: 42,
+                              color: Colors.white,
                             ),
                           ),
-                          const SizedBox(height: 24),
-                          const Text(
+                          const SizedBox(height: 22),
+                          Text(
                             'Verify Your Email',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 27,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF202124),
+                            style: AppTextStyles.displayMedium.copyWith(
+                              fontSize: 24,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          const Text(
+                          const SizedBox(height: 10),
+                          Text(
                             'We sent a verification link to:',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              height: 1.5,
-                              color: Color(0xFF6D727A),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                           if (email.isNotEmpty) ...[
-                            const SizedBox(height: 5),
-                            Text(
-                              email,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF30343B),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurface : AppColors.cardSubtle,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isDark ? AppColors.darkDivider : AppColors.divider,
+                                ),
+                              ),
+                              child: Text(
+                                email,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.labelMedium.copyWith(
+                                  color: isDark ? AppColors.darkPrimary : AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Open the link in your inbox to verify your account. '
-                            'If you do not see it, check your spam folder. '
-                            'You must verify before entering EduNest.',
+                          const SizedBox(height: 14),
+                          Text(
+                            'Open the link in your inbox to verify your account. If you do not see it, please check your spam folder.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.6,
-                              color: Color(0xFF6D727A),
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              height: 1.55,
                             ),
                           ),
                           if (pending?.message != null) ...[
@@ -99,16 +112,18 @@ class EmailVerificationPage extends StatelessWidget {
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFFFF4E5,
-                                ).withValues(alpha: .8),
-                                borderRadius: BorderRadius.circular(12),
+                                color: isDark ? AppColors.darkSurface : const Color(0xFFFFF4E5),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFFFB74D),
+                                  width: 1,
+                                ),
                               ),
                               child: Text(
                                 pending!.message!,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Color(0xFF805400),
+                                style: TextStyle(
+                                  color: isDark ? const Color(0xFFFFB74D) : const Color(0xFF805400),
                                   fontSize: 13,
                                   height: 1.4,
                                 ),
@@ -116,54 +131,43 @@ class EmailVerificationPage extends StatelessWidget {
                             ),
                           ],
                           const SizedBox(height: 26),
-                          SizedBox(
-                            width: double.infinity,
+                          CustomRoundedButton(
+                            text: 'I Have Verified My Email',
+                            onPressed: () => context
+                                .read<AuthCubit>()
+                                .checkEmailVerification(),
+                            variant: ButtonVariant.primary,
                             height: 52,
-                            child: ElevatedButton(
-                              onPressed: () => context
-                                  .read<AuthCubit>()
-                                  .checkEmailVerification(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF219653),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: const Text('I Have Verified My Email'),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: OutlinedButton(
-                              onPressed: () => context
-                                  .read<AuthCubit>()
-                                  .resendVerificationEmail(),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF219653),
-                                side: const BorderSide(
-                                  color: Color(0xFF219653),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: const Text('Resend Verification Email'),
-                            ),
+                            borderRadius: 26,
+                            icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
                           ),
                           const SizedBox(height: 12),
+                          CustomRoundedButton(
+                            text: 'Resend Verification Email',
+                            onPressed: () => context
+                                .read<AuthCubit>()
+                                .resendVerificationEmail(),
+                            variant: ButtonVariant.secondary,
+                            height: 50,
+                            borderRadius: 25,
+                            icon: const Icon(Icons.refresh_rounded, size: 18, color: AppColors.primary),
+                          ),
+                          const SizedBox(height: 14),
                           TextButton(
                             onPressed: () =>
                                 context.read<AuthCubit>().logout(),
-                            child: const Text('Change Email / Return to Login'),
+                            child: Text(
+                              'Change Email / Return to Login',
+                              style: AppTextStyles.labelMedium.copyWith(
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),

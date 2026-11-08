@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ChatPalette {
   final Color canvas;
@@ -28,21 +29,22 @@ class ChatPalette {
   });
 
   factory ChatPalette.of(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    if (Theme.of(context).brightness == Brightness.dark) {
-      return ChatPalette._(
-        canvas: colors.surface,
-        surface: colors.surfaceContainerHighest,
-        rose: colors.primary,
-        mauve: colors.secondary,
-        plum: colors.primary,
-        ink: colors.onSurface,
-        muted: colors.onSurfaceVariant,
-        border: colors.outlineVariant,
-        unreadSurface: colors.secondaryContainer,
-        onSelected: colors.onPrimary,
-        headerGradient: const LinearGradient(
-          colors: [Color(0xFF49323F), Color(0xFF403842), Color(0xFF35313A)],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isDark) {
+      return const ChatPalette._(
+        canvas: AppColors.darkBackground,
+        surface: AppColors.darkCard,
+        rose: AppColors.darkPrimary,
+        mauve: AppColors.secondary,
+        plum: AppColors.darkPrimary,
+        ink: AppColors.darkTextPrimary,
+        muted: AppColors.darkTextSecondary,
+        border: AppColors.darkDivider,
+        unreadSurface: Color(0xFF33232A),
+        onSelected: Colors.white,
+        headerGradient: LinearGradient(
+          colors: [Color(0xFF382531), Color(0xFF261A22)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -50,21 +52,17 @@ class ChatPalette {
     }
 
     return const ChatPalette._(
-      canvas: Color(0xFFE5DFDE),
-      surface: Color(0xFFEFE9E9),
-      rose: Color(0xFFDDABB4),
-      mauve: Color(0xFFA79D9D),
-      plum: Color(0xFF5C3A4D),
-      ink: Color(0xFF33282E),
-      muted: Color(0xFF796E73),
-      border: Color(0xFFD8CECF),
-      unreadSurface: Color(0xFFF3E5E8),
+      canvas: AppColors.background,
+      surface: AppColors.surface,
+      rose: AppColors.primary,
+      mauve: AppColors.secondary,
+      plum: AppColors.primaryDark,
+      ink: AppColors.textPrimary,
+      muted: AppColors.textSecondary,
+      border: AppColors.divider,
+      unreadSurface: AppColors.cardSubtle,
       onSelected: Colors.white,
-      headerGradient: LinearGradient(
-        colors: [Color(0xFF5C3A4D), Color(0xFF806573), Color(0xFFA78E91)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
+      headerGradient: AppColors.primaryGradient,
     );
   }
 }

@@ -18,13 +18,28 @@ import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.d
 import 'package:edunest_app/features/search/data/firebase_search_repo.dart';
 import 'package:edunest_app/features/search/presentation/cubits/search_cubit.dart';
 import 'package:edunest_app/core/cubits/theme_cubit.dart';
+import 'package:edunest_app/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:edunest_app/themes/dark_mode.dart';
 import 'package:edunest_app/themes/light_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final ThemeMode initialThemeMode;
+  final bool seenOnboarding;
+
+  const MyApp({
+    super.key,
+    required this.initialThemeMode,
+    this.seenOnboarding = false,
+  });
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late bool _seenOnboarding;
 
   final authRepo = FirebaseAuthRepos();
   final profileRepo = FirebaseProfileRepos();
@@ -33,7 +48,11 @@ class MyApp extends StatelessWidget {
   final notificationRepo = FirebaseNotificationRepo();
   final reportrepo = ReportRepo();
 
-  MyApp({super.key, required this.initialThemeMode});
+  @override
+  void initState() {
+    super.initState();
+    _seenOnboarding = widget.seenOnboarding;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +100,7 @@ class MyApp extends StatelessWidget {
           create: (context) => ReportCubit(reportRepo: reportrepo),
         ),
         BlocProvider<ThemeCubit>(
-          create: (context) => ThemeCubit(initialThemeMode),
+          create: (context) => ThemeCubit(widget.initialThemeMode),
         ),
       ],
 
@@ -95,9 +114,16 @@ class MyApp extends StatelessWidget {
 
           home: BlocConsumer<AuthCubit, AuthState>(
             builder: (context, authState) {
-              print(authState);
-
               if (authState is Unauthenticated) {
+                if (!_seenOnboarding) {
+                  return OnboardingPage(
+                    onFinish: () {
+                      setState(() {
+                        _seenOnboarding = true;
+                      });
+                    },
+                  );
+                }
                 return const AuthPage();
               }
 
@@ -122,6 +148,15 @@ class MyApp extends StatelessWidget {
               }
 
               if (authState is AuthError) {
+                if (!_seenOnboarding) {
+                  return OnboardingPage(
+                    onFinish: () {
+                      setState(() {
+                        _seenOnboarding = true;
+                      });
+                    },
+                  );
+                }
                 return const AuthPage();
               }
 

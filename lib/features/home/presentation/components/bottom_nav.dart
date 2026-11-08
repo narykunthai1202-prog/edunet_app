@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class MyBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -14,28 +15,32 @@ class MyBottomNavBar extends StatelessWidget {
   });
 
   static const _items = [
-    Iconsax.home,
-    Iconsax.book,
-    Iconsax.tick_circle,
-    Iconsax.message,
+    Iconsax.home_2,
+    Iconsax.book_1,
+    Iconsax.calendar_tick,
+    Iconsax.message_text_1,
   ];
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       child: Container(
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        height: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.94),
-          borderRadius: BorderRadius.circular(32),
+          color: isDark ? AppColors.darkSurface : AppColors.surface,
+          borderRadius: BorderRadius.circular(34),
+          border: Border.all(
+            color: isDark ? AppColors.darkDivider : AppColors.divider,
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
+              color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.06),
+              blurRadius: 24,
               offset: const Offset(0, 8),
             ),
           ],
@@ -48,6 +53,7 @@ class MyBottomNavBar extends StatelessWidget {
                 icon: _items[i],
                 isSelected: currentIndex == i,
                 onTap: () => onTap(i),
+                isDark: isDark,
               ),
 
             // Profile Button
@@ -55,19 +61,34 @@ class MyBottomNavBar extends StatelessWidget {
               onTap: () => onTap(_items.length),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOutBack,
-                width: currentIndex == _items.length ? 40 : 34,
-                height: currentIndex == _items.length ? 40 : 34,
+                curve: Curves.easeOutCubic,
+                width: currentIndex == _items.length ? 44 : 38,
+                height: currentIndex == _items.length ? 44 : 38,
+                padding: const EdgeInsets.all(2.5),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: currentIndex == _items.length
-                        ? colorScheme.primary
-                        : colorScheme.outline,
-                    width: 2,
-                  ),
+                  gradient: currentIndex == _items.length
+                      ? AppColors.primaryGradient
+                      : null,
+                  border: currentIndex == _items.length
+                      ? null
+                      : Border.all(
+                          color: isDark
+                              ? AppColors.darkDivider
+                              : AppColors.divider,
+                          width: 1.5,
+                        ),
+                  boxShadow: currentIndex == _items.length
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.32),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
-                child: ClipOval(child: _buildProfileAvatar(context)),
+                child: ClipOval(child: _buildProfileAvatar(context, isDark)),
               ),
             ),
           ],
@@ -76,16 +97,14 @@ class MyBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileAvatar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
+  Widget _buildProfileAvatar(BuildContext context, bool isDark) {
     if (profileImageUrl == null || profileImageUrl!.trim().isEmpty) {
       return Container(
-        color: colorScheme.surfaceContainerHighest,
+        color: isDark ? AppColors.darkCard : AppColors.cardSubtle,
         child: Icon(
-          Icons.person,
-          color: colorScheme.onSurfaceVariant,
-          size: 22,
+          Icons.person_rounded,
+          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          size: 20,
         ),
       );
     }
@@ -95,23 +114,22 @@ class MyBottomNavBar extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return Container(
-          color: colorScheme.surfaceContainerHighest,
+          color: isDark ? AppColors.darkCard : AppColors.cardSubtle,
           child: Icon(
-            Icons.person,
-            color: colorScheme.onSurfaceVariant,
-            size: 22,
+            Icons.person_rounded,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            size: 20,
           ),
         );
       },
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-
         return Container(
-          color: colorScheme.surfaceContainerHighest,
+          color: isDark ? AppColors.darkCard : AppColors.cardSubtle,
           child: const Center(
             child: SizedBox(
-              width: 16,
-              height: 16,
+              width: 14,
+              height: 14,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
@@ -125,38 +143,47 @@ class _NavIcon extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isDark;
 
   const _NavIcon({
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutBack,
-        width: isSelected ? 48 : 40,
-        height: isSelected ? 48 : 40,
+        curve: Curves.easeOutCubic,
+        width: isSelected ? 48 : 42,
+        height: isSelected ? 48 : 42,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isSelected ? colorScheme.primary : Colors.transparent,
+          gradient: isSelected ? AppColors.primaryGradient : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
+        child: Center(
           child: Icon(
             icon,
-            key: ValueKey(isSelected),
-            size: isSelected ? 24 : 22,
+            size: isSelected ? 22 : 21,
             color: isSelected
-                ? colorScheme.onPrimary
-                : colorScheme.onSurfaceVariant,
+                ? Colors.white
+                : (isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary),
           ),
         ),
       ),

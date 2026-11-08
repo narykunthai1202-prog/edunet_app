@@ -15,7 +15,7 @@ class FirebaseFaqRepository implements FaqRepo {
   @override
   Future<List<FaqItem>> getFaqs() async {
     try {
-      await _seedInitialFaqsIfMissing();
+      await _seedFaqsIfCollectionIsEmpty();
       final querySnapshot = await _firestore.collection('faqs').get();
       return await Future.wait(querySnapshot.docs.map(_faqFromDocument));
     } catch (error) {
@@ -103,26 +103,13 @@ class FirebaseFaqRepository implements FaqRepo {
     }
   }
 
-  Future<void> _seedInitialFaqsIfMissing() async {
+  Future<void> _seedFaqsIfCollectionIsEmpty() async {
     final collection = _firestore.collection('faqs');
-    final existingFaqs = await collection.get();
-    final existingIds = existingFaqs.docs.map((faq) => faq.id).toSet();
-    final existingQuestions = existingFaqs.docs
-        .map(
-          (faq) =>
-              (faq.data()['question'] as String? ?? '').trim().toLowerCase(),
-        )
-        .toSet();
+    final existingFaqs = await collection.limit(1).get();
+    if (existingFaqs.docs.isNotEmpty) return;
 
     final batch = _firestore.batch();
-    var hasMissingFaqs = false;
     for (final faq in initialFaqData) {
-      if (existingIds.contains(faq.id) ||
-          existingQuestions.contains(faq.question.trim().toLowerCase())) {
-        continue;
-      }
-
-      hasMissingFaqs = true;
       batch.set(collection.doc(faq.id), {
         'question': faq.question,
         'answer': faq.answer,
@@ -132,7 +119,7 @@ class FirebaseFaqRepository implements FaqRepo {
         'unhelpfulCount': faq.unhelpfulCount,
       });
     }
-    if (hasMissingFaqs) await batch.commit();
+    await batch.commit();
   }
 
   Future<FaqItem> _faqFromDocument(
