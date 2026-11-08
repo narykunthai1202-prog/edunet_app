@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+
 import '../../domain/entities/faq_item.dart';
 
 class FaqTile extends StatefulWidget {
   final FaqItem item;
-  final ValueChanged<bool> onVote;
+  final Future<void> Function(bool) onVote;
 
-  const FaqTile({
-    super.key,
-    required this.item,
-    required this.onVote,
-  });
+  const FaqTile({super.key, required this.item, required this.onVote});
 
   @override
   State<FaqTile> createState() => _FaqTileState();
@@ -18,6 +15,16 @@ class FaqTile extends StatefulWidget {
 
 class _FaqTileState extends State<FaqTile> with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
+  bool _isVoting = false;
+
+  Future<void> _submitVote(bool isHelpful) async {
+    setState(() => _isVoting = true);
+    try {
+      await widget.onVote(isHelpful);
+    } finally {
+      if (mounted) setState(() => _isVoting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +32,7 @@ class _FaqTileState extends State<FaqTile> with SingleTickerProviderStateMixin {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final cardBg = isDark
-        ? const Color(0xFF242227)
-        : Colors.white;
+    final cardBg = isDark ? const Color(0xFF242227) : Colors.white;
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : colorScheme.outline.withValues(alpha: 0.15);
@@ -55,7 +60,10 @@ class _FaqTileState extends State<FaqTile> with SingleTickerProviderStateMixin {
               _isExpanded = expanded;
             });
           },
-          tilePadding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8.0),
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: 18.0,
+            vertical: 8.0,
+          ),
           childrenPadding: const EdgeInsets.fromLTRB(18.0, 0.0, 18.0, 16.0),
           leading: Container(
             padding: const EdgeInsets.all(8),
@@ -126,9 +134,9 @@ class _FaqTileState extends State<FaqTile> with SingleTickerProviderStateMixin {
                 const Spacer(),
                 // Helpful button
                 InkWell(
-                  onTap: widget.item.userVote != null
+                  onTap: _isVoting || widget.item.userVote != null
                       ? null
-                      : () => widget.onVote(true),
+                      : () => _submitVote(true),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -173,9 +181,9 @@ class _FaqTileState extends State<FaqTile> with SingleTickerProviderStateMixin {
                 const SizedBox(width: 8),
                 // Not helpful button
                 InkWell(
-                  onTap: widget.item.userVote != null
+                  onTap: _isVoting || widget.item.userVote != null
                       ? null
-                      : () => widget.onVote(false),
+                      : () => _submitVote(false),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(

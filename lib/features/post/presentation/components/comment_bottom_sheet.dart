@@ -20,6 +20,7 @@ class CommentBottomSheet extends StatefulWidget {
   final String? userprofileimg;
   final List<Comment> comments;
   final Future<Comment?> Function(String text, File? image)? onSubmit;
+  final ValueChanged<List<Comment>>? onCommentsChanged;
   final String? currentUserName;
   final void Function(String userId) onCommentProfileTap;
 
@@ -29,6 +30,7 @@ class CommentBottomSheet extends StatefulWidget {
     this.userprofileimg,
     required this.comments,
     this.onSubmit,
+    this.onCommentsChanged,
     this.currentUserName,
     required this.onCommentProfileTap,
   });
@@ -165,6 +167,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
             _controller.clear();
             _selectedImage = null;
           });
+          widget.onCommentsChanged?.call(_comments);
         }
       }
     } catch (error, stackTrace) {
@@ -207,6 +210,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
           ..clear()
           ..addAll(fresh);
       });
+      widget.onCommentsChanged?.call(_comments);
     } catch (e) {
       debugPrint('Failed to refresh comments: $e');
     }
@@ -250,6 +254,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
       await context.read<PostCubit>().deleteComment(widget.postId, comment.id);
       if (mounted) {
         setState(() => _comments.removeWhere((item) => item.id == comment.id));
+        widget.onCommentsChanged?.call(_comments);
       }
     } catch (e) {
       if (mounted) {

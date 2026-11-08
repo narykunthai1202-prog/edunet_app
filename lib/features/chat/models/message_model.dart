@@ -19,10 +19,18 @@ class MessageModel {
   final String? fileName;
   final int? fileSize;
 
+  /// User ids who deleted this message "for me". Those users never see it.
+  final List<String> deletedFor;
+
   String get id => messageId;
 
   /// Alias getter so UI elements referencing `content` get the message payload seamlessly
   String get content => text;
+
+  /// True when this message must NOT be shown to [userId].
+  /// Covers new "delete for me" (deletedFor) and old messages that were
+  /// soft-deleted with isDeleted: true.
+  bool isHiddenFor(String userId) => isDeleted || deletedFor.contains(userId);
 
   MessageModel({
     required this.messageId,
@@ -42,6 +50,7 @@ class MessageModel {
     this.fileUrl,
     this.fileName,
     this.fileSize,
+    this.deletedFor = const [],
   });
 
   factory MessageModel.fromMap(Map<String, dynamic> map, String docId) {
@@ -52,7 +61,7 @@ class MessageModel {
         map['photoUrl'] ??
         map['audioUrl'] ??
         map['url'] ??
-        map['fileUrl'] ?? // NEW: file messages
+        map['fileUrl'] ?? // file messages
         '';
 
     // 2. Extract nested audio map if available
@@ -101,10 +110,10 @@ class MessageModel {
       forwardedFromSenderName: map['forwardedFromSenderName'] as String?,
       audio: audioMap,
       status: map['status'] as String?,
-      // NEW: file fields
       fileUrl: map['fileUrl'] as String?,
       fileName: map['fileName'] as String?,
       fileSize: (map['fileSize'] as num?)?.toInt(),
+      deletedFor: List<String>.from(map['deletedFor'] ?? const []),
     );
   }
 
@@ -124,10 +133,10 @@ class MessageModel {
       'forwardedFromSenderName': forwardedFromSenderName,
       'audio': audio,
       'status': status,
-      // NEW: file fields
       'fileUrl': fileUrl,
       'fileName': fileName,
       'fileSize': fileSize,
+      'deletedFor': deletedFor,
     };
   }
 }

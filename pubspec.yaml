@@ -55,7 +55,6 @@ dependencies:
   flutter_stripe: ^12.6.0
   random_string: ^2.3.1
   shared_preferences: ^2.5.5
-  url_launcher: ^6.3.2
   easy_pdf_viewer: ^1.0.8 # 🔥 ថែម Package នេះសម្រាប់បើកមើលឯកសារ PDF ផ្ទាល់
   file_picker: 13.1.0
   pdfx: ^2.9.2
@@ -77,9 +76,11 @@ dependencies:
   zego_uikit: ^2.29.2
   gal: ^2.3.3
   dio: ^5.11.1
+  google_fonts: ^9.0.0
+  flutter_linkify: ^6.0.0
+  url_launcher: ^6.3.0
   intl_phone_field: ^3.2.0
- 
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

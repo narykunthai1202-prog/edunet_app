@@ -5,11 +5,18 @@ import 'package:edunest_app/features/chat/services/chat_service.dart';
 import 'package:edunest_app/features/chat/widgets/chat_extras.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../controllers/voice_message_sender.dart';
 import '../controllers/voice_recorder_controller.dart';
 import '../services/cloudinary_service.dart';
+import 'video_preview_screen.dart';
+
+// Theme colors (replace with your theme file colors if you have them)
+const Color _plum = Color(0xFF6B4A5E);
+const Color _plumSoft = Color(0xFF8A6F7E); // muted icons
+const Color _pillBeige = Color(0xFFF1EBE8); // input bar background
+const Color _sheetBeige = Color(0xFFF7F2F0); // attach menu background
+const Color _mauve = Color(0xFFA0728A); // second accent (video)
 
 class ChatInputField extends StatefulWidget {
   const ChatInputField({
@@ -19,7 +26,7 @@ class ChatInputField extends StatefulWidget {
     required this.receiverId,
     required this.onSendMessage,
     this.onPickImage,
-    this.onSendFile, // NEW (optional, so other screens don't break)
+    this.onSendFile, // optional, so other screens don't break
   });
 
   final String conversationId;
@@ -28,7 +35,6 @@ class ChatInputField extends StatefulWidget {
   final Function(String) onSendMessage;
   final VoidCallback? onPickImage;
 
-  // NEW: FIX - this belongs to the widget, not to the State class
   final void Function(String url, String name, int size)? onSendFile;
 
   @override
@@ -47,7 +53,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
   bool _isSendingVoice = false;
   bool _showPanel = false;
   bool _isUploadingVideo = false;
-  bool _isUploadingFile = false; // NEW
+  bool _isUploadingFile = false;
 
   @override
   void initState() {
@@ -64,7 +70,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
     });
   }
 
-  // NEW: pick any file, upload it to Cloudinary, hand it to the screen
+  // Pick any file, upload it to Cloudinary, hand it to the screen
   Future<void> _pickFile() async {
     if (_isUploadingFile) return;
     setState(() => _isUploadingFile = true);
@@ -115,34 +121,49 @@ class _ChatInputFieldState extends State<ChatInputField> {
   }
 
   Future<void> _pickAndSendVideo() async {
-    try {
-      final video = await ImagePicker().pickVideo(
-        source: ImageSource.gallery,
-        maxDuration: const Duration(minutes: 2),
-      );
-      if (video == null) return;
+  try {
+    // 1. Pick (no upload yet)
+    final video = await CloudinaryService.pickVideo();
+    if (video == null) return;
+    if (!mounted) return;
 
-      setState(() => _isUploadingVideo = true);
+    // 2. Preview, with Cancel and Send buttons
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => VideoPreviewScreen(file: video)),
+    );
+    if (ok != true) return;
 
-      await _chatService.sendVideoMessage(
-        chatId: widget.conversationId,
-        senderId: widget.currentUserId,
-        receiverId: widget.receiverId,
-        video: video,
-      );
-    } catch (e) {
-      _showError('Video was not sent: $e');
-    } finally {
-      if (mounted) setState(() => _isUploadingVideo = false);
+    setState(() => _isUploadingVideo = true);
+
+    // 3. Upload to Cloudinary
+    final uploaded = await CloudinaryService.uploadVideo(video);
+    if (uploaded == null) {
+      _showError('Video upload failed. Please try again.');
+      return;
     }
-  }
 
+    // 4. Save the message in Firestore
+    await _chatService.sendVideoMessage(
+      chatId: widget.conversationId,
+      senderId: widget.currentUserId,
+      receiverId: widget.receiverId,
+      videoUrl: uploaded.url,
+      fileName: uploaded.name,
+      fileSize: uploaded.size,
+    );
+  } catch (e) {
+    _showError('Video was not sent: $e');
+  } finally {
+    if (mounted) setState(() => _isUploadingVideo = false);
+  }
+}
   void _showAttachMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _sheetBeige,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
@@ -154,7 +175,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Colors.grey[400],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -165,7 +186,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
                     child: _attachOption(
                       icon: Icons.photo_rounded,
                       label: 'Photo',
-                      color: const Color(0xFF2563EB),
+                      color: _plum,
                       onTap: () {
                         Navigator.pop(ctx);
                         widget.onPickImage?.call();
@@ -177,7 +198,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
                     child: _attachOption(
                       icon: Icons.videocam_rounded,
                       label: 'Video',
-                      color: const Color(0xFF8B5CF6),
+                      color: _mauve,
                       onTap: () {
                         Navigator.pop(ctx);
                         _pickAndSendVideo();
@@ -200,13 +221,13 @@ class _ChatInputFieldState extends State<ChatInputField> {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(16),
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           children: [
@@ -227,7 +248,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
   }
 
   // ---------------------------------------------------------------------
-  // Voice recording (unchanged)
+  // Voice recording (logic unchanged)
   // ---------------------------------------------------------------------
   Future<void> _startRecording() async {
     try {
@@ -356,38 +377,50 @@ class _ChatInputFieldState extends State<ChatInputField> {
     final hasText = _controller.text.trim().isNotEmpty;
 
     return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              offset: const Offset(0, -2),
-              blurRadius: 4,
-            ),
-          ],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_isUploadingVideo || _isUploadingFile)
               const Padding(
                 padding: EdgeInsets.only(bottom: 8),
-                child: LinearProgressIndicator(minHeight: 3),
+                child: LinearProgressIndicator(
+                  minHeight: 3,
+                  color: _plum,
+                  backgroundColor: _pillBeige,
+                ),
               ),
-            if (_isRecording)
-              _buildRecordingComposer()
-            else if (_pendingVoiceDraft != null)
-              _buildVoiceDraftComposer(_pendingVoiceDraft!)
-            else
-              _buildTextComposer(hasText),
+
+            // Floating pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              decoration: BoxDecoration(
+                color: _pillBeige,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: _isRecording
+                  ? _buildRecordingComposer()
+                  : (_pendingVoiceDraft != null
+                      ? _buildVoiceDraftComposer(_pendingVoiceDraft!)
+                      : _buildTextComposer(hasText)),
+            ),
 
             // Emoji + sticker panel
             if (_showPanel && !_isRecording && _pendingVoiceDraft == null)
-              EmojiStickerPanel(
-                controller: _controller,
-                onStickerSelected: _sendSticker,
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: EmojiStickerPanel(
+                  controller: _controller,
+                  onStickerSelected: _sendSticker,
+                ),
               ),
           ],
         ),
@@ -400,14 +433,14 @@ class _ChatInputFieldState extends State<ChatInputField> {
       children: [
         IconButton(
           icon: const Icon(Icons.add_photo_alternate_rounded,
-              color: Colors.grey),
+              color: _plumSoft),
           tooltip: 'Attach photo or video',
           onPressed: _isUploadingVideo ? null : _showAttachMenu,
         ),
-        // NEW: paperclip (only shown when the screen supports files)
+        // Paperclip (only shown when the screen supports files)
         if (widget.onSendFile != null)
           IconButton(
-            icon: const Icon(Icons.attach_file, color: Colors.grey),
+            icon: const Icon(Icons.attach_file, color: _plumSoft),
             tooltip: 'Send a file',
             onPressed: _isUploadingFile ? null : _pickFile,
           ),
@@ -417,16 +450,16 @@ class _ChatInputFieldState extends State<ChatInputField> {
             focusNode: _focusNode,
             textInputAction: TextInputAction.send,
             onSubmitted: (_) => _handleSendText(),
+            cursorColor: _plum,
             decoration: InputDecoration(
               hintText: 'Type a message...',
-              filled: true,
-              fillColor: const Color(0xFFF1F5F9),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none,
-              ),
+              hintStyle: TextStyle(color: Colors.grey[600]),
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: 8,
                 vertical: 10,
               ),
               suffixIcon: IconButton(
@@ -434,9 +467,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
                   _showPanel
                       ? Icons.keyboard_alt_outlined
                       : Icons.emoji_emotions_outlined,
-                  color: _showPanel
-                      ? const Color(0xFF2563EB)
-                      : Colors.grey[600],
+                  color: _showPanel ? _plum : _plumSoft,
                 ),
                 tooltip: 'Emoji & stickers',
                 onPressed: _togglePanel,
@@ -444,10 +475,10 @@ class _ChatInputFieldState extends State<ChatInputField> {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _roundActionButton(
           tooltip: hasText ? 'Send message' : 'Record voice message',
-          icon: hasText ? Icons.send : Icons.mic,
+          icon: hasText ? Icons.send_rounded : Icons.mic_rounded,
           onPressed: hasText ? _handleSendText : _startRecording,
         ),
       ],
@@ -462,17 +493,20 @@ class _ChatInputFieldState extends State<ChatInputField> {
           tooltip: 'Cancel recording',
           onPressed: _discardVoiceDraft,
         ),
-        const Icon(Icons.graphic_eq, color: Color(0xFF2563EB)),
+        const Icon(Icons.graphic_eq, color: _plum),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             'Recording ${_formatDuration(Duration(milliseconds: _recorder.elapsedMs))}',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF3A2A33),
+            ),
           ),
         ),
         _roundActionButton(
           tooltip: 'Stop recording',
-          icon: Icons.stop,
+          icon: Icons.stop_rounded,
           onPressed: _stopRecording,
         ),
       ],
@@ -487,17 +521,20 @@ class _ChatInputFieldState extends State<ChatInputField> {
           tooltip: 'Discard voice message',
           onPressed: _isSendingVoice ? null : _discardVoiceDraft,
         ),
-        const Icon(Icons.mic, color: Color(0xFF2563EB)),
+        const Icon(Icons.mic_rounded, color: _plum),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             'Voice message • ${_formatDuration(Duration(milliseconds: draft.durationMs))}',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF3A2A33),
+            ),
           ),
         ),
         _roundActionButton(
           tooltip: 'Send voice message',
-          icon: Icons.send,
+          icon: Icons.send_rounded,
           onPressed: _isSendingVoice ? null : _sendVoiceDraft,
           isLoading: _isSendingVoice,
         ),
@@ -514,8 +551,8 @@ class _ChatInputFieldState extends State<ChatInputField> {
     return Tooltip(
       message: tooltip,
       child: CircleAvatar(
-        radius: 20,
-        backgroundColor: const Color(0xFF2563EB),
+        radius: 22,
+        backgroundColor: _plum,
         child: IconButton(
           icon: isLoading
               ? const SizedBox.square(
@@ -525,7 +562,7 @@ class _ChatInputFieldState extends State<ChatInputField> {
                     color: Colors.white,
                   ),
                 )
-              : Icon(icon, color: Colors.white, size: 18),
+              : Icon(icon, color: Colors.white, size: 20),
           onPressed: onPressed,
         ),
       ),

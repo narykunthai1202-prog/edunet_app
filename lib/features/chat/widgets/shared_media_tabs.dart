@@ -29,10 +29,18 @@ class SharedMediaTabs extends StatefulWidget {
 }
 
 class _SharedMediaTabsState extends State<SharedMediaTabs> {
-  static const _blue = Color(0xFF2563EB);
-  static const _ink = Color(0xFF0F172A);
-  static const _muted = Color(0xFF64748B);
-  static const _soft = Color(0xFFF1F5F9);
+  // 🎨 Card colors (edit here to restyle the whole card)
+  static const _plum = Color(0xFF6B4A5B); // main accent
+  static const _plumLight = Color(0xFFA58A92); // gradient end
+  static const _rose = Color(0xFFE0BCC4); // selected tab / count badge
+  static const _card = Color(0xFFEEE8E7); // card surface
+  static const _border = Color(0xFFDDD2CF); // card border
+  static const _ink = Color(0xFF3A2A32); // dark plum-brown text
+  static const _muted = Color(0xFF7A6670); // muted text
+  static const _soft = Color(0xFFE5DFDC); // tiles / placeholders
+  static const _track = Color(0xFFF6F2F1); // tab bar background
+  static const _chip = Color(0xFFF3EDEB); // small round buttons
+
   static final RegExp _urlRegex =
       RegExp(r'((https?:\/\/)|(www\.))[^\s]+', caseSensitive: false);
 
@@ -46,7 +54,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
         final loading = snapshot.connectionState == ConnectionState.waiting;
 
         final all = (snapshot.data ?? [])
-            .where((m) => !m.isDeleted)
+            .where((m) => !m.isHiddenFor(widget.currentUserId))
             .toList()
           ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
@@ -59,12 +67,12 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _card,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: _border),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                color: _plum.withValues(alpha: 0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -82,7 +90,11 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                 height: widget.height,
                 child: loading
                     ? const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _plum,
+                        ),
+                      )
                     : AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
                         child: KeyedSubtree(
@@ -112,7 +124,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
           height: 36,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+              colors: [_plumLight, _plum],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -132,13 +144,13 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFDBEAFE),
+            color: _rose.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             '$total',
             style: const TextStyle(
-                color: _blue, fontWeight: FontWeight.w800, fontSize: 12),
+                color: _plum, fontWeight: FontWeight.w800, fontSize: 12),
           ),
         ),
       ],
@@ -151,8 +163,9 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _soft,
-        borderRadius: BorderRadius.circular(16),
+        color: _track,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _border.withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [
@@ -176,22 +189,13 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
           curve: Curves.easeOut,
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF0F172A).withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+            color: selected ? _rose : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: selected ? _blue : _muted),
+              Icon(icon, size: 16, color: selected ? _plum : _muted),
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
@@ -200,7 +204,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: selected ? _blue : _muted,
+                    color: selected ? _plum : _muted,
                   ),
                 ),
               ),
@@ -212,7 +216,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: selected
-                        ? _blue.withValues(alpha: 0.7)
+                        ? _plum.withValues(alpha: 0.7)
                         : _muted.withValues(alpha: 0.7),
                   ),
                 ),
@@ -234,11 +238,11 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
           Container(
             width: 72,
             height: 72,
-            decoration: const BoxDecoration(
-              color: _soft,
+            decoration: BoxDecoration(
+              color: _rose.withValues(alpha: 0.45),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 32, color: const Color(0xFF94A3B8)),
+            child: Icon(icon, size: 32, color: _plum.withValues(alpha: 0.7)),
           ),
           const SizedBox(height: 14),
           Text(title,
@@ -298,7 +302,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
         return GestureDetector(
           onTap: () => isVideo ? _open(m.text) : _showImage(context, m.text),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             child: isVideo ? _videoTile() : _imageTile(m.text),
           ),
         );
@@ -308,7 +312,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
 
   Widget _imageTile(String url) {
     return Container(
-      color: const Color(0xFFE2E8F0),
+      color: _soft,
       child: Image.network(
         url,
         fit: BoxFit.cover,
@@ -320,7 +324,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
           child: child,
         ),
         errorBuilder: (_, _, _) => const Center(
-          child: Icon(Icons.broken_image_rounded, color: Color(0xFF94A3B8)),
+          child: Icon(Icons.broken_image_rounded, color: _muted),
         ),
       ),
     );
@@ -330,7 +334,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF334155), Color(0xFF0F172A)],
+          colors: [Color(0xFF8C6B78), Color(0xFF3A2A32)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -420,40 +424,40 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
     return '${(b / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  /// Icon + color for each kind of file
+  /// Icon + color for each kind of file (soft palette that matches the app)
   (IconData, Color) _fileStyle(String name) {
     final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
     switch (ext) {
       case 'pdf':
-        return (Icons.picture_as_pdf_rounded, const Color(0xFFEF4444));
+        return (Icons.picture_as_pdf_rounded, const Color(0xFFC2674B));
       case 'doc':
       case 'docx':
       case 'txt':
-        return (Icons.description_rounded, const Color(0xFF2563EB));
+        return (Icons.description_rounded, _plum);
       case 'xls':
       case 'xlsx':
       case 'csv':
-        return (Icons.table_chart_rounded, const Color(0xFF16A34A));
+        return (Icons.table_chart_rounded, const Color(0xFF6F8F72));
       case 'ppt':
       case 'pptx':
-        return (Icons.slideshow_rounded, const Color(0xFFF97316));
+        return (Icons.slideshow_rounded, const Color(0xFFD08A4E));
       case 'zip':
       case 'rar':
       case '7z':
-        return (Icons.folder_zip_rounded, const Color(0xFFF59E0B));
+        return (Icons.folder_zip_rounded, const Color(0xFFB8924A));
       case 'php':
       case 'dart':
       case 'js':
       case 'html':
       case 'css':
       case 'json':
-        return (Icons.code_rounded, const Color(0xFF8B5CF6));
+        return (Icons.code_rounded, const Color(0xFF8C6B78));
       case 'mp3':
       case 'wav':
       case 'm4a':
-        return (Icons.audiotrack_rounded, const Color(0xFFEC4899));
+        return (Icons.audiotrack_rounded, const Color(0xFFD07A94));
       default:
-        return (Icons.insert_drive_file_rounded, const Color(0xFF64748B));
+        return (Icons.insert_drive_file_rounded, _muted);
     }
   }
 
@@ -477,9 +481,9 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
 
         return Material(
           color: _soft,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             onTap: () => _open(url),
             child: Padding(
               padding: const EdgeInsets.all(10),
@@ -489,7 +493,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.14),
+                      color: color.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(icon, color: color, size: 24),
@@ -527,11 +531,11 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                     width: 34,
                     height: 34,
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: _chip,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.download_rounded,
-                        size: 18, color: _blue),
+                        size: 18, color: _plum),
                   ),
                 ],
               ),
@@ -569,12 +573,12 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
 
   Color _colorFor(String text) {
     const palette = [
-      Color(0xFF2563EB),
-      Color(0xFF8B5CF6),
-      Color(0xFF0EA5E9),
-      Color(0xFF10B981),
-      Color(0xFFF97316),
-      Color(0xFFEC4899),
+      Color(0xFF6B4A5B),
+      Color(0xFF8C6B78),
+      Color(0xFFC2674B),
+      Color(0xFF6F8F72),
+      Color(0xFFD08A4E),
+      Color(0xFFD07A94),
     ];
     return palette[text.hashCode.abs() % palette.length];
   }
@@ -596,9 +600,9 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
 
         return Material(
           color: _soft,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             onTap: () => _open(l.url),
             onLongPress: () {
               Clipboard.setData(ClipboardData(text: l.url));
@@ -615,7 +619,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                     height: 46,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.14),
+                      color: color.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
@@ -645,7 +649,7 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                           l.url,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11.5, color: _blue),
+                          style: const TextStyle(fontSize: 11.5, color: _plum),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -662,11 +666,11 @@ class _SharedMediaTabsState extends State<SharedMediaTabs> {
                     width: 34,
                     height: 34,
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: _chip,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.open_in_new_rounded,
-                        size: 17, color: _blue),
+                        size: 17, color: _plum),
                   ),
                 ],
               ),

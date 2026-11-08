@@ -1,6 +1,24 @@
 import 'package:edunest_app/features/chat/services/chat_service.dart';
 import 'package:flutter/material.dart';
 
+// 🎨 Palette (same as the Profile / Group info screens).
+// Edit here to restyle every sheet and dialog in this file.
+const Color _kPlum = Color(0xFF6B4A5B); // main accent
+const Color _kRose = Color(0xFFE0BCC4); // dusty rose
+const Color _kCard = Color(0xFFEEE8E7); // sheet / dialog surface
+const Color _kBorder = Color(0xFFDDD2CF); // borders, dividers
+const Color _kField = Color(0xFFE5DFDC); // inputs, cancel buttons, tile group
+const Color _kTextDark = Color(0xFF3A2A32); // dark plum-brown text
+const Color _kMuted = Color(0xFF7A6670); // muted text
+
+// Option icon accents (soft tones that sit well with plum/rose)
+const Color _kPinColor = Color(0xFF6B4A5B); // plum
+const Color _kFavColor = Color(0xFFB8863B); // muted amber
+const Color _kMuteColor = Color(0xFF9A6B80); // mauve
+
+// Delete color used by the "Delete chat" tile AND the confirm dialog.
+const Color _kDeleteColor = Color(0xFFC2674B); // warm terracotta
+
 Future<void> showChatOptions(
   BuildContext context, {
   required String currentUserId,
@@ -15,7 +33,7 @@ Future<void> showChatOptions(
 
   await showModalBottomSheet(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: _kCard,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -30,7 +48,7 @@ Future<void> showChatOptions(
               width: 42,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: _kBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -41,11 +59,11 @@ Future<void> showChatOptions(
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: const Color(0xFFDBEAFE),
+                  backgroundColor: _kRose,
                   child: Text(
                     title.isNotEmpty ? title[0].toUpperCase() : '?',
                     style: const TextStyle(
-                      color: Color(0xFF2563EB),
+                      color: _kPlum,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -63,12 +81,12 @@ Future<void> showChatOptions(
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                          color: _kTextDark,
                         ),
                       ),
-                      Text(
+                      const Text(
                         'Chat options',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: 13, color: _kMuted),
                       ),
                     ],
                   ),
@@ -80,14 +98,15 @@ Future<void> showChatOptions(
             // Main actions
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: _kField,
                 borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: _kBorder),
               ),
               child: Column(
                 children: [
                   _OptionTile(
                     icon: pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    color: const Color(0xFF2563EB),
+                    color: _kPinColor,
                     label: pinned ? 'Unpin chat' : 'Pin chat',
                     onTap: () {
                       Navigator.pop(ctx);
@@ -99,7 +118,7 @@ Future<void> showChatOptions(
                     icon: favorite
                         ? Icons.star_rounded
                         : Icons.star_border_rounded,
-                    color: const Color(0xFFF59E0B),
+                    color: _kFavColor,
                     label: favorite
                         ? 'Remove from favourites'
                         : 'Add to favourites',
@@ -114,7 +133,7 @@ Future<void> showChatOptions(
                     icon: muted
                         ? Icons.notifications_off_rounded
                         : Icons.notifications_none_rounded,
-                    color: const Color(0xFF8B5CF6),
+                    color: _kMuteColor,
                     label:
                         muted ? 'Unmute notifications' : 'Mute notifications',
                     onTap: () {
@@ -130,14 +149,17 @@ Future<void> showChatOptions(
             // Delete (separate, destructive)
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
+                color: _kDeleteColor.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: _kDeleteColor.withValues(alpha: 0.25),
+                ),
               ),
               child: _OptionTile(
                 icon: Icons.delete_outline_rounded,
-                color: const Color(0xFFEF4444),
+                color: _kDeleteColor,
                 label: 'Delete chat',
-                labelColor: const Color(0xFFEF4444),
+                labelColor: _kDeleteColor,
                 showChevron: false,
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -154,6 +176,7 @@ Future<void> showChatOptions(
     ),
   );
 }
+
 Future<String?> showNicknameDialog(
   BuildContext context, {
   required String realName,
@@ -163,53 +186,67 @@ Future<String?> showNicknameDialog(
 
   return showDialog<String>(
     context: context,
+    barrierColor: Colors.black54,
     builder: (ctx) => Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      backgroundColor: _kCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 320),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 56,
                 height: 56,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDBEAFE),
+                decoration: BoxDecoration(
+                  color: _kRose.withValues(alpha: 0.7),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.edit_rounded,
-                    color: Color(0xFF2563EB), size: 26),
+                child: const Icon(Icons.edit_rounded, color: _kPlum, size: 26),
               ),
               const SizedBox(height: 14),
               const Text(
                 'Set nickname',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: _kTextDark,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Only you can see this nickname for $realName.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                style: const TextStyle(fontSize: 13, color: _kMuted),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
                 autofocus: true,
                 maxLength: 30,
+                cursorColor: _kPlum,
                 textCapitalization: TextCapitalization.words,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _kTextDark,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Enter nickname',
+                  hintStyle: const TextStyle(color: _kMuted),
                   counterText: '',
                   filled: true,
-                  fillColor: const Color(0xFFF1F5F9),
+                  fillColor: _kField,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                      horizontal: 16, vertical: 13),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: _kPlum, width: 1.5),
                   ),
                 ),
                 onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
@@ -218,30 +255,41 @@ Future<String?> showNicknameDialog(
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                        side: BorderSide(color: Colors.grey.shade300),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: _kField,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(16)),
                       ),
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.black87)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: _kTextDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        padding: const EdgeInsets.symmetric(vertical: 11),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: _kPlum,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(16)),
                       ),
                       onPressed: () =>
                           Navigator.pop(ctx, controller.text.trim()),
-                      child: const Text('Save'),
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -255,7 +303,7 @@ Future<String?> showNicknameDialog(
 }
 
 // ---------------------------------------------------------------------------
-// Delete confirmation dialog
+// Delete confirmation dialog (uses the same _kDeleteColor as the tile)
 // ---------------------------------------------------------------------------
 Future<bool> _confirmDelete(BuildContext context, String title) async {
   final result = await showGeneralDialog<bool>(
@@ -278,14 +326,15 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                 constraints: const BoxConstraints(maxWidth: 300),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
+                    color: _kCard,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: _kBorder),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 20,
+                        color: _kPlum.withValues(alpha: 0.12),
+                        blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
                     ],
@@ -297,8 +346,8 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                       Container(
                         width: 56,
                         height: 56,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFEE2E2),
+                        decoration: BoxDecoration(
+                          color: _kDeleteColor.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -306,7 +355,7 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                             width: 40,
                             height: 40,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFEF4444),
+                              color: _kDeleteColor,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -323,16 +372,16 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black87,
+                          color: _kTextDark,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text.rich(
                         TextSpan(
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             height: 1.35,
-                            color: Colors.grey[600],
+                            color: _kMuted,
                           ),
                           children: [
                             const TextSpan(text: 'Your chat with '),
@@ -340,7 +389,7 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                               text: title,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black87,
+                                color: _kTextDark,
                               ),
                             ),
                             const TextSpan(
@@ -353,13 +402,13 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: _kField,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 11),
-                                side: BorderSide(color: Colors.grey.shade300),
+                                    const EdgeInsets.symmetric(vertical: 13),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                               onPressed: () => Navigator.pop(ctx, false),
@@ -367,7 +416,7 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                                 'Cancel',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.black87,
+                                  color: _kTextDark,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -375,13 +424,13 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFEF4444),
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: _kDeleteColor,
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 11),
+                                    const EdgeInsets.symmetric(vertical: 13),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                               onPressed: () => Navigator.pop(ctx, true),
@@ -389,6 +438,7 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
                                 'Delete',
                                 style: TextStyle(
                                   fontSize: 14,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -408,6 +458,7 @@ Future<bool> _confirmDelete(BuildContext context, String title) async {
   );
   return result == true;
 }
+
 // ---------------------------------------------------------------------------
 // Helper widgets
 // ---------------------------------------------------------------------------
@@ -438,8 +489,8 @@ class _OptionTile extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(12),
+          color: color.withValues(alpha: 0.16),
+          shape: BoxShape.circle,
         ),
         child: Icon(icon, color: color, size: 22),
       ),
@@ -447,12 +498,12 @@ class _OptionTile extends StatelessWidget {
         label,
         style: TextStyle(
           fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: labelColor ?? Colors.black87,
+          fontWeight: FontWeight.w700,
+          color: labelColor ?? _kTextDark,
         ),
       ),
       trailing: showChevron
-          ? Icon(Icons.chevron_right_rounded, color: Colors.grey[400])
+          ? const Icon(Icons.chevron_right_rounded, color: _kMuted)
           : null,
     );
   }
@@ -463,9 +514,9 @@ class _OptionDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 68, right: 14),
-      child: Divider(height: 1, color: Colors.grey[200]),
+    return const Padding(
+      padding: EdgeInsets.only(left: 68, right: 14),
+      child: Divider(height: 1, color: _kBorder),
     );
   }
 }

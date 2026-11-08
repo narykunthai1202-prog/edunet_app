@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/message_model.dart';
+
+// Color of YOUR sent messages (plum, matches the mic button)
+const Color _kSentColor = Color(0xFF6B4A5B);
+// Color of the double-check when the message was seen
+const Color _kSeenTick = Color(0xFFF2C6D6);
 
 class ChatTextBubble extends StatelessWidget {
   final MessageModel message;
@@ -18,9 +25,32 @@ class ChatTextBubble extends StatelessWidget {
     return text.startsWith('http://') || text.startsWith('https://');
   }
 
+  /// Opens a tapped link in the browser (or a new tab on web).
+  Future<void> _openLink(BuildContext context, LinkableElement link) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final uri = Uri.parse(link.url);
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Could not open this link')),
+        );
+      }
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not open this link')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
+    final textColor = isMe ? Colors.white : colors.onSurface;
+    // Light blue on my blue bubble, normal blue on the other person's bubble.
+    final linkColor =
+        isMe ? const Color(0xFFBFDBFE) : const Color(0xFF2563EB);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -28,7 +58,9 @@ class ChatTextBubble extends StatelessWidget {
         maxWidth: MediaQuery.of(context).size.width * 0.75,
       ),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF2563EB) : colors.surfaceContainerHighest,
+        color: isMe
+            ? const Color.fromARGB(255, 43, 92, 238)
+            : colors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           if (!isMe)
@@ -43,8 +75,6 @@ class ChatTextBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ↩️ FORWARDED INDICATOR BADGE
-          // Place this directly inside the main Column children list, before the ClipRRect image:
-
           if (message.isForwarded) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -80,7 +110,9 @@ class ChatTextBubble extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border(
                   left: BorderSide(
-                    color: isMe ? Colors.white : const Color(0xFF2563EB),
+                    color: isMe
+                        ? Colors.white
+                        : const Color.fromARGB(255, 192, 187, 190),
                     width: 3,
                   ),
                 ),
@@ -122,18 +154,34 @@ class ChatTextBubble extends StatelessWidget {
             ),
           ],
 
-          Text(
-            message.isDeleted ? '🚫 This message was deleted' : message.text,
-            style: TextStyle(
-              color: message.isDeleted
-                  ? Colors.grey
-                  : (isMe ? Colors.white : colors.onSurface),
-              fontSize: 15,
-              fontStyle: message.isDeleted
-                  ? FontStyle.italic
-                  : FontStyle.normal,
+          // Message text. Deleted messages show a plain placeholder,
+          // everything else is linkified so links can be tapped.
+          if (message.isDeleted)
+            const Text(
+              '🚫 This message was deleted',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 15,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            Linkify(
+              text: message.text,
+              onOpen: (link) => _openLink(context, link),
+              options: const LinkifyOptions(
+                humanize: false, // keep the full link visible
+                looseUrl: true, // also detect "google.com" without http
+                defaultToHttps: true,
+              ),
+              style: TextStyle(color: textColor, fontSize: 15),
+              linkStyle: TextStyle(
+                color: linkColor,
+                fontSize: 15,
+                decoration: TextDecoration.underline,
+                decorationColor: linkColor,
+              ),
             ),
-          ),
 
           if (message.reactions.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -173,9 +221,7 @@ class ChatTextBubble extends StatelessWidget {
                 Icon(
                   message.isSeen ? Icons.done_all : Icons.done,
                   size: 14,
-                  color: message.isSeen
-                      ? const Color(0xFF93C5FD)
-                      : Colors.white70,
+                  color: message.isSeen ? _kSeenTick : Colors.white70,
                 ),
               ],
             ],

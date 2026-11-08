@@ -3,6 +3,11 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
+// 🎨 Palette (same as the rest of the app)
+const Color _kPlum = Color(0xFF6B4A5B); // main accent
+const Color _kRose = Color(0xFFE0BCC4); // dusty rose
+const Color _kMuted = Color(0xFF7A6670); // muted text
+
 class VoiceBubble extends StatefulWidget {
   final String url;
   final int seconds;
@@ -74,8 +79,14 @@ class _VoiceBubbleState extends State<VoiceBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isMine ? Colors.white : const Color(0xFF2563EB);
-    final sub = widget.isMine ? Colors.white70 : Colors.grey;
+    final mine = widget.isMine;
+
+    // Mine  -> sits on a plum bubble: rose button + rose progress
+    // Other -> sits on a light bubble: plum button + plum progress
+    final accent = mine ? _kRose : _kPlum; // button, active track, thumb
+    final buttonIcon = mine ? _kPlum : Colors.white;
+    final sub = mine ? Colors.white70 : _kMuted;
+
     final maxMs = _duration.inMilliseconds < 1 ? 1 : _duration.inMilliseconds;
     final posMs = _position.inMilliseconds.clamp(0, maxMs).toDouble();
 
@@ -87,26 +98,26 @@ class _VoiceBubbleState extends State<VoiceBubble> {
             GestureDetector(
               onTap: _toggle,
               child: Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
                 child: Icon(
-                  _playing ? Icons.pause : Icons.play_arrow,
-                  color: widget.isMine ? const Color(0xFF2563EB) : Colors.white,
-                  size: 22,
+                  _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  color: buttonIcon,
+                  size: 24,
                 ),
               ),
             ),
             Expanded(
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  trackHeight: 2,
+                  trackHeight: 3,
                   thumbShape:
                       const RoundSliderThumbShape(enabledThumbRadius: 5),
                   overlayShape: SliderComponentShape.noOverlay,
-                  activeTrackColor: fg,
-                  inactiveTrackColor: fg.withValues(alpha: 0.4),
-                  thumbColor: fg,
+                  activeTrackColor: accent,
+                  inactiveTrackColor: accent.withValues(alpha: 0.35),
+                  thumbColor: accent,
                 ),
                 child: Slider(
                   min: 0,
@@ -124,10 +135,12 @@ class _VoiceBubbleState extends State<VoiceBubble> {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 2),
-              child: Text(_fmt(_playing || _position > Duration.zero
-                      ? _position
-                      : _duration),
-                  style: TextStyle(color: sub, fontSize: 10)),
+              child: Text(
+                _fmt(_playing || _position > Duration.zero
+                    ? _position
+                    : _duration),
+                style: TextStyle(color: sub, fontSize: 10),
+              ),
             ),
             Text(widget.time, style: TextStyle(color: sub, fontSize: 10)),
           ],

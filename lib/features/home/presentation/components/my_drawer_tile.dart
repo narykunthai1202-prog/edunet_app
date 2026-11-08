@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class MyDrawerTile extends StatelessWidget {
   final String title;
@@ -16,49 +18,55 @@ class MyDrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final foregroundColor = isDestructive
-        ? colorScheme.error
-        : colorScheme.inversePrimary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final Color foregroundColor = isDestructive
+        ? AppColors.error
+        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary);
+
+    final Color iconBg = isDestructive
+        ? AppColors.error.withValues(alpha: 0.12)
+        : (isDark ? AppColors.darkPrimary : AppColors.primary).withValues(alpha: 0.12);
+
+    final Color iconColor = isDestructive
+        ? AppColors.error
+        : (isDark ? AppColors.darkPrimary : AppColors.primary);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
-                    color: isDestructive
-                        ? colorScheme.error.withValues(alpha: 0.12)
-                        : colorScheme.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(11),
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 19, color: foregroundColor),
+                  child: Icon(icon, size: 19, color: iconColor),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     title,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: AppTextStyles.bodyMedium.copyWith(
                       color: foregroundColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: isDestructive ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  size: 20,
-                  color: colorScheme.secondary.withValues(alpha: 0.8),
+                  size: 18,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textMuted,
                 ),
               ],
             ),

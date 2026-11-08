@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+// 🎨 Palette (same as the rest of the app)
+const Color _kPlum = Color(0xFF6B4A5B); // idle mic button
+const Color _kRose = Color(0xFFE0BCC4); // soft glow while recording
+const Color _kDanger = Color(0xFFC2674B); // recording / stop (terracotta)
+
 class VoiceRecorderButton extends StatefulWidget {
   final Function(String path) onRecordingComplete;
 
@@ -47,29 +52,30 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
       // Only invoke path_provider on native platforms (Android, iOS, Desktop)
       if (!kIsWeb) {
         final dir = await getTemporaryDirectory();
-        savePath = '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        savePath =
+            '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
       }
 
       // Empty path string on Web triggers browser Blob URL generation
       await _audioRecorder.start(config, path: savePath);
-      setState(() => _isRecording = true);
+      if (mounted) setState(() => _isRecording = true);
     } catch (e) {
       debugPrint('Error starting record: $e');
-      setState(() => _isRecording = false);
+      if (mounted) setState(() => _isRecording = false);
     }
   }
 
   Future<void> _stopRecording() async {
     try {
       final String? path = await _audioRecorder.stop();
-      setState(() => _isRecording = false);
+      if (mounted) setState(() => _isRecording = false);
 
       if (path != null && path.isNotEmpty) {
         widget.onRecordingComplete(path);
       }
     } catch (e) {
       debugPrint('Error stopping record: $e');
-      setState(() => _isRecording = false);
+      if (mounted) setState(() => _isRecording = false);
     }
   }
 
@@ -83,13 +89,21 @@ class _VoiceRecorderButtonState extends State<VoiceRecorderButton> {
           _startRecording();
         }
       },
-      borderRadius: BorderRadius.circular(24),
+      customBorder: const CircleBorder(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: _isRecording ? Colors.redAccent : const Color(0xFF2563EB),
+          color: _isRecording ? _kDanger : _kPlum,
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: (_isRecording ? _kDanger : _kRose).withValues(alpha: 0.5),
+              blurRadius: _isRecording ? 14 : 8,
+              spreadRadius: _isRecording ? 2 : 0,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Icon(
           _isRecording ? Icons.stop_rounded : Icons.mic_rounded,

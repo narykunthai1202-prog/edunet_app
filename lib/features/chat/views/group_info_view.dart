@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:edunest_app/features/chat/models/message_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart' show GoogleFonts;
 import 'package:image_picker/image_picker.dart';
 
 import '../services/group_service.dart';
@@ -26,14 +27,33 @@ class GroupInfoView extends StatefulWidget {
 }
 
 class _GroupInfoViewState extends State<GroupInfoView> {
-  static const _blue = Color(0xFF2563EB);
-  static const _ink = Color(0xFF0F172A);
-  static const _muted = Color(0xFF64748B);
+  // 🎨 Screen colors (edit here to restyle the whole screen)
+  static const _plum = Color(0xFF6B4A5B); // main accent
+  static const _rose = Color(0xFFE0BCC4); // dusty rose
+  static const _card = Color(0xFFEEE8E7); // card / dialog surface
+  static const _border = Color(0xFFDDD2CF); // card border
+  static const _field = Color(0xFFE5DFDC); // inputs, cancel buttons, rows
+  static const _ring = Color(0xFFF3EDEB); // avatar ring
+  static const _textDark = Color(0xFF3A2A32); // dark plum-brown text
+  static const _muted = Color(0xFF7A6670); // muted text
+  static const _danger = Color(0xFFC2674B); // leave / remove (terracotta)
 
   final GroupService _service = GroupService();
   bool _busy = false;
   late final Stream<List<MessageModel>> _messagesStream;
-  late final StreamSubscription _messagesSub;
+
+  // Member profiles (users/{uid}) cached by uid
+  final Map<String, Map<String, dynamic>> _profiles = {};
+  final Set<String> _requested = {};
+
+  // Users I blocked (personal block list)
+  Set<String> _blocked = {};
+  StreamSubscription<List<String>>? _blockSub;
+
+  // Used to give the app bar a background once content scrolls under it
+  final ScrollController _scrollController = ScrollController();
+  bool _scrolled = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,19 +64,71 @@ class _GroupInfoViewState extends State<GroupInfoView> {
         .map(
           (snap) => snap.docs
               .map((d) => MessageModel.fromMap(d.data(), d.id))
+              .where((m) => !m.isHiddenFor(widget.currentUserId))
               .toList(),
         );
+
+    _blockSub = _service.watchBlocked(widget.currentUserId).listen((ids) {
+      if (mounted) setState(() => _blocked = ids.toSet());
+    });
+
+    _scrollController.addListener(() {
+      final scrolled = _scrollController.hasClients &&
+          _scrollController.offset > 80;
+      if (scrolled != _scrolled) setState(() => _scrolled = scrolled);
+    });
   }
 
   @override
   void dispose() {
-    _messagesSub.cancel();
+    _blockSub?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  // -------------------------------------------------------------- profiles
+
+  /// Loads users/{uid} for every id not requested yet (whereIn max = 10).
+  Future<void> _loadProfiles(List<String> ids) async {
+    final missing = ids.where((id) => !_requested.contains(id)).toList();
+    if (missing.isEmpty) return;
+    _requested.addAll(missing);
+
+    try {
+      for (var i = 0; i < missing.length; i += 10) {
+        final chunk = missing.sublist(
+          i,
+          i + 10 > missing.length ? missing.length : i + 10,
+        );
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+        for (final doc in snap.docs) {
+          _profiles[doc.id] = doc.data();
+        }
+      }
+    } catch (e) {
+      // permission-denied etc. shows up here
+      debugPrint('Failed to load member profiles: $e');
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// Display name for a uid. Tries a few common field names.
+  String _nameFor(String id) {
+    final p = _profiles[id];
+    if (p == null) return 'Loading...';
+    for (final key in const ['name', 'username', 'displayName']) {
+      final v = p[key]?.toString().trim();
+      if (v != null && v.isNotEmpty) return v;
+    }
+    return 'Unknown user';
   }
 
   // --------------------------------------------------------------- actions
@@ -79,31 +151,119 @@ class _GroupInfoViewState extends State<GroupInfoView> {
     if (mounted) setState(() => _busy = false);
   }
 
+  ButtonStyle get _cancelStyle => TextButton.styleFrom(
+    backgroundColor: _field,
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  );
+
   Future<void> _editName(String current) async {
     final controller = TextEditingController(text: current);
     final newName = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Edit group name'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 40,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      barrierColor: Colors.black54,
+      builder: (ctx) => Dialog(
+        backgroundColor: _card,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: _rose.withValues(alpha: 0.7),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      color: _plum,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Edit group name',
+                    style: GoogleFonts.nunito(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: _textDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLength: 40,
+                cursorColor: _plum,
+                style: GoogleFonts.nunito(
+                  fontWeight: FontWeight.w700,
+                  color: _textDark,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: _field,
+                  counterStyle: const TextStyle(color: _muted),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(color: _plum, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: _cancelStyle,
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: _textDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: _plum,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () =>
+                          Navigator.pop(ctx, controller.text.trim()),
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
     if (newName == null || newName.isEmpty || newName == current) return;
@@ -132,25 +292,108 @@ class _GroupInfoViewState extends State<GroupInfoView> {
     }
   }
 
+  /// Block / unblock a member (personal: hides their messages for me).
+  Future<void> _toggleBlock(String id) async {
+    final wasBlocked = _blocked.contains(id);
+    final name = _nameFor(id);
+    try {
+      if (wasBlocked) {
+        await _service.unblockUser(widget.currentUserId, id);
+        _toast('Unblocked $name');
+      } else {
+        await _service.blockUser(widget.currentUserId, id);
+        _toast('Blocked $name');
+      }
+    } catch (e) {
+      _toast('Failed: $e');
+    }
+  }
+
   Future<void> _leave() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Leave group?'),
-        content: const Text(
-          'You will no longer receive messages from this group.',
+      barrierColor: Colors.black54,
+      builder: (ctx) => Dialog(
+        backgroundColor: _card,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: _danger.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.logout_rounded, color: _danger, size: 30),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Leave group?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: _textDark,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'You will no longer receive messages from this group.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  fontSize: 14,
+                  color: _muted,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: _cancelStyle,
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: _textDark,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: _danger,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text(
+                        'Leave',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Leave', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
     if (ok != true) return;
@@ -175,11 +418,22 @@ class _GroupInfoViewState extends State<GroupInfoView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: _textDark,
         centerTitle: true,
-        title: const Text(
+        // Solid background fades in once content scrolls under the bar,
+        // so the title no longer overlaps the cards.
+        flexibleSpace: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          color: _scrolled ? colors.surface : Colors.transparent,
+        ),
+        title: Text(
           'Group info',
-          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+          style: GoogleFonts.nunito(
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+            color: _textDark,
+          ),
         ),
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -187,7 +441,9 @@ class _GroupInfoViewState extends State<GroupInfoView> {
         builder: (context, snap) {
           final data = snap.data?.data();
           if (data == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: _plum),
+            );
           }
 
           final name = (data['groupName'] ?? 'Group') as String;
@@ -196,7 +452,13 @@ class _GroupInfoViewState extends State<GroupInfoView> {
           final admins = List<String>.from(data['adminIds'] ?? []);
           final isAdmin = admins.contains(widget.currentUserId);
 
+          // Fetch profiles for any members we haven't loaded yet
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _loadProfiles(participants),
+          );
+
           return ListView(
+            controller: _scrollController,
             padding: EdgeInsets.zero,
             children: [
               _header(name, photo, participants),
@@ -214,6 +476,7 @@ class _GroupInfoViewState extends State<GroupInfoView> {
                 child: _membersCard(participants, admins, isAdmin),
               ),
               const SizedBox(height: 18),
+              // Every member (and admin) can leave.
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _leaveButton(),
@@ -235,7 +498,7 @@ class _GroupInfoViewState extends State<GroupInfoView> {
       padding: EdgeInsets.fromLTRB(20, top + 6, 20, 26),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6), Color(0xFF60A5FA)],
+          colors: [Color(0xFFF2E2E6), _rose, Color(0xFFD3A9B4)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -243,17 +506,17 @@ class _GroupInfoViewState extends State<GroupInfoView> {
       ),
       child: Column(
         children: [
-          // avatar with white ring + camera button
+          // avatar with soft ring + camera button
           Stack(
             children: [
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: _ring,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.18),
+                      color: _plum.withValues(alpha: 0.18),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -279,9 +542,9 @@ class _GroupInfoViewState extends State<GroupInfoView> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _blue,
+                      color: _plum,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(color: _ring, width: 3),
                     ),
                     child: const Icon(
                       Icons.camera_alt_rounded,
@@ -304,8 +567,8 @@ class _GroupInfoViewState extends State<GroupInfoView> {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: GoogleFonts.nunito(
+                    color: _textDark,
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                   ),
@@ -314,11 +577,7 @@ class _GroupInfoViewState extends State<GroupInfoView> {
               const SizedBox(width: 4),
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.edit_rounded,
-                  size: 19,
-                  color: Colors.white70,
-                ),
+                icon: const Icon(Icons.edit_rounded, size: 19, color: _plum),
                 onPressed: () => _editName(name),
               ),
             ],
@@ -329,20 +588,20 @@ class _GroupInfoViewState extends State<GroupInfoView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.group_rounded, size: 16, color: Colors.white),
+                const Icon(Icons.group_rounded, size: 16, color: _plum),
                 const SizedBox(width: 6),
                 Text(
                   '${participants.length} members',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: GoogleFonts.nunito(
+                    color: _textDark,
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -381,22 +640,22 @@ class _GroupInfoViewState extends State<GroupInfoView> {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.65),
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: _plum.withValues(alpha: 0.18),
                 width: 1,
               ),
             ),
-            child: Icon(icon, color: Colors.white, size: 24),
+            child: Icon(icon, color: _plum, size: 24),
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: GoogleFonts.nunito(
+              color: _textDark,
               fontSize: 12.5,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -407,12 +666,12 @@ class _GroupInfoViewState extends State<GroupInfoView> {
   // ---------------------------------------------------------------- members
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-    borderRadius: BorderRadius.circular(24),
-    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+    color: _card,
+    borderRadius: BorderRadius.circular(26),
+    border: Border.all(color: _border),
     boxShadow: [
       BoxShadow(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+        color: _plum.withValues(alpha: 0.08),
         blurRadius: 24,
         offset: const Offset(0, 8),
       ),
@@ -424,7 +683,7 @@ class _GroupInfoViewState extends State<GroupInfoView> {
     List<String> admins,
     bool isAdmin,
   ) {
-    // you first, then admins, then everybody else
+    // you first, then admins, then everybody else (alphabetical by name)
     final sorted = [...participants]
       ..sort((a, b) {
         int rank(String id) => id == widget.currentUserId
@@ -433,7 +692,9 @@ class _GroupInfoViewState extends State<GroupInfoView> {
             ? 1
             : 2;
         final r = rank(a).compareTo(rank(b));
-        return r != 0 ? r : a.compareTo(b);
+        return r != 0
+            ? r
+            : _nameFor(a).toLowerCase().compareTo(_nameFor(b).toLowerCase());
       });
 
     return Container(
@@ -445,30 +706,22 @@ class _GroupInfoViewState extends State<GroupInfoView> {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _rose.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.group_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: const Icon(Icons.group_rounded, color: _plum, size: 20),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Members',
-                  style: TextStyle(
+                  style: GoogleFonts.nunito(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: _ink,
+                    color: _textDark,
                   ),
                 ),
               ),
@@ -478,13 +731,13 @@ class _GroupInfoViewState extends State<GroupInfoView> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDBEAFE),
+                  color: _rose.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${participants.length}',
                   style: const TextStyle(
-                    color: _blue,
+                    color: _plum,
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                   ),
@@ -496,10 +749,10 @@ class _GroupInfoViewState extends State<GroupInfoView> {
 
           // add members button
           Material(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            color: _field,
+            borderRadius: BorderRadius.circular(18),
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               onTap: () => _addMembers(participants),
               child: Padding(
                 padding: const EdgeInsets.all(10),
@@ -509,7 +762,7 @@ class _GroupInfoViewState extends State<GroupInfoView> {
                       width: 42,
                       height: 42,
                       decoration: const BoxDecoration(
-                        color: _blue,
+                        color: _plum,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -519,17 +772,17 @@ class _GroupInfoViewState extends State<GroupInfoView> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Add members',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.5,
-                          color: _blue,
+                        style: GoogleFonts.nunito(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: _plum,
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, color: _blue),
+                    const Icon(Icons.chevron_right_rounded, color: _plum),
                   ],
                 ),
               ),
@@ -547,31 +800,47 @@ class _GroupInfoViewState extends State<GroupInfoView> {
   Widget _memberRow(String id, List<String> admins, bool isAdmin) {
     final isMe = id == widget.currentUserId;
     final isMemberAdmin = admins.contains(id);
+    final isBlocked = _blocked.contains(id);
+    final displayName = _nameFor(id);
+    final photoUrl = _profiles[id]?['profileImageUrl']?.toString();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          GroupAvatar(name: id, radius: 22),
+          GroupAvatar(
+            name: displayName,
+            photoUrl: (photoUrl == null || photoUrl.isEmpty) ? null : photoUrl,
+            radius: 22,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  id,
+                  displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14.5,
-                    color: _ink,
+                  style: GoogleFonts.nunito(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: _textDark,
                   ),
                 ),
                 if (isMe)
-                  const Text(
+                  Text(
                     'You',
-                    style: TextStyle(fontSize: 12, color: _muted),
+                    style: GoogleFonts.nunito(fontSize: 12.5, color: _muted),
+                  )
+                else if (isBlocked)
+                  Text(
+                    'Blocked',
+                    style: GoogleFonts.nunito(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: _danger,
+                    ),
                   ),
               ],
             ),
@@ -580,17 +849,30 @@ class _GroupInfoViewState extends State<GroupInfoView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: _rose.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
+              child: Text(
                 'Admin',
-                style: TextStyle(
-                  color: Color(0xFFB45309),
+                style: GoogleFonts.nunito(
+                  color: _plum,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                 ),
               ),
+            ),
+          // Block / unblock: every member and admin can do this.
+          if (!isMe)
+            PopupMenuButton<String>(
+              tooltip: 'More',
+              icon: const Icon(Icons.more_vert_rounded, color: _muted),
+              onSelected: (_) => _toggleBlock(id),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'block',
+                  child: Text(isBlocked ? 'Unblock' : 'Block'),
+                ),
+              ],
             ),
           if (isAdmin && !isMe)
             IconButton(
@@ -598,7 +880,7 @@ class _GroupInfoViewState extends State<GroupInfoView> {
               tooltip: 'Remove from group',
               icon: const Icon(
                 Icons.remove_circle_outline_rounded,
-                color: Color(0xFFEF4444),
+                color: _danger,
               ),
               onPressed: () => _service.removeMember(
                 widget.groupId,
@@ -615,26 +897,26 @@ class _GroupInfoViewState extends State<GroupInfoView> {
 
   Widget _leaveButton() {
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(18),
+      color: _danger.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(22),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         onTap: _leave,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFFECACA)),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: _danger.withValues(alpha: 0.3)),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
-              SizedBox(width: 8),
+              const Icon(Icons.logout_rounded, color: _danger, size: 20),
+              const SizedBox(width: 8),
               Text(
                 'Leave group',
-                style: TextStyle(
-                  color: Color(0xFFEF4444),
+                style: GoogleFonts.nunito(
+                  color: _danger,
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
                 ),

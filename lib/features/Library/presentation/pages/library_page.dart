@@ -61,7 +61,7 @@ class _LibraryPageState extends State<LibraryPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: Colors.cyan),
+                child: CircularProgressIndicator(),
               );
             }
 
@@ -156,10 +156,14 @@ class _LibraryPageState extends State<LibraryPage> {
     return Container(
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: colors.outline,
+          width: 1,
+        ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(22),
         onTap: () {
           // កែប្រែត្រង់នេះ៖ លុប level: 1 ចោល ដើម្បីផ្ញើតែ subjectId និង categoryName
           Navigator.push(

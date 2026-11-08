@@ -23,10 +23,18 @@ class AuthError extends AuthState {
   AuthError({required this.message});
 }
 
+class EmailVerificationPending extends AuthState {
+  final String email;
+  final String? message;
+
+  EmailVerificationPending({required this.email, this.message});
+}
+
 class NeedsProfileCompletion extends AuthState {
   final AppUser user;
+  final String? message;
 
-  NeedsProfileCompletion({required this.user});
+  NeedsProfileCompletion({required this.user, this.message});
 }
 
 // Account Suspended State
@@ -35,9 +43,5 @@ class AccountSuspended extends AuthState {
   final String? reason;
   final DateTime? suspendedUntil;
 
-  AccountSuspended({
-    required this.user,
-    this.reason,
-    this.suspendedUntil,
-  });
+  AccountSuspended({required this.user, this.reason, this.suspendedUntil});
 }
