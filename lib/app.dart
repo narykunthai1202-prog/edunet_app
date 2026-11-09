@@ -107,13 +107,14 @@ class _MyAppState extends State<MyApp> {
 
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) => MaterialApp(
-<<<<<<< HEAD
           useInheritedMediaQuery: true,
           locale: DevicePreview.locale(context),
-          builder: DevicePreview.appBuilder,
-=======
-          navigatorKey: navigatorKey, // NEW: lets the call screen open
->>>>>>> 1d3fdc17bf178ed9129651459dcbb1be38147128
+          builder: (context, child) {
+            // Combines DevicePreview builder and lets Zego navigator key inject properly
+            child = DevicePreview.appBuilder(context, child);
+            return child;
+          },
+          navigatorKey: navigatorKey, // Allows Zego call screens to open cleanly
           debugShowCheckedModeBanner: false,
           theme: lightMode,
           darkTheme: darkMode,

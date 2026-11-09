@@ -135,11 +135,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color.fromARGB(255, 41, 73, 41),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color.fromARGB(255, 239, 251, 241).withOpacity(0.04),
             blurRadius: 14,
             offset: const Offset(0, 3),
           ),
@@ -150,7 +150,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           IconButton(
             onPressed: () => _changeMonth(-1),
             icon: const Icon(Icons.chevron_left_rounded),
-            color: const Color(0xFF1E232C),
+            color: const Color.fromARGB(255, 235, 238, 243),
             iconSize: 26,
             splashRadius: 20,
           ),
@@ -164,7 +164,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 style: const TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E232C),
+                  color: Color.fromARGB(255, 234, 236, 240),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -173,7 +173,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           IconButton(
             onPressed: () => _changeMonth(1),
             icon: const Icon(Icons.chevron_right_rounded),
-            color: const Color(0xFF1E232C),
+            color: const Color.fromARGB(255, 244, 245, 248),
             iconSize: 26,
             splashRadius: 20,
           ),
@@ -190,7 +190,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             },
             icon: const Icon(
               Icons.notifications_none_rounded,
-              color: Color(0xFF1E232C),
+              color: Color.fromARGB(255, 237, 242, 236),
               size: 24,
             ),
             splashRadius: 20,
@@ -208,11 +208,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color.fromARGB(255, 245, 229, 204),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: const Color.fromARGB(255, 228, 223, 223).withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -273,15 +273,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   // 4. FLOATING CREATE BUTTON: Circular muted rosy taupe button with plus icon
-  Widget _buildCreateButton() {
-    return SizedBox(
+ Widget _buildCreateButton() {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16.0), // បន្ថែមគម្លាតពីក្រោម ២០ភីកសែល
+    child: SizedBox(
       width: 56,
       height: 56,
       child: FloatingActionButton(
         heroTag: 'calendar_create_button',
         onPressed: _quickAdd,
         elevation: 4,
-        backgroundColor: const Color(0xFF9E8E8E),
+        backgroundColor: const Color.fromARGB(255, 46, 79, 49),
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
         child: const Icon(
@@ -289,8 +291,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
           size: 28,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
