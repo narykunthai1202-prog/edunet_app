@@ -60,7 +60,7 @@ Future<void> sendFileMessage({
   await chatRef.collection('messages').add({
     'type': 'file',
     'senderId': senderId,
-    if (receiverId != null) 'receiverId': receiverId,
+    'receiverId': ?receiverId,
     'text': url, // kept for old code that reads "text"
     'fileUrl': url,
     'fileName': picked.name,

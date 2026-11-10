@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../models/message_model.dart';
 import 'chat_extras.dart';
 
-// Theme colors (replace with your theme file colors if you have them)
-const Color _plum = Color(0xFF6B4A5E);
-const Color _cardBeige = Color(0xFFEFE8E6);
-const Color _receivedText = Color(0xFF3A2A33);
 const Color _seenPink = Color(0xFFFFD6E8);
 
 class ChatBubble extends StatelessWidget {
@@ -79,7 +76,7 @@ class ChatBubble extends StatelessWidget {
 
                 // Forward
                 ListTile(
-                  leading: const Icon(Icons.shortcut_rounded, color: _plum),
+                  leading: const Icon(Icons.shortcut_rounded, color: AppColors.primary),
                   title: const Text('Forward'),
                   onTap: () {
                     Navigator.pop(context);
@@ -90,7 +87,7 @@ class ChatBubble extends StatelessWidget {
                 // Copy (not shown for stickers)
                 if (!_isSticker)
                   ListTile(
-                    leading: const Icon(Icons.copy_rounded, color: _plum),
+                    leading: const Icon(Icons.copy_rounded, color: AppColors.primary),
                     title: Text(
                         (_isMedia || _isFile) ? 'Copy Link' : 'Copy Text'),
                     onTap: () {
@@ -132,7 +129,7 @@ class ChatBubble extends StatelessWidget {
   Widget _fileBubble() {
     final name = message.fileName ?? 'File';
     final size = message.fileSize ?? 0;
-    final textColor = isMe ? Colors.white : _receivedText;
+    final textColor = isMe ? Colors.white : AppColors.textPrimary;
     final url = (message.fileUrl != null && message.fileUrl!.isNotEmpty)
         ? message.fileUrl!
         : message.text;
@@ -238,7 +235,7 @@ class ChatBubble extends StatelessWidget {
       child: Text(
         message.text,
         style: TextStyle(
-          color: isMe ? Colors.white : _receivedText,
+          color: isMe ? Colors.white : AppColors.textPrimary,
           fontSize: 15,
           height: 1.3,
         ),
@@ -269,17 +266,29 @@ class ChatBubble extends StatelessWidget {
           decoration: noBubble
               ? null
               : BoxDecoration(
-                  color: isMe ? _plum : _cardBeige,
+                  gradient: isMe ? AppColors.primaryGradient : null,
+                  color: isMe
+                      ? null
+                      : (Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCard
+                          : AppColors.surface),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
                     bottomLeft: Radius.circular(isMe ? 20 : 4),
                     bottomRight: Radius.circular(isMe ? 4 : 20),
                   ),
+                  border: isMe
+                      ? null
+                      : Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkDivider
+                              : AppColors.divider,
+                        ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 6,
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],

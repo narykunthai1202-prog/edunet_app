@@ -45,45 +45,7 @@ class FirebaseSecurityPrivacyRepo implements SecurityPrivacyRepo {
     }
   }
 
-  @override
-  Future<void> requestEmailChange({
-    required String newEmail,
-    required String currentPassword,
-  }) async {
-    final user = _firebaseAuth.currentUser;
-    if (user == null || user.email == null) {
-      throw Exception('User is not logged in.');
-    }
-
-    try {
-      // 1. Re-authenticate
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: currentPassword,
-      );
-      await user.reauthenticateWithCredential(cred);
-
-      // 2. Send verification to new email
-      await user.verifyBeforeUpdateEmail(newEmail.trim());
-
-      // 3. Store pending email in firestore
-      await _firestore.collection('users').doc(user.uid).update({
-        'pendingNewEmail': newEmail.trim(),
-        'emailChangeRequestedAt': FieldValue.serverTimestamp(),
-      });
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        throw Exception('Incorrect current password.');
-      } else if (e.code == 'email-already-in-use') {
-        throw Exception('This email address is already in use by another account.');
-      } else if (e.code == 'invalid-email') {
-        throw Exception('The new email address format is invalid.');
-      }
-      throw Exception('Failed to request email change: ${e.message}');
-    } catch (e) {
-      throw Exception('Error requesting email change: $e');
-    }
-  }
+ 
 
   @override
   Future<void> sendOtpCode({
@@ -290,19 +252,19 @@ class FirebaseSecurityPrivacyRepo implements SecurityPrivacyRepo {
     }
   }
 
-  @override
-  Future<void> updatePrivacySettings(
-    String uid,
-    Map<String, dynamic> settings,
-  ) async {
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'privacySettings': settings,
-      });
-    } catch (e) {
-      throw Exception('Failed to update privacy settings: $e');
-    }
+@override
+Future<void> updatePrivacySettings(
+  String uid,
+  Map<String, dynamic> settings,
+) async {
+  try {
+    await _firestore.collection('users').doc(uid).set({
+      'privacySettings': settings,
+    }, SetOptions(merge: true));
+  } catch (e) {
+    throw Exception('Failed to update privacy settings: $e');
   }
+}
 
   static const Map<String, dynamic> _defaultPrivacySettings = {
     'profileVisibility': 'Public', // 'Public', 'Friends Only', 'Private'
@@ -310,4 +272,120 @@ class FirebaseSecurityPrivacyRepo implements SecurityPrivacyRepo {
     'allowTagging': true,
     'showEmail': false,
   };
+
+  @override
+  Future<void> requestEmailChange({required String newEmail, required String currentPassword}) async{
+    final user = _firebaseAuth.currentUser;
+    if(user == null || user.email == null){
+      throw Exception('User is not logged in.');
+    }
+    try{
+      final credential = EmailAuthProvider.credential(email: user.email!, password: currentPassword);
+      await user.reauthenticateWithCredential(credential);
+      await user.verifyBeforeUpdateEmail(newEmail.trim());
+      await _firestore.collection('users').doc(user.uid).update({
+        'pendingEmail': newEmail.trim(),
+        'emailChangeRequestedAt' : FieldValue.serverTimestamp(),
+      });
+    } on FirebaseAuthException catch(e){
+      switch(e.code){
+        case 'wrong-password':
+          throw Exception('The current password entered is incorrect.');
+        case 'invalid-email':
+          throw Exception('The new email address is invalid.');
+        case 'email-already-in-use':
+          throw Exception('The new email address is already in use by another account.');
+        case 'requires-recent-login':
+          throw Exception('Please log out and log in again before changing email.');
+        default:
+          throw Exception('Failed to request email change: ${e.message}');
+      }
+    }catch(e){
+      throw Exception('Error requesting email change: $e'); 
+  }
+  }
+  @override
+  Future<bool> syncVerifiedEmailChange() async {
+  final user = _firebaseAuth.currentUser;
+
+  if (user == null) return false;
+
+  try {
+    // Refresh Firebase authentication information.
+    await user.reload();
+
+    final refreshedUser = _firebaseAuth.currentUser;
+
+    if (refreshedUser == null) return false;
+
+    final userRef =
+        _firestore.collection('users').doc(refreshedUser.uid);
+
+    final userDoc = await userRef.get();
+
+    if (!userDoc.exists) return false;
+
+    final data = userDoc.data()!;
+    final pendingEmail = data['pendingNewEmail'] as String?;
+
+    // Only synchronize after Firebase confirms the new email.
+    if (pendingEmail != null &&
+        refreshedUser.email?.toLowerCase() ==
+            pendingEmail.toLowerCase()) {
+
+      await userRef.update({
+        'email': refreshedUser.email,
+        'pendingNewEmail': FieldValue.delete(),
+        'emailChangeRequestedAt': FieldValue.delete(),
+      });
+
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    debugPrint('Email synchronization error: $e');
+    return false;
+  }
+}
+
+  @override
+  Future<void> sendEmailVerificationLink() async {
+  final user = _firebaseAuth.currentUser;
+
+  if (user == null) {
+    throw Exception('User is not logged in.');
+  }
+
+  try {
+    // Refresh user information.
+    await user.reload();
+
+    final currentUser = _firebaseAuth.currentUser;
+
+    if (currentUser == null) {
+      throw Exception('User session expired. Please log in again.');
+    }
+
+    if (currentUser.emailVerified) {
+      throw Exception('Your email address is already verified.');
+    }
+
+    // Send Firebase verification link to current email.
+    await currentUser.sendEmailVerification();
+  } on FirebaseAuthException catch (e) {
+    switch (e.code) {
+      case 'too-many-requests':
+        throw Exception('Too many requests. Please try again later.');
+
+      case 'network-request-failed':
+        throw Exception('Please check your internet connection.');
+
+      default:
+        throw Exception(
+          e.message ?? 'Failed to send verification email.',
+        );
+    }
+  }
+}
 }

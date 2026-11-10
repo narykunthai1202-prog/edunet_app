@@ -5,7 +5,6 @@ import 'package:edunest_app/features/chat/services/chat_service.dart';
 import 'package:edunest_app/features/chat/widgets/chat_extras.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../controllers/voice_message_sender.dart';
 import '../controllers/voice_recorder_controller.dart';

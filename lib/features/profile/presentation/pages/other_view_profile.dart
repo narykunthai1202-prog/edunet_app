@@ -6,6 +6,7 @@ import 'package:edunest_app/features/profile/presentation/components/list_view_p
 import 'package:edunest_app/features/profile/presentation/components/other_user_info.dart';
 import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.dart';
 import 'package:edunest_app/features/profile/presentation/pages/follow_page.dart';
+import 'package:edunest_app/features/security_privacy/data/firebase_security_privacy_repo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
@@ -20,11 +21,39 @@ class OtherViewProfile extends StatefulWidget {
 
 class _OtherViewProfileState extends State<OtherViewProfile> {
   late final profilecubit = context.read<ProfileCubit>();
-
+  final FirebaseSecurityPrivacyRepo _privacyRepo = FirebaseSecurityPrivacyRepo();
+  String _profileVisibility = 'Public';
   ProfileUser? _user;
   bool _loading = true;
   String? _error;
   bool _showPosts = true;
+bool get _canViewAbout {
+  if (_user == null) return false;
+
+  final currentUid = context.read<AuthCubit>().currentUser?.uid;
+
+  // Profile owner can always view their own About section.
+  if (currentUid == widget.uid) return true;
+
+  switch (_profileVisibility) {
+    case 'Public':
+      return true;
+
+    case 'Friend':
+      if (currentUid == null) return false;
+
+      // Both users must follow each other.
+      return _user!.followers.contains(currentUid) &&
+          _user!.following.contains(currentUid);
+
+    case 'private':
+      return false;
+
+    default:
+      // Unknown setting: deny access by default.
+      return false;
+  }
+}
 
   @override
   void initState() {
@@ -59,39 +88,46 @@ class _OtherViewProfileState extends State<OtherViewProfile> {
 
   int _postCount = 0;
   Future<void> _loadProfile() async {
-    try {
-      final user = await profilecubit.getUserProfile(widget.uid);
+  try {
+    final user = await profilecubit.getUserProfile(widget.uid);
 
-      if (user == null) {
-        if (!mounted) return;
-
-        setState(() {
-          _loading = false;
-          _error = 'User not found';
-        });
-
-        return;
-      }
-
-      final postCount = await profilecubit.getPostCount(widget.uid);
-
-      if (!mounted) return;
-
-      setState(() {
-        _user = user;
-        _postCount = postCount;
-        _loading = false;
-        _error = null;
-      });
-    } catch (e) {
+    if (user == null) {
       if (!mounted) return;
 
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = 'User not found';
       });
+      return;
     }
+
+    final results = await Future.wait([
+      profilecubit.getPostCount(widget.uid),
+      _privacyRepo.fetchPrivacySettings(widget.uid),
+    ]);
+
+    if (!mounted) return;
+
+    final postCount = results[0] as int;
+    final settings = results[1] as Map<String, dynamic>;
+
+    setState(() {
+      _user = user;
+      _postCount = postCount;
+      _profileVisibility =
+          settings['profileVisibility'] ?? 'Public';
+      _loading = false;
+      _error = null;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      _loading = false;
+      _error = e.toString();
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -152,47 +188,49 @@ class _OtherViewProfileState extends State<OtherViewProfile> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 3,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      MyBubble(
-                        text: 'About',
-                        iconData: Iconsax.information,
-                        isSelected: !_showPosts,
-                        onTap: () {
-                          setState(() {
-                            _showPosts = false;
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 5),
-                      MyBubble(
-                        text: 'Posts',
-                        iconData: Iconsax.book,
-                        isSelected: _showPosts,
-                        onTap: () {
-                          setState(() {
-                            _showPosts = true;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+  padding: const EdgeInsets.symmetric(
+    horizontal: 15,
+    vertical: 3,
+  ),
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      if (_canViewAbout) ...[
+        MyBubble(
+          text: 'About',
+          iconData: Iconsax.information,
+          isSelected: !_showPosts,
+          onTap: () {
+            setState(() {
+              _showPosts = false;
+            });
+          },
+        ),
+        const SizedBox(width: 5),
+      ],
+      MyBubble(
+        text: 'Posts',
+        iconData: Iconsax.book,
+        isSelected: _showPosts,
+        onTap: () {
+          setState(() {
+            _showPosts = true;
+          });
+        },
+      ),
+    ],
+  ),
+),
                 const SizedBox(height: 5),
-                _showPosts
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: ListViewPostByprivacy(
-                          uid: widget.uid,
-                          viewerUid: currentUid,
-                        ),
-                      )
-                    : AboutSection(user: user),
+               _showPosts || !_canViewAbout
+    ? Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: ListViewPostByprivacy(
+          uid: widget.uid,
+          viewerUid: currentUid,
+        ),
+      )
+    : AboutSection(user: user),
                 // rest of your body
               ],
             ),

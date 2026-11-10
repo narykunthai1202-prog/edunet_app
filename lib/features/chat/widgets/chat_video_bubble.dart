@@ -52,7 +52,7 @@ class ChatVideoBubble extends StatelessWidget {
               Image.network(
                 _thumbnailUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   color: Colors.black87,
                   child: const Icon(
                     Icons.videocam,

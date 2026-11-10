@@ -3,7 +3,7 @@ import 'package:edunest_app/features/auth/domain/entities/app_user.dart';
 import 'package:edunest_app/features/auth/domain/repos/auth_repo.dart';
 import 'package:edunest_app/features/notifications/presentation/cubits/notification_cubit.dart';
 import 'package:edunest_app/features/post/presentation/cubits/post_cubit.dart';
-import 'package:flutter/material.dart';
+import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.dart';
 
 import 'auth_states.dart';
 
@@ -11,209 +11,306 @@ class AuthCubit extends Cubit<AuthState> {
   final AuthRepo authRepo;
   final NotificationCubit notificationCubit;
   final PostCubit postCubit;
+  final ProfileCubit profileCubit;
 
   AppUser? _currentUser;
+  bool _authOperationInProgress = false;
 
   AuthCubit({
     required this.authRepo,
     required this.notificationCubit,
     required this.postCubit,
+    required this.profileCubit,
   }) : super(AuthIntial());
 
-  // Check if user is already authenticated
- 
-
-  // Get current user
   AppUser? get currentUser => _currentUser;
 
   bool _handleSuspendedUser(AppUser user) {
-    if (user.isSuspended) {
-      if (user.suspendedUntil == null ||
-          user.suspendedUntil!.isAfter(DateTime.now())) {
-        emit(AccountSuspended(
+    if (user.isSuspended &&
+        (user.suspendedUntil == null ||
+            user.suspendedUntil!.isAfter(DateTime.now()))) {
+      emit(
+        AccountSuspended(
           user: user,
           reason: user.suspensionReason,
           suspendedUntil: user.suspendedUntil,
-        ));
-        return true;
-      }
+        ),
+      );
+      return true;
     }
     return false;
   }
 
-  // Login
-  Future<void> login(String email, String pw) async {
-    try {
-      emit(AuthLoading());
+  String _messageFromError(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
 
-      final AppUser? user = await authRepo.loginWitheEmailPassword(
+  Future<void> _completeAuthentication(AppUser user) async {
+    _currentUser = user;
+
+    if (_handleSuspendedUser(user)) return;
+
+    if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
+      emit(NeedsProfileCompletion(user: user));
+      return;
+    }
+
+    notificationCubit.fetchNotifications(user.uid);
+    emit(Authenticated(user: user));
+  }
+
+  Future<void> login(String email, String password) async {
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
+    emit(AuthLoading());
+
+    try {
+      final user = await authRepo.loginWitheEmailPassword(
         email: email,
-        password: pw,
+        password: password,
       );
 
-      if (user != null) {
-        _currentUser = user;
-
-        if (_handleSuspendedUser(user)) {
-          return;
-        }
-
-        // Load notifications for the new account
-        notificationCubit.fetchNotifications(user.uid);
-
-        emit(Authenticated(user: user));
-      } else {
+      if (user == null) {
         _currentUser = null;
         notificationCubit.clearNotifications();
-
         emit(Unauthenticated());
+        return;
       }
-    } catch (e) {
-      emit(AuthError(message: e.toString()));
+
+      _currentUser = user;
+      if (await authRepo.needsEmailVerification()) {
+        emit(EmailVerificationPending(email: user.email));
+        return;
+      }
+
+      await _completeAuthentication(user);
+    } catch (error) {
+      emit(AuthError(message: _messageFromError(error)));
+    } finally {
+      _authOperationInProgress = false;
     }
   }
 
   Future<void> signInWithGoogle() async {
-    try {
-      emit(AuthLoading());
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
+    emit(AuthLoading());
 
+    try {
       final user = await authRepo.signInWithGoogle();
+      if (user == null) {
+        _currentUser = null;
+        emit(Unauthenticated());
+        return;
+      }
+
+      await _completeAuthentication(user);
+    } catch (error) {
+      emit(AuthError(message: _messageFromError(error)));
+    } finally {
+      _authOperationInProgress = false;
+    }
+  }
+
+  Future<void> register(String name, String email, String password) async {
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
+    emit(AuthLoading());
+
+    try {
+      final user = await authRepo.registerWithEmailPassword(
+        email: email,
+        password: password,
+        name: name,
+      );
 
       if (user == null) {
+        _currentUser = null;
         emit(Unauthenticated());
         return;
       }
 
       _currentUser = user;
-
-      if (_handleSuspendedUser(user)) {
-        return;
-      }
-
-      if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
+      try {
+        await authRepo.sendEmailVerification();
         emit(NeedsProfileCompletion(user: user));
-        return;
+      } catch (error) {
+        emit(
+          NeedsProfileCompletion(
+            user: user,
+            message:
+                'Could not send the verification email: ${_messageFromError(error)}',
+          ),
+        );
       }
-
-      notificationCubit.fetchNotifications(user.uid);
-      emit(Authenticated(user: user));
-    } catch (e, stackTrace) {
-      debugPrint('========== GOOGLE SIGN-IN FAILED ==========');
-      debugPrint('Error type: ${e.runtimeType}');
-      debugPrint('Error details: $e');
-      debugPrintStack(stackTrace: stackTrace);
-
-      emit(AuthError(message: e.toString()));
+    } catch (error) {
+      emit(AuthError(message: _messageFromError(error)));
+    } finally {
+      _authOperationInProgress = false;
     }
   }
 
-  // Register
-  Future<void> register(String name, String email, String pw) async {
+  Future<void> logout() async {
+    await notificationCubit.clearNotifications();
+    profileCubit.clearProfile();
+    _currentUser = null;
+    await authRepo.logout();
+    postCubit.fetchAllPostsbypublic();
+    emit(Unauthenticated());
+  }
+
+  Future<void> checkAuth() async {
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
+
     try {
-      emit(AuthLoading());
+      final needsVerification = await authRepo.needsEmailVerification();
+      final user = await authRepo.getCurrentUser();
 
-      final AppUser? user = await authRepo.registerWithEmailPassword(
-        name: name,
-        email: email,
-        password: pw,
-      );
-
-      if (user != null) {
-        _currentUser = user;
-
-        // Load notifications for this new account
-        notificationCubit.fetchNotifications(user.uid);
-
-        emit(Authenticated(user: user));
-      } else {
+      if (user == null) {
         _currentUser = null;
         notificationCubit.clearNotifications();
         postCubit.fetchAllPostsbypublic();
-
         emit(Unauthenticated());
+        return;
       }
-    } catch (e) {
-      emit(AuthError(message: e.toString()));
-    }
-  }
 
-  // Logout
-  Future<void> logout() async {
-    await notificationCubit.clearNotifications();
-
-    _currentUser = null;
-
-    await authRepo.logout();
-
-    emit(Unauthenticated());
-  }
-  void checkAuth() async {
-    final AppUser? user = await authRepo.getCurrentUser();
-
-    if (user != null) {
       _currentUser = user;
-
-      if (_handleSuspendedUser(user)) {
+      if (needsVerification) {
+        emit(EmailVerificationPending(email: user.email));
         return;
       }
 
-      if (await authRepo.needsGoogleProfileCompletion(user.uid)) {
-        emit(NeedsProfileCompletion(user: user));
-        return;
-      }
-
-      notificationCubit.fetchNotifications(user.uid);
-      emit(Authenticated(user: user));
-    } else {
-      _currentUser = null;
-      notificationCubit.clearNotifications();
-      postCubit.fetchAllPostsbypublic();
-      emit(Unauthenticated());
+      await _completeAuthentication(user);
+    } catch (error) {
+      emit(AuthError(message: _messageFromError(error)));
+    } finally {
+      _authOperationInProgress = false;
     }
   }
-Future<void> completeGoogleProfile({
-  required String name,
-  required String major,
-  required String university,
-}) async {
-  final user = _currentUser;
 
-  if (user == null) {
-    emit(AuthError(message: 'Please sign in again.'));
-    return;
-  }
+  Future<void> completeProfile({
+    required String name,
+    required String major,
+    required String university,
+  }) async {
+    final user = _currentUser;
+    if (user == null) {
+      emit(AuthError(message: 'Please sign in again.'));
+      return;
+    }
 
-  if (name.trim().isEmpty ||
-      major.trim().isEmpty ||
-      university.trim().isEmpty) {
-    emit(AuthError(message: 'Please complete all required fields.'));
-    return;
-  }
+    if (name.trim().isEmpty ||
+        major.trim().isEmpty ||
+        university.trim().isEmpty) {
+      emit(AuthError(message: 'Please complete all required fields.'));
+      return;
+    }
 
-  try {
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
     emit(AuthLoading());
 
-    await authRepo.completeGoogleProfile(
-      uid: user.uid,
-      email: user.email,
-      name: name.trim(),
-      major: major.trim(),
-      university: university.trim(),
-    );
+    try {
+      await authRepo.completeProfile(
+        uid: user.uid,
+        email: user.email,
+        name: name.trim(),
+        major: major.trim(),
+        university: university.trim(),
+      );
 
-    final updatedUser = AppUser(
-      uid: user.uid,
-      email: user.email,
-      name: name.trim(),
-    );
+      final updatedUser = await authRepo.getCurrentUser();
+      if (updatedUser == null) {
+        throw StateError('Unable to load the completed profile.');
+      }
 
-    _currentUser = updatedUser;
+      if (await authRepo.needsEmailVerification()) {
+        emit(
+          EmailVerificationPending(
+            email: updatedUser.email,
+            message: 'Your profile is complete. Verify your email to continue.',
+          ),
+        );
+        return;
+      }
 
-    notificationCubit.fetchNotifications(updatedUser.uid);
-    emit(Authenticated(user: updatedUser));
-  } catch (e) {
-    emit(AuthError(message: e.toString()));
+      await _completeAuthentication(updatedUser);
+    } catch (error) {
+      emit(AuthError(message: _messageFromError(error)));
+    } finally {
+      _authOperationInProgress = false;
+    }
+  }
+
+  Future<void> resendVerificationEmail() async {
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
+
+    final user = _currentUser;
+    if (user == null) {
+      _authOperationInProgress = false;
+      emit(AuthError(message: 'Please sign in again to resend the email.'));
+      return;
+    }
+
+    try {
+      await authRepo.sendEmailVerification();
+      emit(
+        EmailVerificationPending(
+          email: user.email,
+          message: 'A verification email was sent. Check your inbox and spam folder.',
+        ),
+      );
+    } catch (error) {
+      emit(
+        EmailVerificationPending(
+          email: user.email,
+          message: _messageFromError(error),
+        ),
+      );
+    } finally {
+      _authOperationInProgress = false;
+    }
+  }
+
+  Future<void> checkEmailVerification() async {
+    if (_authOperationInProgress) return;
+    _authOperationInProgress = true;
+    emit(AuthLoading());
+
+    try {
+      if (await authRepo.needsEmailVerification()) {
+        emit(
+          EmailVerificationPending(
+            email: _currentUser?.email ?? '',
+            message: 'Your email is not verified yet. Check your inbox, then try again.',
+          ),
+        );
+        return;
+      }
+
+      final user = await authRepo.getCurrentUser();
+      if (user == null) {
+        _currentUser = null;
+        emit(Unauthenticated());
+        return;
+      }
+
+      await _completeAuthentication(user);
+    } catch (error) {
+      emit(
+        EmailVerificationPending(
+          email: _currentUser?.email ?? '',
+          message: _messageFromError(error),
+        ),
+      );
+    } finally {
+      _authOperationInProgress = false;
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) {
+    return authRepo.sendPasswordResetEmail(email: email);
   }
 }
-}
-

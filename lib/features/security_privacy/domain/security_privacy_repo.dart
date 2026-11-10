@@ -31,4 +31,6 @@ abstract class SecurityPrivacyRepo {
   // Privacy Settings
   Future<Map<String, dynamic>> fetchPrivacySettings(String uid);
   Future<void> updatePrivacySettings(String uid, Map<String, dynamic> settings);
+  Future<bool> syncVerifiedEmailChange();
+  Future<void> sendEmailVerificationLink();
 }

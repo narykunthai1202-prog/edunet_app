@@ -218,6 +218,13 @@ class _PostTileState extends State<PostTile> {
     });
   }
 
+  void reactLoveToPost() {
+    if (currentUser == null || widget.post.likes.contains(currentUser!.uid)) {
+      return;
+    }
+    togglelikePost();
+  }
+
   //show options for delete
   void showDeleteDialog() {
     showDialog(
@@ -261,9 +268,24 @@ class _PostTileState extends State<PostTile> {
           userprofileimg: currentUserProfile?.profileImageUrl,
           currentUserName: currentUser?.uid,
           onSubmit: addComment,
+          onCommentsChanged: (comments) {
+            setState(() {
+              widget.post.comments
+                ..clear()
+                ..addAll(comments);
+            });
+          },
           onCommentProfileTap: onUserProfileTap,
         );
       },
+    );
+  }
+
+  int _countCommentsAndReplies(List<Comment> comments) {
+    return comments.fold<int>(
+      0,
+      (total, comment) =>
+          total + 1 + _countCommentsAndReplies(comment.replies),
     );
   }
 
@@ -600,8 +622,10 @@ class _PostTileState extends State<PostTile> {
               onSave: toggleSavePost,
               savedcount: widget.post.savedBy.length.toString(),
               isSaved: isSaved,
-              commentcount: widget.post.comments.length.toString(),
-              ondoubletap: togglelikePost,
+              commentcount: _countCommentsAndReplies(
+                widget.post.comments,
+              ).toString(),
+              ondoubletap: reactLoveToPost,
               onprofiletap: onprofiletap,
               privacy: widget.post.privacy,
             )
@@ -622,7 +646,9 @@ class _PostTileState extends State<PostTile> {
               isLiked: isLiked,
               likecount: widget.post.likes.length.toString(),
               onComment: showComments,
-              commentcount: widget.post.comments.length.toString(),
+              commentcount: _countCommentsAndReplies(
+                widget.post.comments,
+              ).toString(),
               onSave: toggleSavePost,
               isSaved: isSaved,
               savedcount: widget.post.savedBy.length.toString(),
