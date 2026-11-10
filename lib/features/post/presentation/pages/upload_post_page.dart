@@ -9,6 +9,7 @@ import 'package:edunest_app/features/post/presentation/cubits/post_cubit.dart';
 import 'package:edunest_app/features/post/presentation/cubits/post_states.dart';
 import 'package:edunest_app/features/profile/presentation/components/cirecle_profile.dart';
 import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.dart';
+import 'package:edunest_app/features/security_privacy/data/firebase_security_privacy_repo.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,18 +32,55 @@ class _UploadPostPageState extends State<UploadPostPage> {
   AppUser? currentUser;
   late final ProfileCubit profileCubit;
   String selectedPrivacy = 'Public';
+  bool isLoadingPrivacy = true;
+  final FirebaseSecurityPrivacyRepo _privacyRepo = FirebaseSecurityPrivacyRepo();
 
   @override
   void initState() {
     super.initState();
     getCurrentUser();
     profileCubit = context.read<ProfileCubit>();
+    _loadDefaultPostPrivacy();
   }
+  Future<void> _loadDefaultPostPrivacy() async {
+  final uid = currentUser?.uid;
+
+  if (uid == null || uid.isEmpty) {
+    if (mounted) {
+      setState(() => isLoadingPrivacy = false);
+    }
+    return;
+  }
+
+  try {
+    final settings = await _privacyRepo.fetchPrivacySettings(uid);
+
+    if (!mounted) return;
+
+    setState(() {
+      selectedPrivacy =
+          settings['defaultPostPrivacy'] ?? 'Public';
+
+      isLoadingPrivacy = false;
+    });
+  } catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      selectedPrivacy = 'Public';
+      isLoadingPrivacy = false;
+    });
+
+    debugPrint('Failed to load default post audience: $e');
+  }
+}
+
 
   void getCurrentUser() {
     final authCubit = context.read<AuthCubit>();
     currentUser = authCubit.currentUser;
   }
+
 
   Future<void> pickImage() async {
     final picker = ImagePicker();
@@ -79,108 +117,112 @@ class _UploadPostPageState extends State<UploadPostPage> {
       );
     }
   }
+Widget _privacyOption({
+  required BuildContext sheetContext,
+  required String value,
+  required String title,
+  required String subtitle,
+  required IconData icon,
+}) {
+  final isSelected = selectedPrivacy == value;
 
-  Widget _privacyOption({
-    required String value,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-  }) {
-    final isSelected = selectedPrivacy == value;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-              : Colors.grey.shade100,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
-        ),
+  return ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+            : Colors.grey.shade100,
+        shape: BoxShape.circle,
       ),
-
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-
-      subtitle: Text(subtitle),
-
-      trailing: Radio<String>(
-        value: value,
-        groupValue: selectedPrivacy,
-        onChanged: (newValue) {
-          if (newValue == null) return;
-
-          setState(() {
-            selectedPrivacy = newValue;
-          });
-
-          Navigator.pop(context);
-        },
+      child: Icon(
+        icon,
+        color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
       ),
+    ),
+    title: Text(
+      title,
+      style: const TextStyle(fontWeight: FontWeight.w600),
+    ),
+    subtitle: Text(subtitle),
+    trailing: Radio<String>(
+      value: value,
+      groupValue: selectedPrivacy,
+      onChanged: (newValue) {
+        if (newValue == null) return;
 
-      onTap: () {
         setState(() {
-          selectedPrivacy = value;
+          selectedPrivacy = newValue;
         });
 
-        Navigator.pop(context);
+        Navigator.of(sheetContext).pop();
       },
-    );
-  }
+    ),
+    onTap: () {
+      setState(() {
+        selectedPrivacy = value;
+      });
 
-  void showPrivacyOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      Navigator.of(sheetContext).pop();
+    },
+  );
+}
+void showPrivacyOptions() {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(20),
       ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Who can see your post?',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    ),
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Who can see your post?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+              const SizedBox(height: 15),
 
-                const SizedBox(height: 15),
+              _privacyOption(
+                sheetContext: sheetContext,
+                value: 'Public',
+                title: 'Public',
+                subtitle: 'Everyone can see this post',
+                icon: Iconsax.global,
+              ),
 
-                _privacyOption(
-                  value: 'Public',
-                  title: 'Public',
-                  subtitle: 'Everyone can see this post',
-                  icon: Iconsax.global,
-                ),
-                _privacyOption(
-                  value: 'Friend',
-                  title: 'Friend',
-                  subtitle: 'Only your Friend can see this post',
-                  icon: Iconsax.people,
-                ),
-                _privacyOption(
-                  value: 'private',
-                  title: 'Only me',
-                  subtitle: 'Only you can see this post',
-                  icon: Iconsax.lock,
-                ),
+              _privacyOption(
+                sheetContext: sheetContext,
+                value: 'Friend',
+                title: 'Friends',
+                subtitle: 'Only your friends can see this post',
+                icon: Iconsax.people,
+              ),
 
-                const SizedBox(height: 10),
-              ],
-            ),
+              _privacyOption(
+                sheetContext: sheetContext,
+                value: 'private',
+                title: 'Only Me',
+                subtitle: 'Only you can see this post',
+                icon: Iconsax.lock,
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   void uploadPost() {
     if (selectedImages.isEmpty && textController.text.trim().isEmpty) {
@@ -315,8 +357,8 @@ class _UploadPostPageState extends State<UploadPostPage> {
                   const SizedBox(width: 10.0),
                   MyBubble(
                     iconData: Iconsax.key,
-                    onTap: showPrivacyOptions,
-                    text: 'Privacy',
+                    onTap: isLoadingPrivacy ? null : showPrivacyOptions,
+                    text: isLoadingPrivacy ? 'Loading...' : selectedPrivacy == 'Friend' ? 'Friends' : selectedPrivacy == 'private' ? 'Only Me' : 'Public',
                   ),
                 ],
               ),

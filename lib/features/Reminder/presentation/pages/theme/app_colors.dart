@@ -10,7 +10,7 @@ class AppColors {
   static const Color outsideMonthText = Color(0xFFD0D0D0);
 
   static const List<Color> todoPalette = [
-    Color(0xFFE8A0BF), // pink
+    Color.fromARGB(255, 215, 182, 196), // pink
     Color(0xFF9B8FE0), // purple
     Color(0xFF8FC7E8), // light blue
     Color(0xFFF4A0A0), // red / salmon

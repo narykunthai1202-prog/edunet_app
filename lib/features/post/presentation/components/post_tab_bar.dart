@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 class PostTabBar extends StatelessWidget {
   final int selectedTab;
@@ -13,22 +15,28 @@ class PostTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 35, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(197, 255, 254, 254),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color.fromARGB(255, 242, 243, 196)),
+        color: isDark ? AppColors.darkCard : AppColors.cardSubtle,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? AppColors.darkDivider : AppColors.divider,
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
           Expanded(
             child: _TabItem(
-              title: 'For you',
+              title: 'For You',
               icon: Iconsax.discover,
               isSelected: selectedTab == 0,
               onTap: () => onTabSelected(0),
+              isDark: isDark,
             ),
           ),
           Expanded(
@@ -37,6 +45,7 @@ class PostTabBar extends StatelessWidget {
               icon: Iconsax.people,
               isSelected: selectedTab == 1,
               onTap: () => onTabSelected(1),
+              isDark: isDark,
             ),
           ),
         ],
@@ -50,29 +59,32 @@ class _TabItem extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isDark;
 
   const _TabItem({
     required this.title,
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE1C1C7) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          gradient: isSelected ? AppColors.primaryGradient : null,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFE1C1C7).withValues(alpha: 0.25),
+                    color: AppColors.primary.withValues(alpha: 0.28),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -85,15 +97,18 @@ class _TabItem extends StatelessWidget {
             Icon(
               icon,
               size: 17,
-              color: isSelected ? Colors.white : Colors.grey.shade600,
+              color: isSelected
+                  ? Colors.white
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
             ),
-            const SizedBox(width: 7),
+            const SizedBox(width: 8),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 14,
+              style: AppTextStyles.labelMedium.copyWith(
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.grey.shade600,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
               ),
             ),
           ],

@@ -203,8 +203,8 @@ extension GroupMessageExt on GroupService {
       'type': 'text',
       'text': text,
       if (mentions.isNotEmpty) 'mentions': mentions,
-      if (replyToText != null) 'replyToText': replyToText,
-      if (replyToSender != null) 'replyToSender': replyToSender,
+      'replyToText': ?replyToText,
+      'replyToSender': ?replyToSender,
       'timestamp': FieldValue.serverTimestamp(),
     });
 

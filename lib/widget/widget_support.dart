@@ -1,39 +1,33 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_text_styles.dart';
 
 class AppWidget {
   static TextStyle boldTextFeildStyle() {
-    return TextStyle(
-      color: Colors.black,
-      fontSize: 20,
+    return AppTextStyles.titleMedium.copyWith(
+      color: AppColors.textPrimary,
       fontWeight: FontWeight.bold,
-      fontFamily: 'Poppins',
     );
   }
 
   static TextStyle HeadLineTextFeildStyle() {
-    return TextStyle(
-      color: Colors.black,
-      fontSize: 24.0,
+    return AppTextStyles.displaySmall.copyWith(
+      color: AppColors.textPrimary,
       fontWeight: FontWeight.bold,
-      fontFamily: 'Poppins',
     );
   }
 
   static TextStyle LightTextFeildStyle() {
-    return TextStyle(
-      color: Colors.black54,
-      fontSize: 15.0,
-      fontWeight: FontWeight.w500,
-      fontFamily: 'Poppins',
+    return AppTextStyles.bodyMedium.copyWith(
+      color: AppColors.textSecondary,
+      fontWeight: FontWeight.w400,
     );
   }
 
   static TextStyle semiBooldTextFeildStyle() {
-    return TextStyle(
-      color: Colors.black,
-      fontSize: 18.0,
-      fontWeight: FontWeight.w500,
-      fontFamily: 'Poppins',
+    return AppTextStyles.titleSmall.copyWith(
+      color: AppColors.textPrimary,
+      fontWeight: FontWeight.w600,
     );
   }
 }

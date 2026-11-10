@@ -15,12 +15,16 @@ abstract class AuthRepo {
   Future<AppUser?> signInWithGoogle();
   Future<bool> needsGoogleProfileCompletion(String uid);
 
-Future<void> completeGoogleProfile({
-  required String uid,
-  required String email,
-  required String name,
-  required String major,
-  required String university,
-});
+  Future<void> completeProfile({
+    required String uid,
+    required String email,
+    required String name,
+    required String major,
+    required String university,
+  });
+  //email verificaton
+  Future<void> sendEmailVerification();
+  Future<bool> needsEmailVerification();
 
+  Future<void> sendPasswordResetEmail({required String email});
 }

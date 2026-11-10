@@ -1,126 +1,117 @@
 import 'package:flutter/material.dart';
 
 import '../models/todo_item.dart';
-import '../theme/app_colors.dart';
 import 'todo_chip.dart';
 
-/// One cell in the month grid: the day number on top, then up to a
-/// few colored TodoChips underneath. Tapping anywhere on the cell opens
-/// the full day page (handled by the parent via [onOpenDay]).
+/// One cell in the month grid:
+/// - If [day] is null, renders an empty cell with grid borders (days outside the current month).
+/// - If [day] is present:
+///   - Centered day number.
+///   - Red for Sunday.
+///   - Dark charcoal for weekdays/Saturday.
+///   - Vibrant solid blue circle with white bold text when selected.
+///   - List of colored [TodoChip]s underneath for any tasks/reminders on that day.
 class DayCell extends StatelessWidget {
-  final DateTime day;
-  final bool inCurrentMonth;
+  final DateTime? day;
+  final bool isSelected;
   final bool isToday;
   final bool isSunday;
   final List<TodoItem> todos;
   final VoidCallback onOpenDay;
-  final void Function(TodoItem) onEditTodo;
-  final void Function(TodoItem) onDeleteTodo;
+  final void Function(TodoItem todo)? onEditTodo;
+  final void Function(TodoItem todo)? onDeleteTodo;
+  final Border border;
 
   const DayCell({
     super.key,
-    required this.day,
-    required this.inCurrentMonth,
-    required this.isToday,
-    required this.isSunday,
-    required this.todos,
+    this.day,
+    this.isSelected = false,
+    this.isToday = false,
+    this.isSunday = false,
+    this.todos = const [],
     required this.onOpenDay,
-    required this.onEditTodo,
-    required this.onDeleteTodo,
+    this.onEditTodo,
+    this.onDeleteTodo,
+    required this.border,
   });
-
-  static const int _maxVisibleChips = 4;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final visible = todos.take(_maxVisibleChips).toList();
-    final overflowCount = todos.length - visible.length;
+    if (day == null) {
+      return Container(
+        constraints: const BoxConstraints(minHeight: 90),
+        decoration: BoxDecoration(
+          border: border,
+        ),
+      );
+    }
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onOpenDay,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 110),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        constraints: const BoxConstraints(minHeight: 90),
+        padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 5),
         decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(color: colors.outlineVariant),
-            left: BorderSide(color: colors.outlineVariant),
-          ),
+          border: border,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: _DayNumber(
-                day: day,
-                inCurrentMonth: inCurrentMonth,
-                isToday: isToday,
-                isSunday: isSunday,
-              ),
-            ),
-            const SizedBox(height: 4),
-            ...visible.map(
-              (todo) => TodoChip(
-                todo: todo,
-                onTap: () => onEditTodo(todo),
-                onLongPress: () => onDeleteTodo(todo),
-              ),
-            ),
-            if (overflowCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  '+$overflowCount more',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+            Center(child: _buildDayNumber()),
+            if (todos.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              ...todos.map(
+                (todo) => TodoChip(
+                  todo: todo,
+                  onTap: () => onEditTodo != null ? onEditTodo!(todo) : onOpenDay(),
+                  onLongPress: () => onDeleteTodo != null ? onDeleteTodo!(todo) : null,
                 ),
               ),
+            ],
           ],
         ),
       ),
     );
   }
-}
 
-class _DayNumber extends StatelessWidget {
-  final DateTime day;
-  final bool inCurrentMonth;
-  final bool isToday;
-  final bool isSunday;
+  Widget _buildDayNumber() {
+    final currentDay = day!;
 
-  const _DayNumber({
-    required this.day,
-    required this.inCurrentMonth,
-    required this.isToday,
-    required this.isSunday,
-  });
+    if (isSelected) {
+      return Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E75E8), // Solid blue circle matching mockup
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          '${currentDay.day}',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final Color textColor = isSunday
+        ? const Color(0xFFE53935) // Clean red for Sunday
+        : const Color(0xFF1E232C); // Dark charcoal for weekdays
 
     return Container(
-      width: 22,
-      height: 22,
+      width: 28,
+      height: 28,
       alignment: Alignment.center,
-      decoration: isToday
-          ? const BoxDecoration(
-              color: AppColors.todayCircle,
-              shape: BoxShape.circle,
-            )
-          : null,
       child: Text(
-        '${day.day}',
+        '${currentDay.day}',
         style: TextStyle(
-          fontSize: 13,
-          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-          color: isToday
-              ? Colors.white
-              : !inCurrentMonth
-              ? colors.onSurface.withValues(alpha: 0.35)
-              : isSunday
-              ? AppColors.sunday
-              : colors.onSurface,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: textColor,
         ),
       ),
     );

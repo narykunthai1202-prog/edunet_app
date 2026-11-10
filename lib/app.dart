@@ -1,8 +1,10 @@
+import 'package:edunest_app/features/account_status/presentation/pages/account_suspended_page.dart';
 import 'package:edunest_app/features/auth/data/firebase_auth_repos.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_cabit.dart';
 import 'package:edunest_app/features/auth/presentation/cubits/auth_states.dart';
 import 'package:edunest_app/features/auth/presentation/pages/auth_page.dart';
 import 'package:edunest_app/features/auth/presentation/pages/complete_profile_page.dart';
+import 'package:edunest_app/features/auth/presentation/pages/email_verification_page.dart';
 import 'package:edunest_app/features/chat/services/zego_service.dart'; // NEW
 import 'package:edunest_app/features/home/presentation/page/home_page.dart';
 import 'package:edunest_app/features/notifications/data/repositories/firebase_notification_repo.dart';
@@ -16,13 +18,29 @@ import 'package:edunest_app/features/profile/presentation/cubits/profile_cubit.d
 import 'package:edunest_app/features/search/data/firebase_search_repo.dart';
 import 'package:edunest_app/features/search/presentation/cubits/search_cubit.dart';
 import 'package:edunest_app/core/cubits/theme_cubit.dart';
+import 'package:edunest_app/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:edunest_app/themes/dark_mode.dart';
 import 'package:edunest_app/themes/light_mode.dart';
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final ThemeMode initialThemeMode;
+  final bool seenOnboarding;
+
+  const MyApp({
+    super.key,
+    required this.initialThemeMode,
+    this.seenOnboarding = false,
+  });
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late bool _seenOnboarding;
 
   final authRepo = FirebaseAuthRepos();
   final profileRepo = FirebaseProfileRepos();
@@ -31,7 +49,11 @@ class MyApp extends StatelessWidget {
   final notificationRepo = FirebaseNotificationRepo();
   final reportrepo = ReportRepo();
 
-  MyApp({super.key, required this.initialThemeMode});
+  @override
+  void initState() {
+    super.initState();
+    _seenOnboarding = widget.seenOnboarding;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,21 +70,21 @@ class MyApp extends StatelessWidget {
 
     return MultiBlocProvider(
       providers: [
-        // Auth Cubit uses the SAME cubits below
-        BlocProvider<AuthCubit>(
-          create: (context) => AuthCubit(
-            authRepo: authRepo,
-            notificationCubit: notificationCubit,
-            postCubit: postCubit,
-          )..checkAuth(),
-        ),
-
         BlocProvider<ProfileCubit>(
           create: (context) => ProfileCubit(
             profileRepo: profileRepo,
             notificationRepo: notificationRepo,
             postRepo: postRepo,
           ),
+        ),
+
+        BlocProvider<AuthCubit>(
+          create: (context) => AuthCubit(
+            authRepo: authRepo,
+            notificationCubit: notificationCubit,
+            postCubit: postCubit,
+            profileCubit: context.read<ProfileCubit>(),
+          )..checkAuth(),
         ),
 
         // Use the SAME PostCubit
@@ -79,13 +101,20 @@ class MyApp extends StatelessWidget {
           create: (context) => ReportCubit(reportRepo: reportrepo),
         ),
         BlocProvider<ThemeCubit>(
-          create: (context) => ThemeCubit(initialThemeMode),
+          create: (context) => ThemeCubit(widget.initialThemeMode),
         ),
       ],
 
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) => MaterialApp(
-          navigatorKey: navigatorKey, // NEW: lets the call screen open
+          useInheritedMediaQuery: true,
+          locale: DevicePreview.locale(context),
+          builder: (context, child) {
+            // Combines DevicePreview builder and lets Zego navigator key inject properly
+            child = DevicePreview.appBuilder(context, child);
+            return child;
+          },
+          navigatorKey: navigatorKey, // Allows Zego call screens to open cleanly
           debugShowCheckedModeBanner: false,
           theme: lightMode,
           darkTheme: darkMode,
@@ -93,38 +122,57 @@ class MyApp extends StatelessWidget {
 
           home: BlocConsumer<AuthCubit, AuthState>(
             builder: (context, authState) {
-              print(authState);
-
               if (authState is Unauthenticated) {
+                if (!_seenOnboarding) {
+                  return OnboardingPage(
+                    onFinish: () {
+                      setState(() {
+                        _seenOnboarding = true;
+                      });
+                    },
+                  );
+                }
                 return const AuthPage();
               }
 
               if (authState is Authenticated) {
                 return const HomePage();
               }
+
+              if (authState is EmailVerificationPending) {
+                return const EmailVerificationPage();
+              }
+
               if (authState is NeedsProfileCompletion) {
-  return CompleteProfilePage(user: authState.user);
-}
+                return CompleteProfilePage(user: authState.user);
+              }
 
-if (authState is Authenticated) {
-  return const HomePage();
-}
-if (authState is AuthLoading) {
-  final user = context.read<AuthCubit>().currentUser;
+              if (authState is AccountSuspended) {
+                return AccountSuspendedPage(
+                  user: authState.user,
+                  reason: authState.reason,
+                  suspendedUntil: authState.suspendedUntil,
+                );
+              }
 
-  if (user != null) {
-    return CompleteProfilePage(user: user);
-  }
-}
-if (authState is AuthError) {
-  final user = context.read<AuthCubit>().currentUser;
+              if (authState is AuthError) {
+                if (!_seenOnboarding) {
+                  return OnboardingPage(
+                    onFinish: () {
+                      setState(() {
+                        _seenOnboarding = true;
+                      });
+                    },
+                  );
+                }
+                return const AuthPage();
+              }
 
-  if (user != null) {
-    return CompleteProfilePage(user: user);
-  }
-
-  return const AuthPage();
-}
+              if (authState is AuthLoading || authState is AuthIntial) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
 
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
