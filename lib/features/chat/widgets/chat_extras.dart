@@ -126,71 +126,58 @@ class StickerBubble extends StatelessWidget {
   }
 }
 
-/// Video message: thumbnail with play button, tap to open full player.
-class VideoBubble extends StatefulWidget {
-  final String url;
-  const VideoBubble({super.key, required this.url});
-
-  @override
-  State<VideoBubble> createState() => _VideoBubbleState();
+/// First-frame thumbnail of a Cloudinary video (url .mp4 -> .jpg).
+String videoThumbnailUrl(String url) {
+  final dot = url.lastIndexOf('.');
+  if (dot < 0) return url;
+  return '${url.substring(0, dot)}.jpg'.replaceFirst(
+    '/video/upload/',
+    '/video/upload/so_0,w_440,c_limit/',
+  );
 }
 
-class _VideoBubbleState extends State<VideoBubble> {
-  late final VideoPlayerController _c;
-  bool _ready = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) {
-        if (mounted) setState(() => _ready = true);
-      });
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
+/// Video message: thumbnail with play button, tap to open full player.
+/// (Same look as the group chat. No video is loaded until you tap it, so
+/// the chat stays fast.)
+class VideoBubble extends StatelessWidget {
+  final String url;
+  const VideoBubble({super.key, required this.url});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => VideoPlayerPage(url: widget.url)),
+        MaterialPageRoute(builder: (_) => VideoPlayerPage(url: url)),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
+        borderRadius: BorderRadius.circular(18),
+        child: SizedBox(
           width: 220,
-          height: 220,
-          color: Colors.black,
+          height: 160,
           child: Stack(
-            alignment: Alignment.center,
+            fit: StackFit.expand,
             children: [
-              if (_ready)
-                FittedBox(
-                  fit: BoxFit.cover,
-                  clipBehavior: Clip.hardEdge,
-                  child: SizedBox(
-                    width: _c.value.size.width,
-                    height: _c.value.size.height,
-                    child: VideoPlayer(_c),
+              Container(color: Colors.black),
+              Image.network(
+                videoThumbnailUrl(url),
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+              Center(
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
                   ),
-                )
-              else
-                const CircularProgressIndicator(color: Colors.white),
-              Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 34,
+                  ),
                 ),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 34),
               ),
             ],
           ),

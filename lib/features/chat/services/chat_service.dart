@@ -22,236 +22,254 @@ class ChatService {
     return ids.join('_');
   }
 
- CollectionReference<Map<String, dynamic>> _settingsCol(String uid) =>
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('chatSettings');
+  CollectionReference<Map<String, dynamic>> _settingsCol(String uid) =>
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('chatSettings');
 
-// Live map of chatId -> settings
-Stream<Map<String, Map<String, dynamic>>> watchChatSettings(String uid) {
-  return _settingsCol(uid).snapshots().map((snap) => {
-        for (final d in snap.docs) d.id: d.data(),
-      });
-}
-Future<void> _sendMedia({
-  required String chatId,
-  required String senderId,
-  required String receiverId,
-  required Map<String, dynamic> content, // type + payload
-  required String preview,               // shown in the chat list
-}) async {
-  final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+  // Live map of chatId -> settings
+  Stream<Map<String, Map<String, dynamic>>> watchChatSettings(String uid) {
+    return _settingsCol(uid).snapshots().map((snap) => {
+          for (final d in snap.docs) d.id: d.data(),
+        });
+  }
 
-  await chatRef.collection('messages').add({
-    'senderId': senderId,
-    'receiverId': receiverId,
-    'timestamp': FieldValue.serverTimestamp(),
-    ...content,
-  });
+  Future<void> _sendMedia({
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required Map<String, dynamic> content, // type + payload
+    required String preview, // shown in the chat list
+  }) async {
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
 
-  await chatRef.set({
-  'participants': [senderId, receiverId],
-  'lastMessage': preview,
-  'lastMessageSenderId': senderId,   // add this line
-  'lastMessageTime': FieldValue.serverTimestamp(),
-  'unreadCount_$receiverId': FieldValue.increment(1),
-}, SetOptions(merge: true));
-}
+    await chatRef.collection('messages').add({
+      'senderId': senderId,
+      'receiverId': receiverId,
+      'timestamp': FieldValue.serverTimestamp(),
+      ...content,
+    });
 
-Future<void> sendStickerMessage({
-  required String chatId,
-  required String senderId,
-  required String receiverId,
-  required String stickerPath,
-}) =>
-    _sendMedia(
+    await chatRef.set({
+      'participants': [senderId, receiverId],
+      'lastMessage': preview,
+      'lastMessageSenderId': senderId,
+      'lastSenderId': senderId, // kept consistent with the other send methods
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'unreadCount_$receiverId': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> sendStickerMessage({
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required String stickerPath,
+  }) =>
+      _sendMedia(
+        chatId: chatId,
+        senderId: senderId,
+        receiverId: receiverId,
+        content: {'type': 'sticker', 'text': stickerPath},
+        preview: '🙂 Sticker',
+      );
+
+  Future<void> sendVideoMessage({
+    required String chatId,
+    required String senderId,
+    required String receiverId,
+    required String videoUrl,
+    String? fileName,
+    int? fileSize,
+  }) async {
+    await _sendMedia(
       chatId: chatId,
       senderId: senderId,
       receiverId: receiverId,
-      content: {'type': 'sticker', 'text': stickerPath},
-      preview: '🙂 Sticker',
+      content: {
+        'type': 'video',
+        'text': videoUrl, // the bubble reads this
+        'videoUrl': videoUrl,
+        'fileUrl': videoUrl, // MessageModel.fileUrl
+        'fileName': fileName,
+        'fileSize': fileSize,
+      },
+      preview: '🎥 Video',
     );
+  }
 
-Future<void> sendVideoMessage({
-  required String chatId,
-  required String senderId,
-  required String receiverId,
-  required String videoUrl,
-  String? fileName,
-  int? fileSize,
-}) async {
-  await _sendMedia(
-    chatId: chatId,
-    senderId: senderId,
-    receiverId: receiverId,
-    content: {
-      'type': 'video',
-      'text': videoUrl, // the bubble reads this
-      'videoUrl': videoUrl,
-      'fileUrl': videoUrl, // MessageModel.fileUrl
-      'fileName': fileName,
-      'fileSize': fileSize,
-    },
-    preview: '🎥 Video',
-  );
-}
+  Future<void> togglePinChat(String uid, String chatId, bool pin) =>
+      _settingsCol(uid).doc(chatId).set({
+        'pinned': pin,
+        'pinnedAt': pin ? FieldValue.serverTimestamp() : null,
+      }, SetOptions(merge: true));
 
-Future<void> togglePinChat(String uid, String chatId, bool pin) =>
-    _settingsCol(uid).doc(chatId).set({
-      'pinned': pin,
-      'pinnedAt': pin ? FieldValue.serverTimestamp() : null,
-    }, SetOptions(merge: true));
+  Future<void> toggleFavoriteChat(String uid, String chatId, bool fav) =>
+      _settingsCol(uid)
+          .doc(chatId)
+          .set({'favorite': fav}, SetOptions(merge: true));
 
-Future<void> toggleFavoriteChat(String uid, String chatId, bool fav) =>
-    _settingsCol(uid)
-        .doc(chatId)
-        .set({'favorite': fav}, SetOptions(merge: true));
+  Future<void> setMuteChat(String uid, String chatId, bool muted) =>
+      _settingsCol(uid)
+          .doc(chatId)
+          .set({'muted': muted}, SetOptions(merge: true));
 
-Future<void> setMuteChat(String uid, String chatId, bool muted) =>
-    _settingsCol(uid)
-        .doc(chatId)
-        .set({'muted': muted}, SetOptions(merge: true));
+  // "Delete for me" – hides the chat only for this user
+  Future<void> deleteChatForMe(String uid, String chatId) =>
+      _settingsCol(uid).doc(chatId).set({
+        'deleted': true,
+        'deletedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
-// "Delete for me" – hides the chat only for this user
-Future<void> deleteChatForMe(String uid, String chatId) =>
-    _settingsCol(uid).doc(chatId).set({
-      'deleted': true,
-      'deletedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-void listenForIncomingMessages({
-  required String currentUserId,
-  required String conversationId,
-  required String senderName,
-}) {
-  FirebaseFirestore.instance
-      .collection('chats')
-      .doc(conversationId)
-      .collection('messages')
-      .orderBy('createdAt', descending: true)
-      .limit(1)
-      .snapshots()
-      .listen((snapshot) {
-    if (snapshot.docs.isNotEmpty) {
-      final doc = snapshot.docs.first;
-      final data = doc.data();
+  void listenForIncomingMessages({
+    required String currentUserId,
+    required String conversationId,
+    required String senderName,
+  }) {
+    FirebaseFirestore.instance
+        .collection('chats')
+        .doc(conversationId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        final data = doc.data();
 
-      // Only notify if the message was sent by the other user and is new
-      if (data['senderId'] != currentUserId && data['status'] == 'sent') {
-       NotificationService.showMessageNotification(
-  senderName: senderName,
-  messageType: data['type'] ?? 'text',
-  content: data['text'] ?? '',
-);
+        // Only notify if the message was sent by the other user and is new
+        if (data['senderId'] != currentUserId && data['status'] == 'sent') {
+          NotificationService.showMessageNotification(
+            senderName: senderName,
+            messageType: data['type'] ?? 'text',
+            content: data['text'] ?? '',
+          );
+        }
       }
-    }
-  });
-}
-/// Rewrites the chat's "last message" from the newest message that is
-/// not deleted. Call it after deleting a message for everyone.
-Future<void> _refreshLastMessage(String chatId) async {
-  final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
-
-  final snap = await chatRef
-      .collection('messages')
-      .orderBy('timestamp', descending: true)
-      .limit(20)
-      .get();
-
-  MessageModel? latest;
-  for (final doc in snap.docs) {
-    final m = MessageModel.fromMap(doc.data(), doc.id);
-    if (!m.isDeleted) {
-      latest = m;
-      break;
-    }
-  }
-
-  if (latest == null) {
-    await chatRef.update({
-      'lastMessage': '',
-      'lastMessageTime': FieldValue.serverTimestamp(),
     });
-    return;
   }
 
-  String preview;
-  switch (latest.type) {
-    case 'image':
-      preview = '📷 Photo';
-      break;
-    case 'video':
-      preview = '🎥 Video';
-      break;
-    case 'audio':
-      preview = '🎤 Voice message';
-      break;
-    case 'file':
-      preview = '📎 ${latest.fileName ?? 'File'}';
-      break;
-    default:
-      preview = latest.text;
+  // ==========================================
+  // LAST MESSAGE PREVIEW HELPERS
+  // ==========================================
+
+  /// Builds the text shown in the chat list for a raw message map.
+  String _previewFor(Map<String, dynamic> m) {
+    switch (m['type']) {
+      case 'image':
+        return '📷 Photo';
+      case 'video':
+        return '🎥 Video';
+      case 'audio':
+        return '🎙️ Voice message';
+      case 'sticker':
+        return '🙂 Sticker';
+      case 'file':
+        final name = (m['fileName'] ?? '').toString();
+        return '📎 ${name.isEmpty ? 'File' : name}';
+      default:
+        return (m['text'] ?? '').toString();
+    }
   }
 
-  await chatRef.update({
-    'lastMessage': preview,
-    'lastMessageTime': Timestamp.fromDate(latest.timestamp),
-  });
-}
+  /// Rewrites the chat-list preview (lastMessage, lastMessageTime,
+  /// lastSenderId) from the newest message that still exists.
+  /// Call it after deleting or unsending a message.
+  Future<void> _refreshLastMessage(String chatId) async {
+    final chatRef = _firestore.collection('chats').doc(chatId);
+
+    try {
+      final snap = await chatRef
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .limit(20)
+          .get();
+
+      Map<String, dynamic>? latest;
+      for (final doc in snap.docs) {
+        final m = doc.data();
+        if (m['isDeleted'] == true) continue;
+        if (m['isUnsent'] == true) continue;
+        latest = m;
+        break;
+      }
+
+      if (latest == null) {
+        // No messages left
+        await chatRef.set({
+          'lastMessage': '',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        return;
+      }
+
+      await chatRef.set({
+        'lastMessage': _previewFor(latest),
+        'lastMessageTime': latest['timestamp'] ?? FieldValue.serverTimestamp(),
+        'lastSenderId': latest['senderId'],
+        'lastMessageSenderId': latest['senderId'],
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error refreshing last message: $e');
+    }
+  }
 
   Future<void> sendTextMessage({
-  required String senderId,
-  required String receiverId,
-  required String text,
-}) async {
-  if (text.trim().isEmpty) return;
+    required String senderId,
+    required String receiverId,
+    required String text,
+  }) async {
+    if (text.trim().isEmpty) return;
 
-  final String chatRoomId = getChatRoomId(senderId, receiverId);
-  final chatDocRef = _firestore.collection('chats').doc(chatRoomId);
+    final String chatRoomId = getChatRoomId(senderId, receiverId);
+    final chatDocRef = _firestore.collection('chats').doc(chatRoomId);
 
-  try {
-    // 1. Add message subdocument
-    await chatDocRef.collection('messages').add({
-      'senderId': senderId,
-      'receiverId': receiverId,
-      'text': text.trim(),
-      'type': 'text',
-      'timestamp': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-      'isSeen': false,
-      'status': 'sent',
-      'reactions': {},
-      'isDeleted': false,
-      'isForwarded': false,
-    });
+    try {
+      // 1. Add message subdocument
+      await chatDocRef.collection('messages').add({
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'text': text.trim(),
+        'type': 'text',
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'isSeen': false,
+        'status': 'sent',
+        'reactions': {},
+        'isDeleted': false,
+        'isForwarded': false,
+      });
 
-    // 2. Update parent chat preview metadata & unread counters
-    await chatDocRef.set({
-      'participants': [senderId, receiverId],
-      'lastMessage': text.trim(),
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'lastSenderId': senderId,
-      'unreadCount_$receiverId': FieldValue.increment(1),
-    }, SetOptions(merge: true));
-  } catch (e) {
-    debugPrint('Error sending text message: $e');
-    rethrow;
+      // 2. Update parent chat preview metadata & unread counters
+      await chatDocRef.set({
+        'participants': [senderId, receiverId],
+        'lastMessage': text.trim(),
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastSenderId': senderId,
+        'unreadCount_$receiverId': FieldValue.increment(1),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error sending text message: $e');
+      rethrow;
+    }
   }
-}
 
-Future<void> setNickname(String uid, String chatId, String nickname) {
-  final name = nickname.trim();
-  return _settingsCol(uid).doc(chatId).set({
-    'nickname': name.isEmpty ? FieldValue.delete() : name,
-  }, SetOptions(merge: true));
-}
+  Future<void> setNickname(String uid, String chatId, String nickname) {
+    final name = nickname.trim();
+    return _settingsCol(uid).doc(chatId).set({
+      'nickname': name.isEmpty ? FieldValue.delete() : name,
+    }, SetOptions(merge: true));
+  }
 
-Stream<String?> watchNickname(String uid, String chatId) {
-  return _settingsCol(uid)
-      .doc(chatId)
-      .snapshots()
-      .map((d) => d.data()?['nickname'] as String?);
-}
+  Stream<String?> watchNickname(String uid, String chatId) {
+    return _settingsCol(uid)
+        .doc(chatId)
+        .snapshots()
+        .map((d) => d.data()?['nickname'] as String?);
+  }
+
   /// Send a standard message (supports optional type like 'text', 'image', etc.)
   Future<void> sendMessage(
     String senderId,
@@ -356,7 +374,7 @@ Stream<String?> watchNickname(String uid, String chatId) {
 
       return await ref.getDownloadURL();
     } catch (e) {
-      print('Firebase Storage Upload Error: $e');
+      debugPrint('Firebase Storage Upload Error: $e');
       return audioPath;
     }
   }
@@ -370,66 +388,65 @@ Stream<String?> watchNickname(String uid, String chatId) {
   }
 
   /// Send an Image Message using Free ImgBB Hosting
- Future<void> sendImageMessage({
-  required String senderId,
-  required String receiverId,
-  required XFile imageFile,
-}) async {
-  final String chatRoomId = getChatRoomId(senderId, receiverId);
-  final chatDocRef = _firestore.collection('chats').doc(chatRoomId);
+  Future<void> sendImageMessage({
+    required String senderId,
+    required String receiverId,
+    required XFile imageFile,
+  }) async {
+    final String chatRoomId = getChatRoomId(senderId, receiverId);
+    final chatDocRef = _firestore.collection('chats').doc(chatRoomId);
 
-  try {
-    // 1. Read image bytes and convert to Base64
-    final bytes = await imageFile.readAsBytes();
-    final base64Image = base64Encode(bytes);
+    try {
+      // 1. Read image bytes and convert to Base64
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
 
-    // 2. Upload to ImgBB
-    final response = await http.post(
-      Uri.parse(
-        'https://api.imgbb.com/1/upload?key=9d7ae5b87d6058d799e40b603e34ee41',
-      ),
-      body: {
-        'image': base64Image,
-      },
-    );
+      // 2. Upload to ImgBB
+      final response = await http.post(
+        Uri.parse(
+          'https://api.imgbb.com/1/upload?key=9d7ae5b87d6058d799e40b603e34ee41',
+        ),
+        body: {
+          'image': base64Image,
+        },
+      );
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to upload image to ImgBB: ${response.body}');
+      if (response.statusCode != 200) {
+        throw Exception('Failed to upload image to ImgBB: ${response.body}');
+      }
+
+      final data = jsonDecode(response.body);
+      final String imageUrl = data['data']['url'];
+
+      // 3. Add image message document
+      await chatDocRef.collection('messages').add({
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'imageUrl': imageUrl,
+        'text': imageUrl, // Retained for backwards compatibility
+        'type': 'image',
+        'status': 'sent',
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'isSeen': false,
+        'reactions': {},
+        'isDeleted': false,
+        'isForwarded': false,
+      });
+
+      // 4. Update parent chat metadata & increment unread counter
+      await chatDocRef.set({
+        'participants': [senderId, receiverId],
+        'lastMessage': '📷 Photo',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastSenderId': senderId,
+        'unreadCount_$receiverId': FieldValue.increment(1),
+      }, SetOptions(merge: true));
+    } catch (error) {
+      debugPrint('Error sending image message: $error');
+      rethrow;
     }
-
-    final data = jsonDecode(response.body);
-    final String imageUrl = data['data']['url'];
-
-    // 3. Add image message document
-    await chatDocRef.collection('messages').add({
-      'senderId': senderId,
-      'receiverId': receiverId,
-      'imageUrl': imageUrl,
-      'text': imageUrl, // Retained for backwards compatibility
-      'type': 'image',
-      'status': 'sent',
-      'timestamp': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-      'isSeen': false,
-      'reactions': {},
-      'isDeleted': false,
-      'isForwarded': false,
-    });
-
-    // 4. Update parent chat metadata & increment unread counter
-    await chatDocRef.set({
-      'participants': [senderId, receiverId],
-      'lastMessage': '📷 Photo',
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'lastSenderId': senderId,
-      'unreadCount_$receiverId': FieldValue.increment(1),
-    }, SetOptions(merge: true));
-
-  } catch (error) {
-    debugPrint('Error sending image message: $error');
-    rethrow;
   }
-}
 
   /// Send a Forwarded Message to a target recipient
   Future<void> sendForwardedMessage({
@@ -519,22 +536,22 @@ Stream<String?> watchNickname(String uid, String chatId) {
   // ==========================================
 
   /// Listen to real-time messages in a room
- 
-  Stream<List<MessageModel>> getMessagesStream(String currentUserId, String peerId) {
-  String chatRoomId = getChatRoomId(currentUserId, peerId);
+  Stream<List<MessageModel>> getMessagesStream(
+      String currentUserId, String peerId) {
+    String chatRoomId = getChatRoomId(currentUserId, peerId);
 
-  return _firestore
-      .collection('chats')
-      .doc(chatRoomId)
-      .collection('messages')
-      .orderBy('timestamp', descending: true) // Set to true
-      .snapshots()
-      .map((snapshot) {
-    return snapshot.docs.map((doc) {
-      return MessageModel.fromMap(doc.data(), doc.id);
-    }).toList();
-  });
-}
+    return _firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return MessageModel.fromMap(doc.data(), doc.id);
+      }).toList();
+    });
+  }
 
   /// Listen to all active chat rooms for a user
   Stream<List<ChatRoomModel>> getUserChatRoomsStream(String userId) {
@@ -655,6 +672,9 @@ Stream<String?> watchNickname(String uid, String chatId) {
       'isUnsent': true,
       'text': 'This message was unsent',
     });
+
+    // Keep the chat-list preview in sync
+    await _refreshLastMessage(chatRoomId);
   }
 
   /// Mark all incoming unread messages as seen
@@ -692,51 +712,58 @@ Stream<String?> watchNickname(String uid, String chatId) {
   // 4. DELETION & BLOCKING
   // ==========================================
 
-  /// Soft delete a message ("Delete for Everyone")
+  /// Delete a message.
+  /// - forEveryone = false -> hides it only for [currentUserId]
+  /// - forEveryone = true  -> removes it for both users and fixes the
+  ///   chat-list preview
   Future<void> deleteMessage(
-  String currentUserId,
-  String receiverId,
-  String messageId, {
-  bool forEveryone = false,
-}) async {
-  final String chatRoomId = getChatRoomId(currentUserId, receiverId);
+    String currentUserId,
+    String receiverId,
+    String messageId, {
+    bool forEveryone = false,
+  }) async {
+    final String chatRoomId = getChatRoomId(currentUserId, receiverId);
 
-  final ref = _firestore
-      .collection('chats')
-      .doc(chatRoomId)
-      .collection('messages')
-      .doc(messageId);
+    final ref = _firestore
+        .collection('chats')
+        .doc(chatRoomId)
+        .collection('messages')
+        .doc(messageId);
 
-  if (!forEveryone) {
-    // Hide for me only
-    await ref.update({
-      'deletedFor': FieldValue.arrayUnion([currentUserId]),
-    });
-    return;
-  }
+    if (!forEveryone) {
+      // Hide for me only
+      await ref.update({
+        'deletedFor': FieldValue.arrayUnion([currentUserId]),
+      });
+      return;
+    }
 
-  // Delete for everyone
-  final snap = await ref.get();
-  final data = snap.data();
-  if (data == null) return;
+    // Delete for everyone
+    final snap = await ref.get();
+    final data = snap.data();
+    if (data == null) return;
 
-  // Only the sender may delete for everyone
-  if (data['senderId'] != currentUserId) return;
+    // Only the sender may delete for everyone
+    if (data['senderId'] != currentUserId) return;
 
-  // Remove the voice / image file from Storage, if there is one
-  for (final key in ['imageUrl', 'audioUrl', 'voiceUrl', 'fileUrl']) {
-    final url = data[key];
-    if (url is String && url.isNotEmpty) {
-      try {
-        await FirebaseStorage.instance.refFromURL(url).delete();
-      } catch (_) {
-        // File already gone or not a Storage URL, keep going
+    // Remove the voice / image file from Storage, if there is one
+    for (final key in ['imageUrl', 'audioUrl', 'voiceUrl', 'fileUrl']) {
+      final url = data[key];
+      if (url is String && url.isNotEmpty) {
+        try {
+          await FirebaseStorage.instance.refFromURL(url).delete();
+        } catch (_) {
+          // File already gone or not a Storage URL, keep going
+        }
       }
     }
+
+    await ref.delete();
+
+    // Update the chat-list preview so the deleted text no longer shows
+    await _refreshLastMessage(chatRoomId);
   }
 
-  await ref.delete();
-}
   /// Delete all messages in a specific chat room
   Future<void> deleteAllMessagesInRoom(
       String currentUserId, String receiverId) async {
@@ -779,84 +806,91 @@ Stream<String?> watchNickname(String uid, String chatId) {
     }
   }
 
-  /// Block a user
- // Block specific peer
-Future<void> blockUser(String currentUserId, String peerId) async {
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUserId)
-      .collection('blocked')
-      .doc(peerId)
-      .set({'blockedAt': FieldValue.serverTimestamp()});
-}
-Future<void> reportUser({
-  required String reporterId,
-  required String reportedId,
-  required String reason,
-  String? details,
-}) async {
-  await FirebaseFirestore.instance.collection('reports').add({
-    'reporterId': reporterId,
-    'reportedId': reportedId,
-    'reason': reason,
-    'details': details ?? '',
-    'status': 'pending',
-    'createdAt': FieldValue.serverTimestamp(),
-  });
-}
-Future<void> sendFileMessage({
-  required String senderId,
-  required String receiverId,
-  required String fileUrl,
-  required String fileName,
-  required int fileSize,
-}) async {
-  final msg = MessageModel(
-    messageId: '',
-    senderId: senderId,
-    receiverId: receiverId,
-    type: 'file',
-    text: fileUrl,
-    timestamp: DateTime.now(),
-    isSeen: false,
-    fileUrl: fileUrl,
-    fileName: fileName,
-    fileSize: fileSize,
-  );
+  /// Block specific peer
+  Future<void> blockUser(String currentUserId, String peerId) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('blocked')
+        .doc(peerId)
+        .set({'blockedAt': FieldValue.serverTimestamp()});
+  }
 
-  // TODO: replace this block with the SAME path sendImageMessage uses
-  final chatId = senderId.compareTo(receiverId) < 0
-      ? '${senderId}_$receiverId'
-      : '${receiverId}_$senderId';
+  Future<void> reportUser({
+    required String reporterId,
+    required String reportedId,
+    required String reason,
+    String? details,
+  }) async {
+    await FirebaseFirestore.instance.collection('reports').add({
+      'reporterId': reporterId,
+      'reportedId': reportedId,
+      'reason': reason,
+      'details': details ?? '',
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
 
-  await FirebaseFirestore.instance
-      .collection('chats')
-      .doc(chatId)
-      .collection('messages')
-      .add(msg.toMap());
-}
-Future<bool> isUserBlocked(
-  String currentUserId,
-  String peerId,
-) async {
-  final doc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUserId)
-      .collection('blocked')
-      .doc(peerId)
-      .get();
+  Future<void> sendFileMessage({
+    required String senderId,
+    required String receiverId,
+    required String fileUrl,
+    required String fileName,
+    required int fileSize,
+  }) async {
+    final msg = MessageModel(
+      messageId: '',
+      senderId: senderId,
+      receiverId: receiverId,
+      type: 'file',
+      text: fileUrl,
+      timestamp: DateTime.now(),
+      isSeen: false,
+      fileUrl: fileUrl,
+      fileName: fileName,
+      fileSize: fileSize,
+    );
 
-  return doc.exists;
-}
-// Unblock specific peer
-Future<void> unblockUser(String currentUserId, String peerId) async {
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUserId)
-      .collection('blocked')
-      .doc(peerId)
-      .delete();
-}
+    final String chatId = getChatRoomId(senderId, receiverId);
+    final chatRef = _firestore.collection('chats').doc(chatId);
+
+    await chatRef.collection('messages').add(msg.toMap());
+
+    // Update the chat-list preview (this was missing before)
+    await chatRef.set({
+      'participants': [senderId, receiverId],
+      'lastMessage': '📎 $fileName',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastSenderId': senderId,
+      'unreadCount_$receiverId': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+  }
+
+  Future<bool> isUserBlocked(
+    String currentUserId,
+    String peerId,
+  ) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('blocked')
+        .doc(peerId)
+        .get();
+
+    return doc.exists;
+  }
+
+  // Unblock specific peer
+  Future<void> unblockUser(String currentUserId, String peerId) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUserId)
+        .collection('blocked')
+        .doc(peerId)
+        .delete();
+  }
+
   Future<void> toggleMuteChat({
     required String currentUserId,
     required String chatId,
@@ -873,7 +907,8 @@ Future<void> unblockUser(String currentUserId, String peerId) async {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
-/// Report user profile
+
+  /// Report user profile
   Future<void> reportProfile({
     required String currentUserId,
     required String reportedUserId,
@@ -888,6 +923,7 @@ Future<void> unblockUser(String currentUserId, String peerId) async {
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
+
   /// Purge/Delete all messages in a specific chat room
   Future<void> purgeMessages({
     required String currentUserId,
@@ -911,6 +947,7 @@ Future<void> unblockUser(String currentUserId, String peerId) async {
       'lastMessageTime': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+
   // Check Mute Status
   Future<bool> isChatMuted({
     required String currentUserId,

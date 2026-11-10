@@ -10,14 +10,13 @@ import 'package:image_picker/image_picker.dart';
 import '../controllers/voice_message_sender.dart';
 import '../controllers/voice_recorder_controller.dart';
 import '../services/cloudinary_service.dart';
+import 'media_picker_sheet.dart';
 import 'video_preview_screen.dart';
 
 // Theme colors (replace with your theme file colors if you have them)
 const Color _plum = Color(0xFF6B4A5E);
 const Color _plumSoft = Color(0xFF8A6F7E); // muted icons
 const Color _pillBeige = Color(0xFFF1EBE8); // input bar background
-const Color _sheetBeige = Color(0xFFF7F2F0); // attach menu background
-const Color _mauve = Color(0xFFA0728A); // second accent (video)
 
 class ChatInputField extends StatefulWidget {
   const ChatInputField({
@@ -122,129 +121,50 @@ class _ChatInputFieldState extends State<ChatInputField> {
   }
 
   Future<void> _pickAndSendVideo() async {
-  try {
-    // 1. Pick (no upload yet)
-    final video = await CloudinaryService.pickVideo();
-    if (video == null) return;
-    if (!mounted) return;
+    try {
+      // 1. Pick (no upload yet)
+      final video = await CloudinaryService.pickVideo();
+      if (video == null) return;
+      if (!mounted) return;
 
-    // 2. Preview, with Cancel and Send buttons
-    final ok = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => VideoPreviewScreen(file: video)),
-    );
-    if (ok != true) return;
+      // 2. Preview, with Cancel and Send buttons
+      final ok = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => VideoPreviewScreen(file: video)),
+      );
+      if (ok != true) return;
 
-    setState(() => _isUploadingVideo = true);
+      setState(() => _isUploadingVideo = true);
 
-    // 3. Upload to Cloudinary
-    final uploaded = await CloudinaryService.uploadVideo(video);
-    if (uploaded == null) {
-      _showError('Video upload failed. Please try again.');
-      return;
+      // 3. Upload to Cloudinary
+      final uploaded = await CloudinaryService.uploadVideo(video);
+      if (uploaded == null) {
+        _showError('Video upload failed. Please try again.');
+        return;
+      }
+
+      // 4. Save the message in Firestore
+      await _chatService.sendVideoMessage(
+        chatId: widget.conversationId,
+        senderId: widget.currentUserId,
+        receiverId: widget.receiverId,
+        videoUrl: uploaded.url,
+        fileName: uploaded.name,
+        fileSize: uploaded.size,
+      );
+    } catch (e) {
+      _showError(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isUploadingVideo = false);
     }
-
-    // 4. Save the message in Firestore
-    await _chatService.sendVideoMessage(
-      chatId: widget.conversationId,
-      senderId: widget.currentUserId,
-      receiverId: widget.receiverId,
-      videoUrl: uploaded.url,
-      fileName: uploaded.name,
-      fileSize: uploaded.size,
-    );
-  } catch (e) {
-    _showError('Video was not sent: $e');
-  } finally {
-    if (mounted) setState(() => _isUploadingVideo = false);
   }
-}
+
+  // Photo / Video chooser (same style as the group chat)
   void _showAttachMenu() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: _sheetBeige,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _attachOption(
-                      icon: Icons.photo_rounded,
-                      label: 'Photo',
-                      color: _plum,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        widget.onPickImage?.call();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _attachOption(
-                      icon: Icons.videocam_rounded,
-                      label: 'Video',
-                      color: _mauve,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _pickAndSendVideo();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _attachOption({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 30),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
+    showMediaPickerSheet(
+      context,
+      onPhoto: () => widget.onPickImage?.call(),
+      onVideo: _pickAndSendVideo,
     );
   }
 

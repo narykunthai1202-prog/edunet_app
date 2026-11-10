@@ -191,11 +191,11 @@ class GroupService {
     await batch.commit();
   }
 
-  /// Generic sender for non-text messages (image, audio, sticker, file...).
-  /// [content] is stored in `text` (image/audio/file URL or sticker asset path),
+  /// Generic sender for non-text messages (image, audio, sticker, file, video...).
+  /// [content] is stored in `text` (image/audio/file/video URL or sticker asset path),
   /// [preview] is what the chat list shows (e.g. '📷 Photo').
   /// [duration] is the length in seconds for voice messages.
-  /// [fileName] and [fileSize] are only used for file messages.
+  /// [fileName] and [fileSize] are used for file and video messages.
   Future<void> sendMedia({
     required String groupId,
     required String senderId,
@@ -216,7 +216,8 @@ class GroupService {
       'duration': ?duration,
       'fileName': ?fileName,
       'fileSize': ?fileSize,
-      if (type == 'file') 'fileUrl': content,
+      if (type == 'file' || type == 'video') 'fileUrl': content,
+      if (type == 'video') 'videoUrl': content,
       'timestamp': FieldValue.serverTimestamp(),
     });
 
@@ -276,6 +277,26 @@ class GroupService {
         participants: participants,
         fileName: name,
         fileSize: size,
+      );
+
+  /// Sends an already-uploaded video (url from Cloudinary) to the group.
+  Future<void> sendVideo({
+    required String groupId,
+    required String senderId,
+    required String url,
+    required List<String> participants,
+    String? fileName,
+    int? fileSize,
+  }) =>
+      sendMedia(
+        groupId: groupId,
+        senderId: senderId,
+        type: 'video',
+        content: url,
+        preview: '🎥 Video',
+        participants: participants,
+        fileName: fileName,
+        fileSize: fileSize,
       );
 
   Future<void> sendSticker({
@@ -390,12 +411,74 @@ class GroupService {
 
   // ---------------------------------------------------------- unsend / delete
 
-  /// "Delete for everyone". The chat screen hides messages with isUnsent == true.
-  Future<void> unsendGroupMessage(String groupId, String messageId) =>
-      _chat(groupId).collection('messages').doc(messageId).update({
-        'isUnsent': true,
-        'text': '',
+  /// Builds the chat-list text for a raw message map.
+  String _previewFor(Map<String, dynamic> m) {
+    switch (m['type']) {
+      case 'image':
+        return '📷 Photo';
+      case 'video':
+        return '🎥 Video';
+      case 'audio':
+        return '🎙️ Voice message';
+      case 'sticker':
+        return '🙂 Sticker';
+      case 'file':
+        final name = (m['fileName'] ?? '').toString();
+        return '📎 ${name.isEmpty ? 'File' : name}';
+      case 'poll':
+        return '📊 ${m['text'] ?? ''}';
+      default:
+        return (m['text'] ?? '').toString();
+    }
+  }
+
+  /// Rewrites the chat-list preview from the newest message that is not
+  /// unsent. Call it after "delete for everyone".
+  Future<void> _refreshLastMessage(String groupId) async {
+    try {
+      final snap = await _chat(groupId)
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .limit(20)
+          .get();
+
+      Map<String, dynamic>? latest;
+      for (final doc in snap.docs) {
+        final m = doc.data();
+        if (m['isUnsent'] == true) continue;
+        if (m['isDeleted'] == true) continue;
+        latest = m;
+        break;
+      }
+
+      if (latest == null) {
+        await _chat(groupId).update({
+          'lastMessage': '',
+          'lastMessageSenderId': '',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+        });
+        return;
+      }
+
+      await _chat(groupId).update({
+        'lastMessage': _previewFor(latest),
+        'lastMessageSenderId': latest['senderId'] ?? '',
+        'lastMessageTime': latest['timestamp'] ?? FieldValue.serverTimestamp(),
       });
+    } catch (_) {
+      // Never let a preview refresh break the delete itself.
+    }
+  }
+
+  /// "Delete for everyone". The chat screen hides messages with isUnsent == true.
+  Future<void> unsendGroupMessage(String groupId, String messageId) async {
+    await _chat(groupId).collection('messages').doc(messageId).update({
+      'isUnsent': true,
+      'text': '',
+    });
+    // Fix the chat-list preview so the unsent message no longer shows.
+    await _refreshLastMessage(groupId);
+  }
 
   /// "Delete for me". The chat screen filters out messages whose
   /// `deletedFor` list contains the current user.

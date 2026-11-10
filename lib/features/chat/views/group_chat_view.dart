@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart'; // NEW
+import 'package:zego_uikit/zego_uikit.dart';
+import 'package:zego_uikit_prebuilt_call/zego_uikit_prebuilt_call.dart';
 import '../services/cloudinary_service.dart';
 import '../services/group_service.dart';
 import '../services/chat_service.dart'; // NEW (forward)
@@ -22,6 +24,7 @@ import '../widgets/forward_contact_sheet.dart'; // NEW
 import '../widgets/group_avatar.dart';
 import 'group_info_view.dart';
 import 'image_preview_view.dart';
+import '../widgets/video_preview_screen.dart';
 
 class GroupChatView extends StatefulWidget {
   final String groupId;
@@ -58,6 +61,7 @@ class _GroupChatViewState extends State<GroupChatView> {
   List<String> _stickers = [];
   bool _showPanel = false; // emoji / sticker panel
   bool _sending = false;
+  double? _videoProgress; // NEW: 0.0 - 1.0 while a video uploads
   bool _hasText = false;
   bool _recording = false;
   int _seconds = 0;
@@ -198,6 +202,100 @@ class _GroupChatViewState extends State<GroupChatView> {
     if (mounted) setState(() => _sending = false);
   }
 
+  // NEW: pick a video, upload it to Cloudinary, save it in the group
+  Future<void> _sendVideo() async {
+    if (_sending) return;
+    try {
+      // Throws a readable Exception if the video is too large.
+      final video = await CloudinaryService.pickVideo();
+      if (video == null) return; // cancelled
+      if (!mounted) return;
+
+      // Show the preview first; only upload if the user taps Send.
+      final confirmed = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (_) => VideoPreviewScreen(file: video)),
+      );
+      if (confirmed != true) return;
+      if (!mounted) return;
+
+      setState(() {
+        _sending = true;
+        _videoProgress = 0;
+      });
+
+      final uploaded = await CloudinaryService.uploadVideo(
+        video,
+        folder: 'chat/${widget.groupId}',
+        onProgress: (p) {
+          if (mounted) setState(() => _videoProgress = p);
+        },
+      );
+      if (uploaded == null) {
+        _toast('Failed to upload video');
+        return;
+      }
+
+      await _service.sendVideo(
+        groupId: widget.groupId,
+        senderId: widget.currentUserId,
+        url: uploaded.url,
+        fileName: uploaded.name,
+        fileSize: uploaded.size,
+        participants: _participants,
+      );
+    } catch (e) {
+      _toast(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+          _videoProgress = null;
+        });
+      }
+    }
+  }
+
+  // NEW: image button -> choose Photo or Video
+  void _showMediaSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFF7F1F0),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _sheetTile(
+                Icons.photo_rounded,
+                'Send a photo',
+                'Pick an image from your gallery',
+                () {
+                  Navigator.pop(ctx);
+                  _sendPhoto();
+                },
+              ),
+              const SizedBox(height: 10),
+              _sheetTile(
+                Icons.videocam_rounded,
+                'Send a video',
+                'Up to 25 MB and 2 minutes',
+                () {
+                  Navigator.pop(ctx);
+                  _sendVideo();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // NEW: pick any file, upload to Cloudinary, save it in the group
   Future<void> _sendFile() async {
     if (_sending) return;
@@ -293,6 +391,42 @@ class _GroupChatViewState extends State<GroupChatView> {
       _focus.unfocus();
       setState(() => _showPanel = true);
     }
+  }
+
+  // ------------------------------------------------------ group calls (NEW)
+
+  // Everyone in the group except me
+  List<ZegoUIKitUser> _callInvitees() => _participants
+      .where((id) => id != widget.currentUserId)
+      .map((id) => ZegoUIKitUser(id: id, name: _memberNames[id] ?? 'User'))
+      .toList();
+
+  Widget _buildCallButton({required bool video}) {
+    final icon = video ? Icons.videocam : Icons.call;
+    final invitees = _callInvitees();
+
+    // Nobody else in the group -> nothing to call
+    if (invitees.isEmpty) {
+      return IconButton(
+        icon: Icon(icon, color: _iconColor.withValues(alpha: 0.4)),
+        onPressed: null,
+      );
+    }
+
+    return ZegoSendCallInvitationButton(
+      isVideoCall: video,
+      resourceID: 'zego_call',
+      invitees: invitees,
+      iconSize: const Size(40, 40),
+      buttonSize: const Size(40, 40),
+      icon: ButtonIcon(icon: Icon(icon, color: _iconColor)),
+      onPressed: (code, message, errors) {
+        debugPrint(
+          'GROUP ${video ? 'VIDEO' : 'VOICE'} CALL RESULT -> '
+          'code: $code, message: $message, errors: $errors',
+        );
+      },
+    );
   }
 
   void _openInfo() {
@@ -1442,6 +1576,8 @@ class _GroupChatViewState extends State<GroupChatView> {
     switch (type) {
       case 'image':
         return '📷 Photo';
+      case 'video':
+        return '🎥 Video';
       case 'audio':
         return '🎤 Voice message';
       case 'sticker':
@@ -1894,20 +2030,49 @@ class _GroupChatViewState extends State<GroupChatView> {
             actions: _searching
                 ? const <Widget>[]
                 : [
-              IconButton(
-                tooltip: 'Search',
-                icon: const Icon(Icons.search_rounded, color: _iconColor),
-                onPressed: _openSearch,
-              ),
-              IconButton(
-                tooltip: _isMuted ? 'Unmute' : 'Mute',
-                icon: Icon(
-                  _isMuted
-                      ? Icons.notifications_off_rounded
-                      : Icons.notifications_none_rounded,
-                  color: _iconColor,
+              _buildCallButton(video: false),
+              _buildCallButton(video: true),
+              PopupMenuButton<String>(
+                tooltip: 'More',
+                icon: const Icon(Icons.more_vert, color: _iconColor),
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                onPressed: _toggleMute,
+                onSelected: (v) {
+                  if (v == 'search') _openSearch();
+                  if (v == 'mute') _toggleMute();
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'search',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search_rounded, color: _plum),
+                        const SizedBox(width: 10),
+                        Text('Search', style: GoogleFonts.nunito()),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'mute',
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isMuted
+                              ? Icons.notifications_off_rounded
+                              : Icons.notifications_none_rounded,
+                          color: _plum,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _isMuted ? 'Unmute' : 'Mute',
+                          style: GoogleFonts.nunito(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               IconButton(
                 icon: const Icon(Icons.info, color: _iconColor),
@@ -1920,7 +2085,11 @@ class _GroupChatViewState extends State<GroupChatView> {
               if (pinned != null && !_searching) _buildPinnedBanner(pinned),
               Expanded(child: _buildMessages()),
               if (_sending)
-                const LinearProgressIndicator(minHeight: 2, color: _plum),
+                LinearProgressIndicator(
+                  minHeight: 2,
+                  color: _plum,
+                  value: _videoProgress, // null = indeterminate
+                ),
               if (!_searching) ...[
                 if (_mentionQuery != null) _buildMentionList(),
                 if (_replyTo != null) _buildReplyBanner(),
@@ -1999,7 +2168,8 @@ class _GroupChatViewState extends State<GroupChatView> {
                         color: _inputIcon,
                         size: 22,
                       ),
-                      onPressed: _sending ? null : _sendPhoto,
+                      tooltip: 'Photo or video',
+                      onPressed: _sending ? null : _showMediaSheet,
                     ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
@@ -2188,6 +2358,101 @@ class _GroupChatViewState extends State<GroupChatView> {
     );
   }
 
+  // NEW: first-frame thumbnail of a Cloudinary video (url .mp4 -> .jpg)
+  String _videoThumb(String url) {
+    final dot = url.lastIndexOf('.');
+    if (dot < 0) return url;
+    var out = '${url.substring(0, dot)}.jpg';
+    out = out.replaceFirst(
+      '/video/upload/',
+      '/video/upload/so_0,w_440,c_limit/',
+    );
+    return out;
+  }
+
+  // NEW: video bubble (thumbnail + play button, tap to play)
+  Widget _buildVideo(Map<String, dynamic> m, String time) {
+    final url = ((m['videoUrl'] ?? m['fileUrl'] ?? m['text'] ?? '') as String);
+    final size = _formatSize(((m['fileSize'] ?? 0) as num).toInt());
+
+    return GestureDetector(
+      onTap: () {
+        if (url.isEmpty) return;
+        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: SizedBox(
+          width: 220,
+          height: 160,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(color: Colors.black),
+              Image.network(
+                _videoThumb(url),
+                fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => const SizedBox.shrink(),
+              ),
+              Center(
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 34,
+                  ),
+                ),
+              ),
+              if (size.isNotEmpty)
+                Positioned(
+                  left: 8,
+                  bottom: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      size,
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ),
+                ),
+              Positioned(
+                right: 8,
+                bottom: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    time,
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // NEW: readable size like "1.5 KB"
   String _formatSize(int b) {
     if (b <= 0) return '';
@@ -2345,6 +2610,9 @@ class _GroupChatViewState extends State<GroupChatView> {
           ),
         ),
       );
+    } else if (type == 'video') {
+      // NEW: video bubble
+      body = _buildVideo(m, time);
     } else if (type == 'sticker') {
       body = Column(
         crossAxisAlignment: isMine
